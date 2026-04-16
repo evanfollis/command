@@ -1,0 +1,66 @@
+@import '@xterm/xterm/css/xterm.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --command-bg: #0d1117;
+  --command-bg-soft: #121922;
+  --command-panel: rgba(14, 19, 26, 0.78);
+  --command-panel-strong: rgba(12, 17, 24, 0.92);
+  --command-line: rgba(148, 163, 184, 0.16);
+  --command-glow: rgba(56, 189, 248, 0.18);
+  --command-warm: rgba(245, 158, 11, 0.15);
+  --command-copy: #e7ecf3;
+  --command-muted: #8ea0b7;
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
+    linear-gradient(180deg, var(--command-bg) 0%, #091018 100%);
+  color: var(--command-copy);
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 85%);
+}
+
+a, button {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #111;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+.font-mono-ui {
+  font-family: "IBM Plex Mono", "SFMono-Regular", "Cascadia Mono", monospace;
+}
