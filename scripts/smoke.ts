@@ -6,14 +6,14 @@
  *   - static CSS asset referenced by the current HTML is reachable
  *   - /login returns 200 with a password field
  *   - wrong password → 401, right password → 303 + relative Location + Set-Cookie
- *   - /ws/terminal upgrades and streams PTY output within 500ms
+ *   - /api/threads round-trip: create → list → fetch transcript → delete
+ *   - /sessions/general reachable when authed
  *
  * Exits non-zero on any failure. Wire this into the deploy pipeline so a
  * broken build cannot silently serve traffic.
  */
 import { readFileSync } from 'fs'
 import { WORKSPACE_PATHS } from '../src/lib/workspacePaths'
-import { WebSocket } from 'ws'
 
 const BASE = process.env.SMOKE_BASE || 'http://localhost:3100'
 const PASSWORD = process.env.COMMAND_PASSWORD ||
@@ -31,7 +31,6 @@ function check(name: string, ok: boolean, detail?: string) {
 }
 
 async function main() {
-  // 1. Login page loads and references a CSS asset that exists
   const loginRes = await fetch(`${BASE}/login`, { redirect: 'manual' })
   const loginBody = await loginRes.text()
   check('GET /login returns 200', loginRes.status === 200, `status=${loginRes.status}`)
@@ -46,7 +45,6 @@ async function main() {
     check('CSS asset referenced in HTML', false, 'no CSS link found')
   }
 
-  // 2. Wrong password → 401 (JSON path) or 303 → /login?error=1 (form path)
   const badJson = await fetch(`${BASE}/api/auth`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -55,7 +53,6 @@ async function main() {
   })
   check('wrong password (json) → 401', badJson.status === 401, `status=${badJson.status}`)
 
-  // 3. Right password → 303 with RELATIVE Location + Set-Cookie
   const goodForm = await fetch(`${BASE}/api/auth`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -79,51 +76,53 @@ async function main() {
     goodForm.headers.get('cache-control')?.includes('no-store') === true)
 
   const token = tokenMatch?.[1]
+  if (!token) {
+    console.log(`\nSMOKE FAILED (auth failed, cannot continue)`)
+    process.exit(1)
+  }
+  const authHeaders = { Cookie: `command_token=${token}` }
 
-  // 4. WebSocket terminal: open, receive PTY output within 500ms
-  if (token) {
-    await new Promise<void>((resolve) => {
-      const ws = new WebSocket(`${BASE.replace(/^http/, 'ws')}/ws/terminal`, {
-        headers: { Cookie: `command_token=${token}`, 'X-Source-Type': 'smoke' },
-      })
-      const timer = setTimeout(() => {
-        check('WS /ws/terminal streams output within 500ms', false, 'timeout')
-        ws.close()
-        resolve()
-      }, 500)
-      ws.on('message', () => {
-        clearTimeout(timer)
-        check('WS /ws/terminal streams output within 500ms', true)
-        ws.close()
-        resolve()
-      })
-      ws.on('error', (e) => {
-        clearTimeout(timer)
-        check('WS /ws/terminal streams output within 500ms', false, e.message)
-        resolve()
-      })
+  // Threads round-trip (no real agent turn — just plumbing)
+  const createRes = await fetch(`${BASE}/api/threads`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'smoke-test', model: 'codex' }),
+  })
+  check('POST /api/threads → 200', createRes.ok, `status=${createRes.status}`)
+  const createdBody = await createRes.json().catch(() => ({}))
+  const threadId = createdBody?.thread?.id as string | undefined
+  check('create response has thread.id (uuid)', Boolean(threadId && /^[0-9a-f-]{36}$/.test(threadId)))
+
+  const listRes = await fetch(`${BASE}/api/threads`, { headers: authHeaders })
+  const listBody = await listRes.json().catch(() => ({}))
+  const threads: Array<{ id: string }> = listBody?.threads || []
+  check('GET /api/threads lists created thread', Boolean(threadId && threads.some((t) => t.id === threadId)))
+
+  if (threadId) {
+    const msgRes = await fetch(`${BASE}/api/threads/${threadId}/messages`, { headers: authHeaders })
+    check('GET /api/threads/:id/messages → 200', msgRes.ok, `status=${msgRes.status}`)
+
+    const delRes = await fetch(`${BASE}/api/threads/${threadId}`, {
+      method: 'DELETE',
+      headers: authHeaders,
     })
+    check('DELETE /api/threads/:id → 200', delRes.ok, `status=${delRes.status}`)
   }
 
-  // 5. /sessions/general page exists (200 when authed, 307 to login when not — not 404/500)
-  if (token) {
-    const pmRes = await fetch(`${BASE}/sessions/general`, {
-      headers: { Cookie: `command_token=${token}` },
-      redirect: 'manual',
-    })
-    check(
-      'GET /sessions/general returns 200 (authed)',
-      pmRes.status === 200,
-      `status=${pmRes.status}`
-    )
-  } else {
-    const pmAnon = await fetch(`${BASE}/sessions/general`, { redirect: 'manual' })
-    check(
-      'GET /sessions/general redirects to login (unauthenticated)',
-      pmAnon.status === 307 || pmAnon.status === 200,
-      `status=${pmAnon.status}`
-    )
-  }
+  const pmRes = await fetch(`${BASE}/sessions/general`, {
+    headers: authHeaders,
+    redirect: 'manual',
+  })
+  check(
+    'GET /sessions/general returns 200 (authed)',
+    pmRes.status === 200,
+    `status=${pmRes.status}`
+  )
+
+  const statusRes = await fetch(`${BASE}/api/project-status`, { headers: authHeaders })
+  check('GET /api/project-status → 200', statusRes.ok, `status=${statusRes.status}`)
+  const statusBody = await statusRes.json().catch(() => ({}))
+  check('project-status returns sessions array', Array.isArray(statusBody?.sessions))
 
   console.log(failed === 0 ? '\nSMOKE PASSED' : `\nSMOKE FAILED (${failed} check${failed > 1 ? 's' : ''})`)
   process.exit(failed === 0 ? 0 : 1)

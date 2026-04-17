@@ -1,13 +1,12 @@
-import { readdirSync, readFileSync } from 'fs'
+import { execFileSync } from 'child_process'
+import { existsSync, readFileSync } from 'fs'
 import { NextResponse } from 'next/server'
 
 import { listSessions } from '@/lib/tmux'
-import { WORKSPACE_PATHS } from '@/lib/workspacePaths'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// Maps tmux session names (from sessions.conf) to reflection file prefixes (from projects.conf)
 const SESSION_TO_PROJECT: Record<string, string> = {
   general: 'supervisor',
   mentor: 'mentor',
@@ -18,7 +17,10 @@ const SESSION_TO_PROJECT: Record<string, string> = {
   atlas: 'atlas',
 }
 
-// Sessions declared in sessions.conf — drives the status strip order
+const CURRENT_STATE_FALLBACK: Record<string, string> = {
+  general: '/opt/workspace/supervisor/system/status.md',
+}
+
 const SESSIONS_CONF = '/opt/workspace/supervisor/scripts/lib/sessions.conf'
 
 interface SessionRow {
@@ -31,39 +33,62 @@ interface SessionRow {
 function parseSessionsConf(): SessionRow[] {
   try {
     const raw = readFileSync(SESSIONS_CONF, 'utf-8')
-    return raw.split('\n')
+    return raw
+      .split('\n')
       .filter((line) => line.trim() && !line.startsWith('#'))
       .map((line) => {
         const [name, cwd, agent, role] = line.split('|')
-        return { name: name.trim(), cwd: (cwd || '').trim(), agent: (agent || 'claude').trim(), role: (role || 'project').trim() }
+        return {
+          name: name.trim(),
+          cwd: (cwd || '').trim(),
+          agent: (agent || 'claude').trim(),
+          role: (role || 'project').trim(),
+        }
       })
   } catch {
     return []
   }
 }
 
-function getLastReflectionSummary(projectName: string): string {
+function currentStatePath(session: SessionRow): string | null {
+  const override = CURRENT_STATE_FALLBACK[session.name]
+  if (override && existsSync(override)) return override
+  const direct = `${session.cwd}/CURRENT_STATE.md`
+  if (existsSync(direct)) return direct
+  return null
+}
+
+function truncate(value: string | null, max: number): string | null {
+  if (!value) return null
+  const cleaned = value.replace(/\s+/g, ' ').trim()
+  if (cleaned.length <= max) return cleaned
+  return cleaned.slice(0, max - 1) + '…'
+}
+
+function readCurrentState(session: SessionRow): { path: string | null; content: string | null } {
+  const path = currentStatePath(session)
+  if (!path) return { path: null, content: null }
   try {
-    const files = readdirSync(WORKSPACE_PATHS.metaDir)
-      .filter((f) => f.startsWith(`${projectName}-reflection-`) && f.endsWith('.md'))
-      .sort()
-      .reverse()
-
-    if (files.length === 0) return 'no reflection yet'
-
-    const content = readFileSync(`${WORKSPACE_PATHS.metaDir}/${files[0]}`, 'utf-8')
-
-    // Find the first ## Observation heading and extract first non-empty paragraph
-    const match = content.match(/##\s+Observation[^\n]*\n+([\s\S]*?)(?=\n##|\n---|\s*$)/)
-    if (!match) return 'no observation found'
-
-    const paragraph = match[1].trim().split('\n').find((l) => l.trim())
-    if (!paragraph) return 'no observation found'
-
-    const truncated = paragraph.trim().replace(/^[-*]\s*/, '')
-    return truncated.length > 80 ? truncated.slice(0, 79) + '…' : truncated
+    return { path, content: readFileSync(path, 'utf-8') }
   } catch {
-    return 'no reflection yet'
+    return { path, content: null }
+  }
+}
+
+function getLastCommit(cwd: string): { subject: string; relativeTime: string } | null {
+  if (!cwd || !existsSync(`${cwd}/.git`)) return null
+  try {
+    const subject = execFileSync('git', ['-C', cwd, 'log', '-1', '--format=%s'], {
+      encoding: 'utf-8',
+      timeout: 2000,
+    }).trim()
+    const relativeTime = execFileSync('git', ['-C', cwd, 'log', '-1', '--format=%ar'], {
+      encoding: 'utf-8',
+      timeout: 2000,
+    }).trim()
+    return { subject: truncate(subject, 80) || '', relativeTime }
+  } catch {
+    return null
   }
 }
 
@@ -74,13 +99,19 @@ export async function GET() {
 
   const rows = declared.map((row) => {
     const projectName = SESSION_TO_PROJECT[row.name] ?? row.name
+    const { path, content } = readCurrentState(row)
     return {
       name: row.name,
+      projectName,
       cwd: row.cwd,
       agent: row.agent,
       role: row.role,
       live: liveNames.has(row.name),
-      lastReflection: getLastReflectionSummary(projectName),
+      currentState: {
+        path,
+        content,
+      },
+      lastCommit: getLastCommit(row.cwd),
     }
   })
 

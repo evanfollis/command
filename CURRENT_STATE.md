@@ -1,67 +1,61 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-17T16-56-44Z — terminal investigation tick
+**Last updated**: 2026-04-17T18:30Z — consolidation pass (threads + portfolio)
 
 ---
 
 ## Deployed / running state
 - **URL**: command.synaplex.ai (Cloudflare Tunnel → localhost:3100)
 - **Process**: runs directly on host (not Docker), managed by systemd
-- **Last known commit**: terminal investigation tick — 15/15 smoke checks passing
-- **Auth**: password + JWT in httpOnly cookies (cookie-only — URL token param removed)
-- **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. `NextResponse.redirect(new URL('/login', origin))` in `middleware.ts`.
+- **Auth**: password + JWT in httpOnly cookies (cookie-only)
+- **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
+- **Smoke**: 20/20 checks passing.
 
-## What just completed
-Terminal investigation — 7-day carry-forward resolved:
+## What this is now
+A focused executive surface with three jobs and nothing else:
 
-The 14-27ms `terminal.connected/disconnected` events were all smoke test connections, not broken user sessions. The smoke test opens a WS, receives the first PTY frame (~15-20ms), closes immediately. This was logged as `sourceType: 'user'` — telemetry misidentification.
+1. **Executive chat** — multi-thread, one model per thread (Claude or Codex). Each thread is backed by a native resumable session: `claude --session-id <uuid>` on first turn, `--resume <uuid>` after; Codex captures session id via `~/.codex/sessions/` diff, resumes with `codex exec resume <uuid>`. Sidebar UI with `+ New thread` / rename / delete. Threads live in `/opt/workspace/runtime/.threads/<uuid>.meta.json` + `<uuid>.transcript.jsonl`. **Resumable from any terminal via CLI.**
+2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Inline project-session chat (pane output polling + send) inside each expanded card. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
+3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 
-Root-cause verified: localhost WS stays alive 5+ seconds; cloudflared WS stays alive 5+ seconds; exact service env shell (no HOME) stays alive 3+ seconds. The terminal protocol is sound.
-
-**Commits this tick:**
-- Terminal investigation + telemetry fixes (see delivery state)
-
-**Fixes landed:**
-1. `server.ts`: Smoke test connections tagged `sourceType: 'smoke'` via `X-Source-Type` header (browsers can't set custom WS headers). Added `closeCode`/`closeReason` to `terminal.disconnected`. Added `terminal.pty_exit` event (exitCode, signal).
-2. `scripts/smoke.ts`: Pass `X-Source-Type: smoke` header on WS check.
-3. `src/app/terminal/page.tsx`: Added `if (cancelled) return` before WS creation to prevent orphaned connections when component unmounts during dynamic imports.
-4. `scripts/check-patterns.ts`: Extended to scan `server.ts` (carry-forward fix).
-
-## Key routes
-- `GET /api/project-status` — returns sessions from sessions.conf with live status and last reflection summary
-- `GET /sessions/[name]` — PM plug-in page (pane output, send, auto-refresh 3s)
-- `GET /api/executive/thread` — returns executive thread state + messages (no telemetry)
+## What just completed (2026-04-17 consolidation)
+- Ripped out prompt-stitched `executiveConversation.ts`; built `threadConversation.ts` on native session IDs with per-thread in-flight lock.
+- Added `/api/threads`, `/api/threads/[id]`, `/api/threads/[id]/messages`.
+- Deleted `/orchestrate`, `/terminal`, `/telemetry`, `/meta`, and `/sessions` index. Backing APIs gone too. Terminal WS handler stripped from `server.ts`.
+- Nav collapsed to logo + logout. No tab row.
+- Portfolio reads each project's CURRENT_STATE.md directly (fallback: `supervisor/system/status.md` for general). `react-markdown` + `@tailwindcss/typography` render the front door.
+- Smoke suite rewritten: 20 checks covering threads round-trip + project-status + auth + CSS.
+- End-to-end verified server-side: Claude thread turn → CLI `claude --resume` recalled prior phrase. Same for Codex.
 
 ## Known broken or degraded
-- **Possible auth double-submit** — telemetry shows `auth.login_failed` + `auth.login_succeeded` 15ms apart on the same login session. Investigate login form submit handling.
-
-## Telemetry contract (updated)
-- `terminal.connected`: `sourceType: 'smoke'` for smoke tests; `'user'` for real browser sessions.
-- `terminal.disconnected`: now includes `closeCode` (1005=client normal close, 1006=abnormal, 1001=going away) and `closeReason`.
-- `terminal.pty_exit`: fires when PTY process exits (exitCode, signal). Code 0/signal 1 = SIGHUP from terminal hangup (normal after ws.close).
-
-## Carry-forwards
-- **`/review` not invoked for `e234231`** — major feature (533 additions, 7 files). Second consecutive cycle skipped. Third skip would be a policy violation.
-- **Possible auth double-submit** — telemetry shows `auth.login_failed` + `auth.login_succeeded` 15ms apart on the same login session. Investigate login form submit handling.
-- **Smoke test double-check** — smoke shows "WS /ws/terminal streams output within 500ms" twice when PTY sends two frames before close handshake completes. Benign (both succeed), but inflates the visible check count from 14 to 15.
+- **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. That is the intended pressure signal — not a bug to paper over.
+- **Advice-vs-action gap in the chat surface**: first real use showed both Claude and Codex threads producing diagnosis without commits/edits. Agents end in "you should..." rather than acting and reporting. Root cause: native session default prompts orient toward analysis; the executive thread is a steering surface that should default to action. Next investigation: inject a short thread-opening system framing on thread creation.
 
 ## Recent decisions
-- **Cookie-only JWT**: URL token fallback removed. Any future WebSocket auth must use cookie, not URL params.
-- **Smoke test WS auth**: uses `headers: { Cookie: ... }` in ws library, not `?token=`. Matches what browsers do.
-- **Smoke test sourceType**: uses `X-Source-Type: smoke` header. Server detects this. Browsers cannot set custom WS headers, so only programmatic clients can set this.
-- **`claude -p` for Claude routing**: confirmed works without `--dangerously-skip-permissions`. No `--cwd` flag in Claude CLI; use `cwd` in `execFileSync` options.
-- **Model selector in localStorage only**: `model` field sent per-message in POST body.
-- **Session→project name mapping**: `general→supervisor`, `skillfoundry→skillfoundry-harness`, `context-repo→context-repository`. Lives in `/api/project-status/route.ts:SESSION_TO_PROJECT`.
-- **Middleware redirect uses pinned origin**: `COMMAND_ORIGIN=https://command.synaplex.ai`. Do NOT use `req.url` or `req.headers.host`.
-- **Thread read telemetry omitted by design**: `executive.thread_read` was removed not because it was broken but because it was pure noise. Do not re-add without a concrete observability need.
-- **`timestamp: number` (epoch ms) is the correct field name**: Workspace CLAUDE.md was reconciled on 2026-04-17 to match reality. Do not rename to `ts: string`.
+- **Native session IDs, not prompt stitching**: threads ARE Claude/Codex sessions, not UI buffers. Guarantees CLI resumability and feeds the reflection loop automatically (sessions land in paths the reflect.sh job already scans).
+- **One model per thread**: pinned at creation. No mid-conversation model swap — matches how Claude/Codex UIs themselves work.
+- **Sidecar transcript for UI**: `<id>.transcript.jsonl` is the fast read path for the browser. Source of truth for the agent is still the native JSONL.
+- **CURRENT_STATE.md rendered at full fidelity**: no regex extraction, no 140-char truncation. The front door is the source; drift becomes visible.
+- **Portfolio cards expand inline**: full CURRENT_STATE render + project-session chat. Dedicated `/sessions/[name]` kept as deep link.
+- **Cookie-only JWT**: URL token fallback removed.
+- **Pinned public origin**: never derive URLs from `req.url` behind cloudflared.
+
+## Key routes
+- `GET /api/threads` — list · `POST /api/threads` — create
+- `PATCH/DELETE /api/threads/[id]` — rename / delete
+- `GET/POST /api/threads/[id]/messages` — transcript / send turn
+- `GET /api/project-status` — portfolio (sessions.conf + live/offline + last commit + full CURRENT_STATE.md content per project)
+- `GET /api/sessions/[name]` — pane output for a project session
+- `POST /api/send` — send keys into a project tmux session
+- `GET /sessions/[name]` — full-screen project-session view (linked from portfolio cards)
+
+## Carry-forwards
+- **Advice-vs-action gap** (see above). This is the structural shape to break next.
+- **FR-0015 Layer-3 proof**: browser workflow with threads + portfolio verified from a real device. Server-side round-trip is proven; user-side browser confirmation is the remaining evidence.
 
 ## What the next agent must read first
-1. **Auth double-submit** is the top remaining carry-forward. Check login form submit handler in `src/app/login/page.tsx` for double-submit scenario.
-2. **`/review` for `e234231`** must be run — third skip would violate the adversarial review policy.
-3. `executiveConversation.ts` if modifying Claude routing — `model` param is the entry point.
-4. `src/app/api/executive/message/route.ts` is the message endpoint (`src/app/api/executive/route.ts` does not exist).
-5. `/review` is required before closing any tick that touches ≥3 files or adds ≥100 lines.
-
-## Remaining uncertainty
-- Terminal was NOT tested in an actual browser during this tick. WS protocol confirmed working via Node client through cloudflared. If Evan does observe a broken terminal in the browser, the `closeCode` field in `terminal.disconnected` now disambiguates: 1001 = browser navigating away (React cleanup), 1006 = network/proxy drop, 1000 or 1005 = clean client close.
+1. This file.
+2. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
+3. `src/components/PortfolioCard.tsx` if changing the project-inspection surface.
+4. `/opt/workspace/projects/context-repository/docs/agent-context-repo-pattern.md` — the canonical front-door spec this UI surfaces.
+5. `/review` is still required before closing any tick that touches ≥3 files or adds ≥100 lines.
