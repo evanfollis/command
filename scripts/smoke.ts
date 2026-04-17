@@ -84,7 +84,7 @@ async function main() {
   if (token) {
     await new Promise<void>((resolve) => {
       const ws = new WebSocket(`${BASE.replace(/^http/, 'ws')}/ws/terminal`, {
-        headers: { Cookie: `command_token=${token}` },
+        headers: { Cookie: `command_token=${token}`, 'X-Source-Type': 'smoke' },
       })
       const timer = setTimeout(() => {
         check('WS /ws/terminal streams output within 500ms', false, 'timeout')

@@ -13,6 +13,7 @@ import { readFileSync, readdirSync, statSync } from 'fs'
 import { join, extname } from 'path'
 
 const ROOT = join(__dirname, '..', 'src')
+const EXTRA_FILES = [join(__dirname, '..', 'server.ts')]
 const BANNED: Array<{ pattern: RegExp; reason: string }> = [
   {
     pattern: /new URL\([^,)]+,\s*req\.url\s*\)/,
@@ -36,7 +37,7 @@ function walk(dir: string): string[] {
 }
 
 let violations = 0
-for (const file of walk(ROOT)) {
+for (const file of [...walk(ROOT), ...EXTRA_FILES]) {
   const src = readFileSync(file, 'utf8')
   const lines = src.split('\n')
   lines.forEach((line, i) => {

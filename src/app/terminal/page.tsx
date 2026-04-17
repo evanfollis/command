@@ -56,6 +56,8 @@ export default function TerminalPage() {
       term.loadAddon(fitAddon)
       term.loadAddon(new WebLinksAddon())
 
+      if (cancelled) return
+
       if (containerRef.current) {
         term.open(containerRef.current)
         fitAddon.fit()

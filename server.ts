@@ -51,6 +51,8 @@ app.prepare().then(() => {
     const environment = getEnvironmentProfile(environmentId)
     const websocketSessionId = crypto.randomUUID()
     const shell = process.env.SHELL || '/bin/bash'
+    // Programmatic clients (smoke test) set X-Source-Type: smoke; browsers cannot set custom WS headers
+    const termSourceType = (req.headers['x-source-type'] as string) === 'smoke' ? 'smoke' : 'user'
     const pty: IPty = spawn(shell, [], {
       name: 'xterm-256color',
       cols: 120,
@@ -63,7 +65,7 @@ app.prepare().then(() => {
       source: 'command.server.terminal',
       eventType: 'terminal.connected',
       level: 'info',
-      sourceType: 'user',
+      sourceType: termSourceType,
       sessionId: websocketSessionId,
       details: {
         environmentId: environment.id,
@@ -77,7 +79,16 @@ app.prepare().then(() => {
       }
     })
 
-    pty.onExit(() => {
+    pty.onExit(({ exitCode, signal }: { exitCode: number; signal?: number }) => {
+      recordTelemetry({
+        project: 'command',
+        source: 'command.server.terminal',
+        eventType: 'terminal.pty_exit',
+        level: exitCode === 0 ? 'info' : 'warn',
+        sourceType: termSourceType,
+        sessionId: websocketSessionId,
+        details: { environmentId: environment.id, exitCode, signal: signal ?? null },
+      })
       if (ws.readyState === WebSocket.OPEN) {
         ws.close()
       }
@@ -97,15 +108,15 @@ app.prepare().then(() => {
       }
     })
 
-    ws.on('close', () => {
+    ws.on('close', (code: number, reason: Buffer) => {
       recordTelemetry({
         project: 'command',
         source: 'command.server.terminal',
         eventType: 'terminal.disconnected',
         level: 'info',
-        sourceType: 'user',
+        sourceType: termSourceType,
         sessionId: websocketSessionId,
-        details: { environmentId: environment.id },
+        details: { environmentId: environment.id, closeCode: code, closeReason: reason?.toString() || '' },
       })
       pty.kill()
     })
