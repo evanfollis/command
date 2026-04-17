@@ -2,7 +2,15 @@
 
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Shell from '@/components/Shell'
-import PortfolioCard, { type PortfolioProject } from '@/components/PortfolioCard'
+import PortfolioCard, { type PortfolioProject, type ProjectMetrics } from '@/components/PortfolioCard'
+
+const SESSION_TO_METRICS_KEY: Record<string, string> = {
+  general: 'admin',
+}
+
+function metricsKeyForSession(sessionName: string): string {
+  return SESSION_TO_METRICS_KEY[sessionName] ?? sessionName
+}
 
 interface ExecutiveCapabilities {
   posture: string
@@ -71,6 +79,8 @@ export default function ExecutivePage() {
   const [sending, setSending] = useState(false)
   const [threadError, setThreadError] = useState('')
   const [projects, setProjects] = useState<PortfolioProject[]>([])
+  const [metricsByProject, setMetricsByProject] = useState<Record<string, ProjectMetrics>>({})
+  const [metricsGeneratedAt, setMetricsGeneratedAt] = useState<string | null>(null)
   const [capabilities, setCapabilities] = useState<ExecutiveCapabilities | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -117,6 +127,18 @@ export default function ExecutivePage() {
     }
   }, [])
 
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const res = await fetch('/api/metrics/summary')
+      if (!res.ok) return
+      const data = await res.json()
+      setMetricsByProject(data.projects || {})
+      setMetricsGeneratedAt(data.generated_at || null)
+    } catch {
+      // non-critical
+    }
+  }, [])
+
   const fetchCapabilities = useCallback(async () => {
     try {
       const res = await fetch('/api/executive/thread')
@@ -132,11 +154,18 @@ export default function ExecutivePage() {
     fetchThreads()
     fetchProjects()
     fetchCapabilities()
+    fetchMetrics()
     const projectInterval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchProjects()
     }, 15000)
-    return () => clearInterval(projectInterval)
-  }, [fetchThreads, fetchProjects, fetchCapabilities])
+    const metricsInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchMetrics()
+    }, 60000)
+    return () => {
+      clearInterval(projectInterval)
+      clearInterval(metricsInterval)
+    }
+  }, [fetchThreads, fetchProjects, fetchCapabilities, fetchMetrics])
 
   useEffect(() => {
     if (!activeId) {
@@ -439,7 +468,9 @@ export default function ExecutivePage() {
             <div className="mb-4 flex items-center justify-between text-[11px] uppercase tracking-[0.26em] text-neutral-500">
               <span>Portfolio</span>
               <span className="text-neutral-600 normal-case tracking-normal text-[10px]">
-                each card = that project&apos;s CURRENT_STATE.md + live session
+                {metricsGeneratedAt
+                  ? `metrics as of ${relativeTime(Date.parse(metricsGeneratedAt))}`
+                  : 'metrics loading…'}
               </span>
             </div>
             <div className="space-y-3">
@@ -447,7 +478,11 @@ export default function ExecutivePage() {
                 <p className="text-sm text-neutral-500">Loading projects…</p>
               )}
               {projects.map((p) => (
-                <PortfolioCard key={p.name} project={p} />
+                <PortfolioCard
+                  key={p.name}
+                  project={p}
+                  metrics={metricsByProject[metricsKeyForSession(p.name)] ?? null}
+                />
               ))}
             </div>
           </section>

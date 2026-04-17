@@ -6,7 +6,7 @@ import { WORKSPACE_PATHS } from '@/lib/workspacePaths'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const ALLOWED_WINDOWS = new Set(['today', '24h', '7d', 'all', 'LATEST'])
+const ALLOWED_WINDOWS = new Set(['1h', 'today', '24h', '7d', '30d', 'all', 'LATEST'])
 
 export async function GET(req: NextRequest) {
   const window = req.nextUrl.searchParams.get('window') || 'today'

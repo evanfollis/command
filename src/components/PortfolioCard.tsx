@@ -5,6 +5,16 @@ import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+export interface WindowMetrics {
+  threads: number
+  compute_minutes: number
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+}
+
+export type ProjectMetrics = Record<'1h' | '24h' | '7d' | '30d', WindowMetrics>
+
 export interface PortfolioProject {
   name: string
   projectName: string
@@ -19,7 +29,63 @@ export interface PortfolioProject {
   lastCommit: { subject: string; relativeTime: string } | null
 }
 
-export default function PortfolioCard({ project }: { project: PortfolioProject }) {
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
+}
+
+function formatMinutes(m: number): string {
+  if (m >= 60) return `${(m / 60).toFixed(1)}h`
+  if (m >= 1) return `${m.toFixed(1)}m`
+  if (m > 0) return `${Math.round(m * 60)}s`
+  return '—'
+}
+
+function MetricsTable({ metrics }: { metrics: ProjectMetrics | null }) {
+  if (!metrics) {
+    return <p className="text-xs text-neutral-500">No metrics data (rollup not yet generated or this project has no attributed sessions).</p>
+  }
+  const windows: Array<keyof ProjectMetrics> = ['1h', '24h', '7d', '30d']
+  const labels: Record<keyof ProjectMetrics, string> = {
+    '1h': 'past hour',
+    '24h': '24 hours',
+    '7d': 'week',
+    '30d': 'month',
+  }
+  return (
+    <table className="w-full text-xs">
+      <thead>
+        <tr className="text-neutral-500">
+          <th className="text-left font-normal py-1">metric</th>
+          {windows.map((w) => (
+            <th key={w} className="text-right font-normal py-1 pr-2">{labels[w]}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody className="font-mono text-neutral-200">
+        <tr className="border-t border-white/5">
+          <td className="py-1 text-neutral-400">threads</td>
+          {windows.map((w) => <td key={w} className="text-right py-1 pr-2">{metrics[w].threads}</td>)}
+        </tr>
+        <tr className="border-t border-white/5">
+          <td className="py-1 text-neutral-400">compute</td>
+          {windows.map((w) => <td key={w} className="text-right py-1 pr-2">{formatMinutes(metrics[w].compute_minutes)}</td>)}
+        </tr>
+        <tr className="border-t border-white/5">
+          <td className="py-1 text-neutral-400">tokens in</td>
+          {windows.map((w) => <td key={w} className="text-right py-1 pr-2">{formatTokens(metrics[w].input_tokens)}</td>)}
+        </tr>
+        <tr className="border-t border-white/5">
+          <td className="py-1 text-neutral-400">tokens out</td>
+          {windows.map((w) => <td key={w} className="text-right py-1 pr-2">{formatTokens(metrics[w].output_tokens)}</td>)}
+        </tr>
+      </tbody>
+    </table>
+  )
+}
+
+export default function PortfolioCard({ project, metrics }: { project: PortfolioProject; metrics: ProjectMetrics | null }) {
   const [open, setOpen] = useState(false)
   const [paneOutput, setPaneOutput] = useState('')
   const [message, setMessage] = useState('')
@@ -95,6 +161,14 @@ export default function PortfolioCard({ project }: { project: PortfolioProject }
 
       {open && (
         <div className="border-t border-white/8 px-4 py-4 space-y-4">
+          {/* Metrics */}
+          <section>
+            <div className="mb-2 text-[11px] uppercase tracking-[0.22em] text-neutral-500">Metrics</div>
+            <div className="rounded-xl border border-white/8 bg-black/30 px-4 py-3">
+              <MetricsTable metrics={metrics} />
+            </div>
+          </section>
+
           {/* Context repo front door */}
           <section>
             <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.22em] text-neutral-500">
