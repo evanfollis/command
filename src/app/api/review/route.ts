@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
     source: 'command.api.review',
     eventType: 'review.requested',
     level: 'info',
+    sourceType: 'user',
     taskId,
     details: { reviewer: reviewer || 'codex', focus },
   })

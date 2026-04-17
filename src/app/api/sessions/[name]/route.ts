@@ -15,6 +15,7 @@ export async function GET(
     source: 'command.api.sessions',
     eventType: 'session.captured',
     level: 'info',
+    sourceType: 'system',
     details: { lines: 80 },
   })
   return NextResponse.json({ name, output })

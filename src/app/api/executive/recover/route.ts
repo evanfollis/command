@@ -14,6 +14,7 @@ export async function POST() {
     source: 'command.api.executive',
     eventType: result.ok ? 'executive.recover_succeeded' : 'executive.recover_failed',
     level: result.ok ? 'info' : 'error',
+    sourceType: 'user',
     details: {
       effectiveRole: result.capabilities.effective_role,
       operatorAvailable: result.capabilities.operator_available,

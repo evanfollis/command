@@ -14,6 +14,7 @@ export async function GET() {
     source: 'command.api.executive',
     eventType: 'executive.capabilities_read',
     level: 'info',
+    sourceType: 'system',
     details: {
       effectiveRole: status.capabilities.effective_role,
       operatorAvailable: status.capabilities.operator_available,

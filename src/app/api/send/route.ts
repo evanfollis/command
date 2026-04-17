@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     source: 'command.api.send',
     eventType: ok ? 'session.message_sent' : 'session.message_failed',
     level: ok ? 'info' : 'error',
+    sourceType: 'user',
     details: Array.isArray(keys) ? { keys } : { length: message.length },
   })
   return NextResponse.json({ ok, session })

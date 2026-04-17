@@ -11,6 +11,7 @@ export async function GET() {
     source: 'command.api.sessions',
     eventType: 'sessions.listed',
     level: 'info',
+    sourceType: 'system',
     details: { count: sessions.length },
   })
   return NextResponse.json({ sessions })

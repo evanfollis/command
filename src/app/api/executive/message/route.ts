@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       source: 'command.api.executive',
       eventType: 'executive.respond_succeeded',
       level: 'info',
+      sourceType: 'user',
       details: {
         executiveCodexPresent: status.executiveCodexSession.present,
         operatorAvailable: status.capabilities.operator_available,
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
       source: 'command.api.executive',
       eventType: 'executive.respond_failed',
       level: 'error',
+      sourceType: 'user',
       details: {
         executiveCodexPresent: status.executiveCodexSession.present,
         operatorAvailable: status.capabilities.operator_available,

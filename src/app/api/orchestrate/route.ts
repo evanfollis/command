@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
       source: 'command.api.orchestrate',
       eventType: 'orchestrate.dispatch_requested',
       level: 'info',
+      sourceType: 'user',
       taskId: task.id,
       sessionId: task.sessionId,
       details: { intent: signals.intent, risk: signals.risk },
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
       source: 'command.api.orchestrate',
       eventType: 'orchestrate.analyze_requested',
       level: 'info',
+      sourceType: 'user',
       taskId: task.id,
       sessionId: task.sessionId,
     })
@@ -115,6 +117,7 @@ export async function POST(req: NextRequest) {
       source: 'command.api.orchestrate',
       eventType: 'orchestrate.execute_requested',
       level: 'info',
+      sourceType: 'user',
       taskId: task.id,
       sessionId: task.sessionId,
     })
@@ -141,6 +144,7 @@ export async function GET() {
     source: 'command.api.orchestrate',
     eventType: 'orchestrate.list_tasks',
     level: 'info',
+    sourceType: 'user',
     details: { count: tasks.length },
   })
   return NextResponse.json({ tasks })

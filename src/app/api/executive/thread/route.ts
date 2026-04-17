@@ -16,6 +16,7 @@ export async function GET() {
     source: 'command.api.executive',
     eventType: 'executive.thread_read',
     level: 'info',
+    sourceType: 'system',
     details: {
       executiveCodexPresent: state.executiveCodexSession.present,
       liveSessions: state.liveSessions.length,

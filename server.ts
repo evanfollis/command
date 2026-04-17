@@ -65,6 +65,7 @@ app.prepare().then(() => {
       source: 'command.server.terminal',
       eventType: 'terminal.connected',
       level: 'info',
+      sourceType: 'user',
       sessionId: websocketSessionId,
       details: {
         environmentId: environment.id,
@@ -104,6 +105,7 @@ app.prepare().then(() => {
         source: 'command.server.terminal',
         eventType: 'terminal.disconnected',
         level: 'info',
+        sourceType: 'user',
         sessionId: websocketSessionId,
         details: { environmentId: environment.id },
       })

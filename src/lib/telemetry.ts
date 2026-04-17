@@ -2,6 +2,8 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'fs'
 import { dirname } from 'path'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
+export type SourceType = 'user' | 'system' | 'smoke' | 'cron'
+
 export interface TelemetryEvent {
   id: string
   timestamp: number
@@ -9,6 +11,7 @@ export interface TelemetryEvent {
   source: string
   eventType: string
   level: 'info' | 'warn' | 'error'
+  sourceType: SourceType
   sessionId?: string
   taskId?: string
   details?: Record<string, unknown>

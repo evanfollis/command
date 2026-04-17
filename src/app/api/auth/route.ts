@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
       source: 'command.api.auth',
       eventType: 'auth.login_failed',
       level: 'warn',
+      sourceType: 'user',
     })
     if (isForm) return redirect('/login?error=1')
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
     source: 'command.api.auth',
     eventType: 'auth.login_succeeded',
     level: 'info',
+    sourceType: 'user',
   })
 
   if (isForm) return redirect('/', cookieHeader(token))
@@ -71,6 +73,7 @@ export async function DELETE() {
     source: 'command.api.auth',
     eventType: 'auth.logout',
     level: 'info',
+    sourceType: 'user',
   })
   const res = NextResponse.json({ ok: true })
   res.cookies.delete(COOKIE_NAME)

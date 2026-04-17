@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     source: 'command.client.beacon',
     eventType: `client.${kind}`,
     level: 'info',
+    sourceType: 'user',
     details: {
       href: String(body.href || '').slice(0, 500),
       referrer: String(body.referrer || '').slice(0, 500),

@@ -124,6 +124,7 @@ export function createTask(
       source: 'command.taskStore',
       eventType: 'task.created',
       level: 'info',
+      sourceType: 'system',
       taskId: task.id,
       sessionId: task.sessionId,
       details: {
@@ -160,6 +161,7 @@ export function updateTask(id: string, updates: Partial<Task>, event?: Omit<Task
       source: 'command.taskStore',
       eventType: latestEvent.type,
       level: latestEvent.type.includes('failed') ? 'error' : latestEvent.type.includes('review') ? 'warn' : 'info',
+      sourceType: 'system',
       taskId: task.id,
       sessionId: task.sessionId,
       details: latestEvent.details,
