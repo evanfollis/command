@@ -71,37 +71,51 @@ function buildPrompt(userMessage: string, history: ExecutiveMessage[]): string {
   ].join('\n')
 }
 
-export function runExecutiveTurn(userMessage: string): string {
+export function runExecutiveTurn(userMessage: string, model: 'claude' | 'codex' = 'codex'): string {
   const history = getExecutiveConversation()
   const prompt = buildPrompt(userMessage, history)
-  const outputFile = `${tmpdir()}/executive-response-${Date.now()}.txt`
-
-  const stdout = execFileSync(
-    'codex',
-    [
-      'exec',
-      '-C',
-      WORKSPACE_PATHS.workspaceRoot,
-      '--skip-git-repo-check',
-      '--dangerously-bypass-approvals-and-sandbox',
-      '--output-last-message',
-      outputFile,
-      '-',
-    ],
-    {
-      encoding: 'utf-8',
-      input: prompt,
-      timeout: 240000,
-      maxBuffer: 1024 * 1024 * 4,
-      env: process.env,
-    }
-  )
 
   let response = ''
-  try {
-    response = readFileSync(outputFile, 'utf-8').trim()
-  } catch {
-    response = stdout.trim()
+
+  if (model === 'claude') {
+    response = execFileSync(
+      'claude',
+      ['-p', prompt],
+      {
+        encoding: 'utf-8',
+        cwd: WORKSPACE_PATHS.workspaceRoot,
+        timeout: 240000,
+        maxBuffer: 1024 * 1024 * 4,
+        env: process.env,
+      }
+    ).trim()
+  } else {
+    const outputFile = `${tmpdir()}/executive-response-${Date.now()}.txt`
+    const stdout = execFileSync(
+      'codex',
+      [
+        'exec',
+        '-C',
+        WORKSPACE_PATHS.workspaceRoot,
+        '--skip-git-repo-check',
+        '--dangerously-bypass-approvals-and-sandbox',
+        '--output-last-message',
+        outputFile,
+        '-',
+      ],
+      {
+        encoding: 'utf-8',
+        input: prompt,
+        timeout: 240000,
+        maxBuffer: 1024 * 1024 * 4,
+        env: process.env,
+      }
+    )
+    try {
+      response = readFileSync(outputFile, 'utf-8').trim()
+    } catch {
+      response = stdout.trim()
+    }
   }
 
   if (!response) {

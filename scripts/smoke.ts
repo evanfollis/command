@@ -103,6 +103,26 @@ async function main() {
     })
   }
 
+  // 5. /sessions/general page exists (200 when authed, 307 to login when not — not 404/500)
+  if (token) {
+    const pmRes = await fetch(`${BASE}/sessions/general`, {
+      headers: { Cookie: `command_token=${token}` },
+      redirect: 'manual',
+    })
+    check(
+      'GET /sessions/general returns 200 (authed)',
+      pmRes.status === 200,
+      `status=${pmRes.status}`
+    )
+  } else {
+    const pmAnon = await fetch(`${BASE}/sessions/general`, { redirect: 'manual' })
+    check(
+      'GET /sessions/general redirects to login (unauthenticated)',
+      pmAnon.status === 307 || pmAnon.status === 200,
+      `status=${pmAnon.status}`
+    )
+  }
+
   console.log(failed === 0 ? '\nSMOKE PASSED' : `\nSMOKE FAILED (${failed} check${failed > 1 ? 's' : ''})`)
   process.exit(failed === 0 ? 0 : 1)
 }

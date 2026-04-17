@@ -8,14 +8,16 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
-  const { message } = await req.json()
+  const body = await req.json()
+  const { message, model } = body as { message: unknown; model: unknown }
+  const agentModel: 'claude' | 'codex' = model === 'claude' ? 'claude' : 'codex'
 
   if (typeof message !== 'string' || !message.trim()) {
     return NextResponse.json({ error: 'message required' }, { status: 400 })
   }
 
   try {
-    const response = runExecutiveTurn(message.trim())
+    const response = runExecutiveTurn(message.trim(), agentModel)
     const status = getExecutiveStatus()
     const messages = getExecutiveConversation()
 
