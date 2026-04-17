@@ -17,6 +17,17 @@ const CODEX_SESSIONS_DIR = '/root/.codex/sessions'
 const CLAUDE_SESSIONS_DIR = '/root/.claude/projects/-opt-workspace'
 const TURN_TIMEOUT_MS = 240_000
 
+// First-turn system frame per ADR-0020. Injected only when the thread's
+// native session is being created; subsequent turns resume the session
+// and the frame is already in the session's context.
+const THREAD_OPENING_FRAME = [
+  'You are running in an executive steering thread rooted at /opt/workspace with full access.',
+  'Default to reversible action: edit files, run commands, commit with why-messages, update CURRENT_STATE.md, write handoffs.',
+  'Preserve epistemic structure — commits carry why, front doors carry what-is-true-now, friction records close when work lands.',
+  'Reserve asks for decisions only the principal can make.',
+  'For pure assessment or inspection questions, answer diagnostically without forcing action.',
+].join(' ')
+
 function transcriptPath(id: string) {
   return join(TRANSCRIPT_DIR, `${id}.transcript.jsonl`)
 }
@@ -97,6 +108,7 @@ function runClaudeTurn(message: string, sessionId: string | undefined): { respon
     // Pre-assign so we know the id up front
     assignedId = cryptoRandomUuid()
     args.push('--session-id', assignedId)
+    args.push('--append-system-prompt', THREAD_OPENING_FRAME)
   }
   args.push(message)
 
@@ -138,10 +150,17 @@ function runCodexTurn(message: string, sessionId: string | undefined): { respons
     ]
   }
 
+  // Codex has no session-level system-prompt append. On first turn, prepend
+  // the thread-opening frame to the user message so it lands in the session's
+  // durable history; subsequent turns inherit it naturally.
+  const effectiveInput = sessionId
+    ? message
+    : `[thread frame] ${THREAD_OPENING_FRAME}\n\n[first message from principal]\n${message}`
+
   const stdout = execFileSync('codex', args, {
     encoding: 'utf-8',
     cwd: WORKSPACE_PATHS.workspaceRoot,
-    input: message,
+    input: effectiveInput,
     timeout: TURN_TIMEOUT_MS,
     maxBuffer: 1024 * 1024 * 8,
     env: process.env,
