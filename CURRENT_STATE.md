@@ -1,47 +1,45 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-17T05-49-56Z — homepage redesign tick
+**Last updated**: 2026-04-17T08-54-29Z — JWT URL fallback removal + telemetry rotation cleanup
 
 ---
 
 ## Deployed / running state
 - **URL**: command.synaplex.ai (Cloudflare Tunnel → localhost:3100)
 - **Process**: runs directly on host (not Docker), managed by systemd
-- **Last known commit**: homepage redesign (this tick) — all 14 smoke checks passing
-- **Auth**: password + JWT in httpOnly cookies
-- **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. `NextResponse.redirect(new URL('/login', origin))` in `middleware.ts`. Covers all routes including new `/sessions/[name]`.
+- **Last known commit**: `4f95a8a` — JWT fallback removal + rotate-telemetry.sh deletion. All 14 smoke checks passing.
+- **Auth**: password + JWT in httpOnly cookies (cookie-only — URL token param removed)
+- **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. `NextResponse.redirect(new URL('/login', origin))` in `middleware.ts`.
 
 ## What just completed
-- **Homepage redesign** (this tick): Claude/Codex agent selector (localStorage preference, `model` passed per-message), project status strip (one row per session from sessions.conf, live/offline from tmux, last reflection summary from `.meta/`), PM plug-in page at `/sessions/[name]`, capability grid collapsed under `<details>` "Operator tools" shown only when `operator_available === 'yes'`, 14th smoke check added. All 14 pass.
-- **S1-P2 telemetry schema** (commit `eb18e35`, deployed this tick): `sourceType: SourceType` on all events.
+- **JWT URL token fallback removed** (`server.ts`): `url.searchParams.get('token')` deleted. Tokens now flow via httpOnly cookie only. Smoke test updated to use `headers: { Cookie: ... }` on WebSocket upgrade instead of `?token=`.
+- **`scripts/rotate-telemetry.sh` deleted**: superseded by workspace-level `workspace-telemetry-rotate.timer` (nightly 00:05 UTC). No runtime consumer in command referenced this script.
+- **S1-P2 sourceType field**: already deployed as of homepage redesign tick (2026-04-17T05:49Z). `grep -c sourceType events.jsonl` = 12+. Disposition marked verified.
 
-## Key new routes
+## Key routes
 - `GET /api/project-status` — returns sessions from sessions.conf with live status and last reflection summary
 - `GET /sessions/[name]` — PM plug-in page (pane output, send, auto-refresh 3s)
 
 ## Known broken or degraded
-- `timestamp: number` still used (workspace standard wants `ts: string` ISO 8601) — 4th cycle without resolution. `meta-scan.ts` works against `timestamp` but cross-tool consumers using workspace standard silently miss all events.
-- JWT URL fallback at `server.ts:22` (`url.searchParams.get('token')`) — token-in-URL log leak risk, 4th cycle unfixed.
+- `timestamp: number` still used — workspace standard reconciled to `timestamp` (epoch ms integer). No migration needed per 2026-04-17T06:02Z disposition. This item is CLOSED.
 - Terminal 16ms lifespan on every login — still uninvestigated (day 5).
 - `executive.thread_read` emits per poll with `sourceType: 'system'` — file growth continues ~20KB/hr under active UI use.
 
-## Blocked on
-- Nothing. Three carry-forward hygiene items (see below) are ready for a small-wins session.
+## Carry-forward hygiene (unblocked)
+- Suppress `executive.thread_read` telemetry emit (one-liner in executive route handler).
 
 ## Recent decisions
-- **`claude -p` for Claude routing**: confirmed works without `--dangerously-skip-permissions` (that flag is blocked for root). No `--cwd` flag exists in Claude CLI; use `cwd` in `execFileSync` options instead. This is the live pattern in `executiveConversation.ts`.
-- **Model selector in localStorage only**: `model` field sent per-message in POST body. Not persisted server-side.
-- **Session→project name mapping**: `general→supervisor`, `skillfoundry→skillfoundry-harness`, `context-repo→context-repository`. Others match 1:1. This mapping lives in `/api/project-status/route.ts:SESSION_TO_PROJECT`.
-- **Middleware redirect uses pinned origin**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Do NOT use `req.url` or `req.headers.host` as base URL.
-- **`check-patterns.ts` ban narrowed**: bans only when `req.url`/`req.headers` is the base URL arg. Do not widen it back.
+- **Cookie-only JWT**: URL token fallback removed. Any future WebSocket auth must use cookie, not URL params.
+- **Smoke test WS auth**: uses `headers: { Cookie: ... }` in ws library, not `?token=`. Matches what browsers do.
+- **`claude -p` for Claude routing**: confirmed works without `--dangerously-skip-permissions`. No `--cwd` flag in Claude CLI; use `cwd` in `execFileSync` options.
+- **Model selector in localStorage only**: `model` field sent per-message in POST body.
+- **Session→project name mapping**: `general→supervisor`, `skillfoundry→skillfoundry-harness`, `context-repo→context-repository`. Lives in `/api/project-status/route.ts:SESSION_TO_PROJECT`.
+- **Middleware redirect uses pinned origin**: `COMMAND_ORIGIN=https://command.synaplex.ai`. Do NOT use `req.url` or `req.headers.host`.
 
-## What bit the last session
-- `use(params)` from React 19 does not work in Next.js 14 client components — params is already a plain object, not a Promise. Fix: destructure `params` directly without `use()`.
-- `--dangerously-skip-permissions` is blocked for root users in Claude CLI — do not pass this flag.
-- `--cwd` flag does not exist in Claude CLI — use `cwd` option in `execFileSync` instead.
+## What bit this session
+- The smoke test was using `?token=` URL param for WebSocket auth — removing the server-side fallback immediately broke the smoke. Fix: update smoke.ts to send `Cookie` header instead.
 
 ## What the next agent must read first
-1. Three carry-forward hygiene items (no handoff needed, self-contained): rename `timestamp→ts` in telemetry.ts, delete JWT URL fallback in server.ts, suppress `executive.thread_read` telemetry emit.
-2. `/api/project-status/route.ts` if touching reflection parsing or session/project name mapping.
-3. `executiveConversation.ts` if modifying Claude routing — `model` param is the entry point.
-4. Note: `src/app/api/executive/route.ts` does not exist — the message endpoint is at `src/app/api/executive/message/route.ts`.
+1. One remaining carry-forward: suppress `executive.thread_read` telemetry emit (minor, unblocked).
+2. `executiveConversation.ts` if modifying Claude routing — `model` param is the entry point.
+3. `src/app/api/executive/message/route.ts` is the message endpoint (`src/app/api/executive/route.ts` does not exist).
