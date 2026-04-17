@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-17T18:30Z — consolidation pass (threads + portfolio)
+**Last updated**: 2026-04-17T19:30Z — FR-0016 closed, thread frame reviewed
 
 ---
 
@@ -18,7 +18,7 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Inline project-session chat (pane output polling + send) inside each expanded card. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 
-## What just completed (2026-04-17 consolidation)
+## What just completed (2026-04-17)
 - Ripped out prompt-stitched `executiveConversation.ts`; built `threadConversation.ts` on native session IDs with per-thread in-flight lock.
 - Added `/api/threads`, `/api/threads/[id]`, `/api/threads/[id]/messages`.
 - Deleted `/orchestrate`, `/terminal`, `/telemetry`, `/meta`, and `/sessions` index. Backing APIs gone too. Terminal WS handler stripped from `server.ts`.
@@ -26,10 +26,12 @@ A focused executive surface with three jobs and nothing else:
 - Portfolio reads each project's CURRENT_STATE.md directly (fallback: `supervisor/system/status.md` for general). `react-markdown` + `@tailwindcss/typography` render the front door.
 - Smoke suite rewritten: 20 checks covering threads round-trip + project-status + auth + CSS.
 - End-to-end verified server-side: Claude thread turn → CLI `claude --resume` recalled prior phrase. Same for Codex.
+- **Thread-opening frame (ADR-0020)**: first-turn system prompt (`--append-system-prompt` for Claude, prepended message for Codex) orients executive threads toward action-default. Self-tests confirmed: Claude committed `90c6b64`, Codex committed `47f4fab`/`3eade29`.
+- **Adversarial review**: Codex review (2026-04-17T19:24Z) found no architectural/security failures. Three findings (Codex session ID race under concurrency, no failed-turn error marker, in-process-only lock) are accepted single-process tradeoffs for current deployment.
+- **FR-0016 closed**: all three named symptoms (Sessions/Orchestrate divergence, chrome drift, mechanism leakage) addressed.
 
 ## Known broken or degraded
 - **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. That is the intended pressure signal — not a bug to paper over.
-- **Advice-vs-action gap in the chat surface**: first real use showed both Claude and Codex threads producing diagnosis without commits/edits. Agents end in "you should..." rather than acting and reporting. Root cause: native session default prompts orient toward analysis; the executive thread is a steering surface that should default to action. Next investigation: inject a short thread-opening system framing on thread creation.
 
 ## Recent decisions
 - **Native session IDs, not prompt stitching**: threads ARE Claude/Codex sessions, not UI buffers. Guarantees CLI resumability and feeds the reflection loop automatically (sessions land in paths the reflect.sh job already scans).
@@ -50,8 +52,8 @@ A focused executive surface with three jobs and nothing else:
 - `GET /sessions/[name]` — full-screen project-session view (linked from portfolio cards)
 
 ## Carry-forwards
-- **Advice-vs-action gap** (see above). This is the structural shape to break next.
 - **FR-0015 Layer-3 proof**: browser workflow with threads + portfolio verified from a real device. Server-side round-trip is proven; user-side browser confirmation is the remaining evidence.
+- **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. All acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
 
 ## What the next agent must read first
 1. This file.
