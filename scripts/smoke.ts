@@ -83,7 +83,9 @@ async function main() {
   // 4. WebSocket terminal: open, receive PTY output within 500ms
   if (token) {
     await new Promise<void>((resolve) => {
-      const ws = new WebSocket(`${BASE.replace(/^http/, 'ws')}/ws/terminal?token=${token}`)
+      const ws = new WebSocket(`${BASE.replace(/^http/, 'ws')}/ws/terminal`, {
+        headers: { Cookie: `command_token=${token}` },
+      })
       const timer = setTimeout(() => {
         check('WS /ws/terminal streams output within 500ms', false, 'timeout')
         ws.close()

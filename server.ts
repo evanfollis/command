@@ -18,9 +18,7 @@ const handle = app.getRequestHandler()
 function extractToken(req: IncomingMessage): string | null {
   const cookies = req.headers.cookie || ''
   const match = cookies.match(/command_token=([^;]+)/)
-  if (match) return match[1]
-  const url = new URL(req.url || '', `http://localhost:${port}`)
-  return url.searchParams.get('token')
+  return match ? match[1] : null
 }
 
 function verifyAuth(req: IncomingMessage): boolean {
