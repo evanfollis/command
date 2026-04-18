@@ -220,7 +220,7 @@ export default function ExecutivePage() {
   }
 
   async function deleteThread(id: string) {
-    if (!confirm('Delete this thread? The native Claude/Codex session file will remain resumable via CLI.')) return
+    if (!confirm('Remove this thread from the sidebar? No live process is running — threads are file-based and nothing persists between turns. The conversation log stays on disk (for audit and CLI resume via `claude --resume <uuid>`). Closing the browser tab alone keeps the thread listed.')) return
     try {
       await fetch(`/api/threads/${id}`, { method: 'DELETE' })
       if (activeId === id) setActiveId(null)
