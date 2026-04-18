@@ -293,9 +293,9 @@ export default function ExecutivePage() {
 
   return (
     <Shell>
-      <div className="mx-auto grid max-w-7xl grid-cols-[16rem_1fr] gap-4 px-4 py-6 sm:px-6">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-6 sm:px-6 md:grid-cols-[16rem_1fr]">
         {/* Sidebar: threads */}
-        <aside className="space-y-3">
+        <aside className="space-y-3 min-w-0">
           <div className="rounded-2xl border border-white/10 bg-[rgba(9,14,22,0.82)] p-3">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Threads</div>

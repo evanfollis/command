@@ -153,10 +153,10 @@ export default function PortfolioCard({ project, metrics }: { project: Portfolio
         }`}>
           {project.live ? 'live' : 'offline'}
         </span>
-        <span className="truncate text-xs text-neutral-500">
+        <span className="min-w-0 flex-1 truncate text-xs text-neutral-500">
           {project.lastCommit ? `${project.lastCommit.subject} · ${project.lastCommit.relativeTime}` : '—'}
         </span>
-        <span className="ml-auto shrink-0 text-neutral-500">{open ? '▾' : '▸'}</span>
+        <span className="shrink-0 text-neutral-500">{open ? '▾' : '▸'}</span>
       </button>
 
       {open && (
