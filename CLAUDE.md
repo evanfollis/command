@@ -1,5 +1,8 @@
 # Command — Executive Front Door
 
+context-always-load:
+  - CURRENT_STATE.md
+
 ## What This Is
 Cross-platform web app that serves as the principal-facing executive surface for this server. It should be the always-on front door into all projects: dashboard, web terminal, agent session management, adversarial review, and host-side recovery without requiring the user to SSH in and paste shell commands back to agents.
 
