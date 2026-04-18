@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-17T19:30Z — FR-0016 closed, thread frame reviewed
+**Last updated**: 2026-04-18T17:00Z — deploy gap closed, review debt cleared, page.tsx committed
 
 ---
 
@@ -9,16 +9,24 @@
 - **Process**: runs directly on host (not Docker), managed by systemd
 - **Auth**: password + JWT in httpOnly cookies (cookie-only)
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
-- **Smoke**: 20/20 checks passing.
+- **Smoke**: 20/20 checks passing (deployed at `c3aac72`, 2026-04-18T~17:00Z). All prior undeployed commits (`e1fe263` through `c3aac72`) are now live.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
 
 1. **Executive chat** — multi-thread, one model per thread (Claude or Codex). Each thread is backed by a native resumable session: `claude --session-id <uuid>` on first turn, `--resume <uuid>` after; Codex captures session id via `~/.codex/sessions/` diff, resumes with `codex exec resume <uuid>`. Sidebar UI with `+ New thread` / rename / delete. Threads live in `/opt/workspace/runtime/.threads/<uuid>.meta.json` + `<uuid>.transcript.jsonl`. **Resumable from any terminal via CLI.**
-2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Inline project-session chat (pane output polling + send) inside each expanded card. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
+2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 
-## What just completed (2026-04-17)
+## What just completed (2026-04-18, this window)
+- **Mobile viewport fix** (`99704ef`): removed incorrect `viewport` export from `layout.tsx`, tightened `max-w` and padding in `page.tsx` and `PortfolioCard.tsx`. Now deployed and live.
+- **CLAUDE.md M4 hook** (`e1f2303`): added `context-always-load: [CURRENT_STATE.md]` to CLAUDE.md for M4 session-start hook compatibility.
+- **Metrics confirmed live**: `/opt/workspace/runtime/.metrics/` files exist and are being generated (13:34Z). `admin` key correctly maps to general session.
+- **Deploy gap closed** (`c3aac72`): `npm run deploy` ran successfully. 20/20 smoke. All 7 undeployed commits (`e1fe263` through `c3aac72`) now live.
+- **page.tsx committed** (`c3aac72`): delete-thread confirm dialog text clarified.
+- **84b38dc adversarial review completed**: Codex review at `.reviews/84b38dc-review-2026-04-18T16-54Z.md`. No XSS (ReactMarkdown strips raw HTML without rehypeRaw). Auth is middleware-only (standard Next.js). State integrity findings are accepted single-process tradeoffs. 4-cycle carry-forward cleared.
+
+## What completed (2026-04-17)
 - Ripped out prompt-stitched `executiveConversation.ts`; built `threadConversation.ts` on native session IDs with per-thread in-flight lock.
 - Added `/api/threads`, `/api/threads/[id]`, `/api/threads/[id]/messages`.
 - Deleted `/orchestrate`, `/terminal`, `/telemetry`, `/meta`, and `/sessions` index. Backing APIs gone too. Terminal WS handler stripped from `server.ts`.
@@ -26,38 +34,43 @@ A focused executive surface with three jobs and nothing else:
 - Portfolio reads each project's CURRENT_STATE.md directly (fallback: `supervisor/system/status.md` for general). `react-markdown` + `@tailwindcss/typography` render the front door.
 - Smoke suite rewritten: 20 checks covering threads round-trip + project-status + auth + CSS.
 - End-to-end verified server-side: Claude thread turn → CLI `claude --resume` recalled prior phrase. Same for Codex.
-- **Thread-opening frame (ADR-0020)**: first-turn system prompt (`--append-system-prompt` for Claude, prepended message for Codex) orients executive threads toward action-default. Self-tests confirmed: Claude committed `90c6b64`, Codex committed `47f4fab`/`3eade29`.
-- **Adversarial review**: Codex review (2026-04-17T19:24Z) found no architectural/security failures. Three findings (Codex session ID race under concurrency, no failed-turn error marker, in-process-only lock) are accepted single-process tradeoffs for current deployment.
-- **FR-0016 closed**: all three named symptoms (Sessions/Orchestrate divergence, chrome drift, mechanism leakage) addressed.
+- **Thread-opening frame (ADR-0020)**: first-turn system prompt (`--append-system-prompt` for Claude, prepended message for Codex) orients executive threads toward action-default.
+- **FR-0016 closed**: all three named symptoms addressed.
+- **Metrics API + UI** (`e1fe263`, `ba9e6a3`): `/api/metrics/route.ts` + `/api/metrics/summary/route.ts` added. PortfolioCard renders per-project metrics table from `runtime/.metrics/*.json`. Producer is external (supervisor script); command reads only.
+- **Thread frame tightened** (`59f3f7b`): frame now explicitly says cross-repo commits ship without asking.
 
 ## Known broken or degraded
-- **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. That is the intended pressure signal — not a bug to paper over.
+- **`SESSION_TO_METRICS_KEY` undocumented**: `page.tsx:11-14` hardcodes `{ general: 'admin' }`. Producer is a supervisor script writing to `/opt/workspace/runtime/.metrics/`. Key scheme is undocumented here. Empirically correct as of 13:34Z Apr 18 but contract is fragile if producer changes.
+- **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. Intended pressure signal — not a bug to paper over.
 
 ## Recent decisions
-- **Native session IDs, not prompt stitching**: threads ARE Claude/Codex sessions, not UI buffers. Guarantees CLI resumability and feeds the reflection loop automatically (sessions land in paths the reflect.sh job already scans).
-- **One model per thread**: pinned at creation. No mid-conversation model swap — matches how Claude/Codex UIs themselves work.
+- **Native session IDs, not prompt stitching**: threads ARE Claude/Codex sessions, not UI buffers. Guarantees CLI resumability and feeds the reflection loop automatically.
+- **One model per thread**: pinned at creation. No mid-conversation model swap.
 - **Sidecar transcript for UI**: `<id>.transcript.jsonl` is the fast read path for the browser. Source of truth for the agent is still the native JSONL.
-- **CURRENT_STATE.md rendered at full fidelity**: no regex extraction, no 140-char truncation. The front door is the source; drift becomes visible.
-- **Portfolio cards expand inline**: full CURRENT_STATE render + project-session chat. Dedicated `/sessions/[name]` kept as deep link.
+- **CURRENT_STATE.md rendered at full fidelity**: no regex extraction, no 140-char truncation.
+- **Portfolio cards expand inline**: full CURRENT_STATE render + project-session chat.
 - **Cookie-only JWT**: URL token fallback removed.
 - **Pinned public origin**: never derive URLs from `req.url` behind cloudflared.
+- **Thread frame tightened (59f3f7b)**: cross-repo commits and supervisor/system edits now classified as reversible — ship without asking. ADR-0020 full compliance. No separate ADR update filed.
 
 ## Key routes
 - `GET /api/threads` — list · `POST /api/threads` — create
 - `PATCH/DELETE /api/threads/[id]` — rename / delete
 - `GET/POST /api/threads/[id]/messages` — transcript / send turn
+- `GET /api/metrics` — single-window metrics (reads `runtime/.metrics/<window>.json`)
+- `GET /api/metrics/summary` — cross-window rollup by project
 - `GET /api/project-status` — portfolio (sessions.conf + live/offline + last commit + full CURRENT_STATE.md content per project)
 - `GET /api/sessions/[name]` — pane output for a project session
 - `POST /api/send` — send keys into a project tmux session
 - `GET /sessions/[name]` — full-screen project-session view (linked from portfolio cards)
 
 ## Carry-forwards
-- **FR-0015 Layer-3 proof**: browser workflow with threads + portfolio verified from a real device. Server-side round-trip is proven; user-side browser confirmation is the remaining evidence.
-- **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. All acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
+- **FR-0015 Layer-3 proof**: browser workflow with threads + portfolio needs real-device verification (server-side proven; client-side not).
+- **Document metrics producer**: name the supervisor script writing `runtime/.metrics/*.json` and its key scheme in this file.
+- **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. Acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
 
 ## What the next agent must read first
 1. This file.
 2. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
 3. `src/components/PortfolioCard.tsx` if changing the project-inspection surface.
-4. `/opt/workspace/projects/context-repository/docs/agent-context-repo-pattern.md` — the canonical front-door spec this UI surfaces.
-5. `/review` is still required before closing any tick that touches ≥3 files or adds ≥100 lines.
+4. `.reviews/84b38dc-review-2026-04-18T16-54Z.md` — latest adversarial review with triaged findings.
