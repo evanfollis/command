@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-20T~16:10Z — artifact inbox route landed (ADR-0028, proposed)
+**Last updated**: 2026-04-20T~16:55Z — adversarial review complete for artifact inbox; ADR-0028 ready for promotion (blocked on supervisor write access from tick sessions)
 
 ---
 
@@ -9,8 +9,7 @@
 - **Process**: runs directly on host (not Docker), managed by systemd
 - **Auth**: password + JWT in httpOnly cookies (cookie-only)
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
-- **Smoke**: 20/20 checks passing (deployed at `c3aac72`, 2026-04-18T~17:00Z). All prior undeployed commits (`e1fe263` through `c3aac72`) are now live.
-- **Idle since**: 2026-04-18T17:00Z until 2026-04-20 artifact inbox pass; see below.
+- **Smoke**: 27/27 checks passing (deployed at `4b5261c`, 2026-04-20). Artifact inbox live — smoke covers unauthenticated redirect, authed list, traversal attack, non-`.md` rejection, real doc render.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -21,8 +20,9 @@ A focused executive surface with three jobs and nothing else:
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
 
 ## What just completed (2026-04-20)
-- **Artifact inbox landed**: `/artifacts` list + `/artifacts/<source>/<path>` doc view, behind existing auth. Server-side markdown render via `react-markdown` + `remark-gfm` + `rehype-slug` (heading anchors). Path-traversal guard uses `realpathSync` + `sep`-bounded prefix check. Nav now has an Artifacts link. Smoke extended with 6 new checks (unauthed redirect, authed list, traversal → 404, `.html` rejection, real doc renders). Source allowlist + read contract captured in `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` (status: `proposed`; adversarial review required before promotion per general session, 2026-04-20T16:xxZ).
-- **Retirement deferred**: `synaplex-inbox.service`, cloudflared `/_inbox/.*` path rule, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py` intentionally left in place until the principal confirms the new route end-to-end. Cleanup is a separate pass, not part of this change.
+- **Adversarial review of artifact inbox** (this tick): Claude agent review (codex blocked by EROFS in tick sessions). Review at `.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`. Path-traversal guard confirmed sound. Three findings triaged as accepted tradeoffs. No blocking issues. ADR-0028 ready for `proposed → accepted` promotion — blocked only on supervisor directory being read-only from tick sessions; executive session must write the status change.
+- **Artifact inbox landed** (`4b5261c`, prior session): `/artifacts` list + `/artifacts/<source>/<path>` doc view, behind existing auth. Server-side markdown render via `react-markdown` + `remark-gfm` + `rehype-slug` (heading anchors). Path-traversal guard uses `realpathSync` + `sep`-bounded prefix check. Nav has Artifacts link. Smoke extended with 6 new checks.
+- **Retirement deferred**: `synaplex-inbox.service`, cloudflared `/_inbox/.*` path rule, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py` intentionally left in place until the principal confirms the new route end-to-end.
 
 ## What just completed (2026-04-18, window ending ~17:00Z)
 - **Mobile viewport fix** (`99704ef`): removed incorrect `viewport` export from `layout.tsx`, tightened `max-w` and padding in `page.tsx` and `PortfolioCard.tsx`. Now deployed and live.
@@ -75,18 +75,19 @@ A focused executive surface with three jobs and nothing else:
 - `GET /artifacts` — artifact inbox list · `GET /artifacts/[source]/[...path]` — doc view (markdown rendered server-side)
 
 ## Carry-forwards
-- **FR-0015 Layer-3 proof** (approaching escalation — 4th non-skipped reflection): browser workflow with threads + portfolio needs real-device verification (server-side proven; client-side not). No session transcript or telemetry shows a full browser-side thread workflow test. Next reflection will hit escalation threshold if still open.
+- **FR-0015 Layer-3 proof** (ESCALATED — 5th non-skipped reflection): browser workflow with threads + portfolio needs real-device verification. No session transcript shows a full browser-side thread workflow test. Threshold hit — URGENT.
 - ~~**Document metrics producer** (URGENT — escalated)~~: **closed 2026-04-20T~16:55Z**. Producer is `supervisor/scripts/lib/metrics-rollup.py` on hourly `metrics-rollup.timer`; key scheme documented above under "Known broken or degraded." Both URGENT handoffs (`URGENT-command-metrics-producer-undocumented-2026-04-20T14-31Z.md` and `command-urgent-metrics-producer-2026-04-20T16-49Z.md`) are now actioned — safe to archive.
 - **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. Acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
 
 ## What the next agent must read first
 1. This file.
 2. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
-3. `src/components/PortfolioCard.tsx` if changing the project-inspection surface.
-4. `.reviews/84b38dc-review-2026-04-18T16-54Z.md` — latest adversarial review with triaged findings.
-5. `runtime/.handoff/URGENT-command-metrics-producer-undocumented-2026-04-20T14-31Z.md` — open URGENT requiring principal answer.
-6. `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` if touching the `/artifacts` surface — it owns the source allowlist + read contract.
+3. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
+4. `.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md` — adversarial review of artifact inbox with triaged findings.
+5. `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` if touching the `/artifacts` surface — source allowlist + read contract.
+6. `src/components/PortfolioCard.tsx` if changing the project-inspection surface.
 
-## Open carry-forwards (new)
-- **ADR-0028 adversarial review**: run `/review` against the artifact inbox (`src/lib/artifacts.ts`, `src/app/artifacts/**`, ADR-0028) before promoting status from `proposed → accepted`.
-- **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete the source artifacts under `runtime/research/`.
+## Open carry-forwards
+- **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
+- **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
+- **FR-0015 URGENT**: browser-side verification of thread workflow needed from principal or attended session.
