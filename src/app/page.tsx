@@ -4,6 +4,11 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import Shell from '@/components/Shell'
 import PortfolioCard, { type PortfolioProject, type ProjectMetrics } from '@/components/PortfolioCard'
 
+// Producer: supervisor/scripts/lib/metrics-rollup.py on metrics-rollup.timer
+// (hourly). Keys are cwd-derived; /opt/workspace and supervisor cwds map to
+// `admin`. The `general` session runs at /opt/workspace, so it needs this
+// rewrite to pick up its metrics. See CURRENT_STATE.md "Known broken or
+// degraded" for the full contract.
 const SESSION_TO_METRICS_KEY: Record<string, string> = {
   general: 'admin',
 }
