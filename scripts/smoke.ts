@@ -124,6 +124,67 @@ async function main() {
   const statusBody = await statusRes.json().catch(() => ({}))
   check('project-status returns sessions array', Array.isArray(statusBody?.sessions))
 
+  // Artifacts inbox (ADR-0028). Auth-gated markdown reader over a narrow
+  // code-path-only source allowlist.
+  const artifactsUnauth = await fetch(`${BASE}/artifacts`, { redirect: 'manual' })
+  check(
+    'GET /artifacts unauthed → 307/302 redirect to /login',
+    [302, 307].includes(artifactsUnauth.status),
+    `status=${artifactsUnauth.status}`
+  )
+
+  const artifactsAuth = await fetch(`${BASE}/artifacts`, {
+    headers: authHeaders,
+    redirect: 'manual',
+  })
+  check(
+    'GET /artifacts authed → 200',
+    artifactsAuth.status === 200,
+    `status=${artifactsAuth.status}`
+  )
+  const artifactsBody = await artifactsAuth.text()
+  check(
+    'artifacts list shows both sources',
+    artifactsBody.includes('Research') && artifactsBody.includes('Cross-cutting syntheses')
+  )
+
+  const traversal = await fetch(
+    `${BASE}/artifacts/research/${encodeURIComponent('..')}/${encodeURIComponent('..')}/etc/passwd`,
+    { headers: authHeaders, redirect: 'manual' }
+  )
+  check(
+    'path-traversal attack → 404',
+    traversal.status === 404,
+    `status=${traversal.status}`
+  )
+
+  const wrongExt = await fetch(`${BASE}/artifacts/research/synaplex-scouting/README.html`, {
+    headers: authHeaders,
+    redirect: 'manual',
+  })
+  check(
+    'non-.md extension → 404',
+    wrongExt.status === 404,
+    `status=${wrongExt.status}`
+  )
+
+  const realDoc = await fetch(`${BASE}/artifacts/research/synaplex-scouting/README.md`, {
+    headers: authHeaders,
+    redirect: 'manual',
+  })
+  check(
+    'real doc renders → 200',
+    realDoc.status === 200,
+    `status=${realDoc.status}`
+  )
+  const realDocBody = await realDoc.text()
+  const renderedOk = realDocBody.includes('synaplex scouting') && realDocBody.includes('<h1')
+  check(
+    'rendered doc contains expected content',
+    renderedOk,
+    renderedOk ? undefined : 'missing heading or title text'
+  )
+
   console.log(failed === 0 ? '\nSMOKE PASSED' : `\nSMOKE FAILED (${failed} check${failed > 1 ? 's' : ''})`)
   process.exit(failed === 0 ? 0 : 1)
 }

@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-18T17:00Z — deploy gap closed, review debt cleared, page.tsx committed
+**Last updated**: 2026-04-20T~16:10Z — artifact inbox route landed (ADR-0028, proposed)
 
 ---
 
@@ -10,6 +10,7 @@
 - **Auth**: password + JWT in httpOnly cookies (cookie-only)
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
 - **Smoke**: 20/20 checks passing (deployed at `c3aac72`, 2026-04-18T~17:00Z). All prior undeployed commits (`e1fe263` through `c3aac72`) are now live.
+- **Idle since**: 2026-04-18T17:00Z until 2026-04-20 artifact inbox pass; see below.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -17,14 +18,20 @@ A focused executive surface with three jobs and nothing else:
 1. **Executive chat** — multi-thread, one model per thread (Claude or Codex). Each thread is backed by a native resumable session: `claude --session-id <uuid>` on first turn, `--resume <uuid>` after; Codex captures session id via `~/.codex/sessions/` diff, resumes with `codex exec resume <uuid>`. Sidebar UI with `+ New thread` / rename / delete. Threads live in `/opt/workspace/runtime/.threads/<uuid>.meta.json` + `<uuid>.transcript.jsonl`. **Resumable from any terminal via CLI.**
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
+4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
 
-## What just completed (2026-04-18, this window)
+## What just completed (2026-04-20)
+- **Artifact inbox landed**: `/artifacts` list + `/artifacts/<source>/<path>` doc view, behind existing auth. Server-side markdown render via `react-markdown` + `remark-gfm` + `rehype-slug` (heading anchors). Path-traversal guard uses `realpathSync` + `sep`-bounded prefix check. Nav now has an Artifacts link. Smoke extended with 6 new checks (unauthed redirect, authed list, traversal → 404, `.html` rejection, real doc renders). Source allowlist + read contract captured in `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` (status: `proposed`; adversarial review required before promotion per general session, 2026-04-20T16:xxZ).
+- **Retirement deferred**: `synaplex-inbox.service`, cloudflared `/_inbox/.*` path rule, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py` intentionally left in place until the principal confirms the new route end-to-end. Cleanup is a separate pass, not part of this change.
+
+## What just completed (2026-04-18, window ending ~17:00Z)
 - **Mobile viewport fix** (`99704ef`): removed incorrect `viewport` export from `layout.tsx`, tightened `max-w` and padding in `page.tsx` and `PortfolioCard.tsx`. Now deployed and live.
 - **CLAUDE.md M4 hook** (`e1f2303`): added `context-always-load: [CURRENT_STATE.md]` to CLAUDE.md for M4 session-start hook compatibility.
 - **Metrics confirmed live**: `/opt/workspace/runtime/.metrics/` files exist and are being generated (13:34Z). `admin` key correctly maps to general session.
 - **Deploy gap closed** (`c3aac72`): `npm run deploy` ran successfully. 20/20 smoke. All 7 undeployed commits (`e1fe263` through `c3aac72`) now live.
 - **page.tsx committed** (`c3aac72`): delete-thread confirm dialog text clarified.
-- **84b38dc adversarial review completed**: Codex review at `.reviews/84b38dc-review-2026-04-18T16-54Z.md`. No XSS (ReactMarkdown strips raw HTML without rehypeRaw). Auth is middleware-only (standard Next.js). State integrity findings are accepted single-process tradeoffs. 4-cycle carry-forward cleared.
+- **84b38dc adversarial review completed** (`cd541c5`): Codex review at `.reviews/84b38dc-review-2026-04-18T16-54Z.md`. No XSS (ReactMarkdown strips raw HTML without rehypeRaw). Auth is middleware-only (standard Next.js). State integrity findings are accepted single-process tradeoffs. 4-cycle carry-forward cleared.
+- **check-patterns.ts already covers server.ts**: `scripts/check-patterns.ts:14-15` has `EXTRA_FILES = [server.ts]` — prior reflections filed this as open for 4 cycles incorrectly. Now confirmed closed.
 
 ## What completed (2026-04-17)
 - Ripped out prompt-stitched `executiveConversation.ts`; built `threadConversation.ts` on native session IDs with per-thread in-flight lock.
@@ -40,7 +47,8 @@ A focused executive surface with three jobs and nothing else:
 - **Thread frame tightened** (`59f3f7b`): frame now explicitly says cross-repo commits ship without asking.
 
 ## Known broken or degraded
-- **`SESSION_TO_METRICS_KEY` undocumented**: `page.tsx:11-14` hardcodes `{ general: 'admin' }`. Producer is a supervisor script writing to `/opt/workspace/runtime/.metrics/`. Key scheme is undocumented here. Empirically correct as of 13:34Z Apr 18 but contract is fragile if producer changes.
+- **`SESSION_TO_METRICS_KEY` undocumented** (URGENT — 5th reflection cycle): `page.tsx:11-14` hardcodes `{ general: 'admin' }`. Producer is a supervisor script writing to `/opt/workspace/runtime/.metrics/`. Script name, key scheme, and schedule are not documented here. Empirically correct as of 13:34Z Apr 18 but contract is fragile if producer changes. URGENT handoff filed at `runtime/.handoff/URGENT-command-metrics-producer-undocumented-2026-04-20T14-31Z.md`.
+- **Single-process state integrity assumptions**: `threadConversation.ts` non-atomic transcript append (`57-63`), in-process-only turn lock (`194-200`), no durable error marker on crash (`207-209`). Safe ONLY while command runs single-process. If ever run multi-process, these become active data-corruption bugs. Accepted tradeoff — documented in `.reviews/84b38dc-review-2026-04-18T16-54Z.md:§3`.
 - **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. Intended pressure signal — not a bug to paper over.
 
 ## Recent decisions
@@ -52,6 +60,7 @@ A focused executive surface with three jobs and nothing else:
 - **Cookie-only JWT**: URL token fallback removed.
 - **Pinned public origin**: never derive URLs from `req.url` behind cloudflared.
 - **Thread frame tightened (59f3f7b)**: cross-repo commits and supervisor/system edits now classified as reversible — ship without asking. ADR-0020 full compliance. No separate ADR update filed.
+- **Reflection self-check**: prior reflections filed `check-patterns.ts server.ts exclusion` as open for 4 cycles when it was already fixed. Any observation citing a specific file/line should be verified against current code before re-filing.
 
 ## Key routes
 - `GET /api/threads` — list · `POST /api/threads` — create
@@ -63,10 +72,11 @@ A focused executive surface with three jobs and nothing else:
 - `GET /api/sessions/[name]` — pane output for a project session
 - `POST /api/send` — send keys into a project tmux session
 - `GET /sessions/[name]` — full-screen project-session view (linked from portfolio cards)
+- `GET /artifacts` — artifact inbox list · `GET /artifacts/[source]/[...path]` — doc view (markdown rendered server-side)
 
 ## Carry-forwards
-- **FR-0015 Layer-3 proof**: browser workflow with threads + portfolio needs real-device verification (server-side proven; client-side not).
-- **Document metrics producer**: name the supervisor script writing `runtime/.metrics/*.json` and its key scheme in this file.
+- **FR-0015 Layer-3 proof** (approaching escalation — 4th non-skipped reflection): browser workflow with threads + portfolio needs real-device verification (server-side proven; client-side not). No session transcript or telemetry shows a full browser-side thread workflow test. Next reflection will hit escalation threshold if still open.
+- **Document metrics producer** (URGENT — escalated): see URGENT handoff above. Name the script, key scheme, and schedule.
 - **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. Acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
 
 ## What the next agent must read first
@@ -74,3 +84,9 @@ A focused executive surface with three jobs and nothing else:
 2. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
 3. `src/components/PortfolioCard.tsx` if changing the project-inspection surface.
 4. `.reviews/84b38dc-review-2026-04-18T16-54Z.md` — latest adversarial review with triaged findings.
+5. `runtime/.handoff/URGENT-command-metrics-producer-undocumented-2026-04-20T14-31Z.md` — open URGENT requiring principal answer.
+6. `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` if touching the `/artifacts` surface — it owns the source allowlist + read contract.
+
+## Open carry-forwards (new)
+- **ADR-0028 adversarial review**: run `/review` against the artifact inbox (`src/lib/artifacts.ts`, `src/app/artifacts/**`, ADR-0028) before promoting status from `proposed → accepted`.
+- **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete the source artifacts under `runtime/research/`.

@@ -27,12 +27,20 @@ export default function Nav() {
           </div>
         </Link>
 
-        <button
-          onClick={handleLogout}
-          className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-sm text-neutral-500 hover:border-white/20 hover:text-neutral-300"
-        >
-          Logout
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href="/artifacts"
+            className="rounded-full border border-white/10 px-3 py-2 text-sm text-neutral-400 hover:border-white/20 hover:text-neutral-200"
+          >
+            Artifacts
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="rounded-full border border-white/10 px-3 py-2 text-sm text-neutral-500 hover:border-white/20 hover:text-neutral-300"
+          >
+            Logout
+          </button>
+        </div>
       </div>
     </nav>
   )
