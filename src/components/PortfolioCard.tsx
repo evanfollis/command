@@ -27,6 +27,12 @@ export interface PortfolioProject {
     content: string | null
   }
   lastCommit: { subject: string; relativeTime: string } | null
+  claude?: {
+    pid: number | null
+    bridgeUrl: string | null
+    bridgeSessionId: string | null
+    conflictingPids: number[]
+  }
 }
 
 function formatTokens(n: number): string {
@@ -153,6 +159,14 @@ export default function PortfolioCard({ project, metrics }: { project: Portfolio
         }`}>
           {project.live ? 'live' : 'offline'}
         </span>
+        {project.claude?.conflictingPids && project.claude.conflictingPids.length > 0 && (
+          <span
+            title={`Another claude PID (${project.claude.conflictingPids.join(', ')}) shares this cwd — ad-hoc instance, not supervised`}
+            className="shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] text-amber-200"
+          >
+            ⚠ dup
+          </span>
+        )}
         <span className="min-w-0 flex-1 truncate text-xs text-neutral-500">
           {project.lastCommit ? `${project.lastCommit.subject} · ${project.lastCommit.relativeTime}` : '—'}
         </span>
@@ -197,7 +211,20 @@ export default function PortfolioCard({ project, metrics }: { project: Portfolio
           <section>
             <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.22em] text-neutral-500">
               <span>{project.agent} session · {project.name}</span>
-              {paneError && <span className="text-rose-300 normal-case tracking-normal">{paneError}</span>}
+              <div className="flex items-center gap-3 normal-case tracking-normal">
+                {project.claude?.bridgeUrl && (
+                  <a
+                    href={project.claude.bridgeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sky-300 hover:text-sky-200"
+                    title={`Open in claude.ai/code (pid ${project.claude.pid})`}
+                  >
+                    open in claude.ai ↗
+                  </a>
+                )}
+                {paneError && <span className="text-rose-300">{paneError}</span>}
+              </div>
             </div>
             <pre
               ref={paneRef}

@@ -1,6 +1,7 @@
 'use client'
 
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import Shell from '@/components/Shell'
 import PortfolioCard, { type PortfolioProject, type ProjectMetrics } from '@/components/PortfolioCard'
 
@@ -295,6 +296,7 @@ export default function ExecutivePage() {
   }
 
   const operatorAvailable = capabilities?.operator_available === 'yes'
+  const supervisedExecutive = projects.find((p) => p.role === 'executive')
 
   return (
     <Shell>
@@ -382,17 +384,60 @@ export default function ExecutivePage() {
 
         {/* Main column */}
         <div className="space-y-6 min-w-0">
+          {/* Supervised executive disambiguation (ADR-0020 — this is not the workspace executive) */}
+          {supervisedExecutive && (
+            <section className="rounded-[2rem] border border-amber-400/20 bg-amber-400/[0.04] p-5">
+              <div className="mb-2 text-[11px] uppercase tracking-[0.26em] text-amber-200/80">
+                Supervised executive session
+              </div>
+              <p className="text-sm text-neutral-300">
+                The conversation below runs <em>ephemeral</em> Claude/Codex threads pinned to this web UI —
+                new file-backed sessions each time, not the supervised workspace executive. The canonical
+                executive is the <span className="font-mono text-neutral-100">{supervisedExecutive.name}</span> tmux
+                session rooted at <span className="font-mono text-neutral-100">{supervisedExecutive.cwd}</span>.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                {supervisedExecutive.claude?.bridgeUrl ? (
+                  <a
+                    href={supervisedExecutive.claude.bridgeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 font-medium text-amber-100 hover:border-amber-300/40"
+                  >
+                    Open {supervisedExecutive.name} in claude.ai ↗
+                  </a>
+                ) : (
+                  <span className="text-xs text-amber-200/70">
+                    /remote-control URL not yet available (session may be starting).
+                  </span>
+                )}
+                <Link
+                  href={`/sessions/${supervisedExecutive.name}`}
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-neutral-200 hover:border-white/20"
+                >
+                  View pane →
+                </Link>
+                {supervisedExecutive.claude?.conflictingPids && supervisedExecutive.claude.conflictingPids.length > 0 && (
+                  <span className="text-xs text-amber-200">
+                    ⚠ ad-hoc claude instance detected at the same cwd (pid {supervisedExecutive.claude.conflictingPids.join(', ')}) — supervised
+                    pid {supervisedExecutive.claude.pid}. Only supervised sessions persist across disconnects.
+                  </span>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Chat panel */}
           <section className="rounded-[2rem] border border-white/10 bg-[rgba(9,14,22,0.82)] p-5 shadow-[0_18px_40px_rgba(0,0,0,0.24)]">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <h1 className="truncate text-lg font-semibold text-neutral-100">
-                  {active ? active.title : 'Executive'}
+                  {active ? active.title : 'Ephemeral threads'}
                 </h1>
                 <p className="mt-0.5 truncate text-sm text-neutral-400">
                   {active
-                    ? `${active.model === 'claude' ? 'Claude' : 'Codex'} · rooted at /opt/workspace`
-                    : 'Create a thread to start talking to the workspace executive.'}
+                    ? `${active.model === 'claude' ? 'Claude' : 'Codex'} · rooted at /opt/workspace · file-backed, CLI-resumable`
+                    : 'Start a new ephemeral Claude or Codex session. For the supervised executive, use the panel above.'}
                 </p>
               </div>
               {active && (

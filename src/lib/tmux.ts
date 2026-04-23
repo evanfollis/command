@@ -97,6 +97,28 @@ export function parseAgentInfo(paneText: string): AgentInfo {
   return info
 }
 
+// Map tmux session name → pane PID. Since our supervised sessions spawn
+// claude directly as the pane process (no intermediate shell), this is
+// also the supervised claude PID for each tmux session.
+export function listSupervisedPids(): Record<string, number> {
+  try {
+    const raw = execSync(
+      'tmux list-panes -a -F "#{session_name}|#{pane_pid}"',
+      { encoding: 'utf-8', timeout: 5000 }
+    ).trim()
+    const out: Record<string, number> = {}
+    if (!raw) return out
+    for (const line of raw.split('\n')) {
+      const [name, pid] = line.split('|')
+      const n = parseInt(pid, 10)
+      if (name && Number.isFinite(n)) out[name] = n
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
 export function listSessions(): Session[] {
   try {
     const raw = execSync(

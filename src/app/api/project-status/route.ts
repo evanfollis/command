@@ -2,7 +2,8 @@ import { execFileSync } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { NextResponse } from 'next/server'
 
-import { listSessions } from '@/lib/tmux'
+import { correlateSession } from '@/lib/claudeSessions'
+import { listSessions, listSupervisedPids } from '@/lib/tmux'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -96,10 +97,17 @@ export async function GET() {
   const declared = parseSessionsConf()
   const liveSessions = listSessions()
   const liveNames = new Set(liveSessions.map((s) => s.name))
+  const supervisedPids = listSupervisedPids()
 
   const rows = declared.map((row) => {
     const projectName = SESSION_TO_PROJECT[row.name] ?? row.name
     const { path, content } = readCurrentState(row)
+    const correlated = correlateSession(
+      row.name,
+      row.cwd,
+      row.role,
+      supervisedPids[row.name] ?? null,
+    )
     return {
       name: row.name,
       projectName,
@@ -112,6 +120,12 @@ export async function GET() {
         content,
       },
       lastCommit: getLastCommit(row.cwd),
+      claude: {
+        pid: correlated.pid,
+        bridgeUrl: correlated.bridgeUrl,
+        bridgeSessionId: correlated.bridgeSessionId,
+        conflictingPids: correlated.conflictingPids,
+      },
     }
   })
 
