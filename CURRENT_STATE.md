@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-23T~16:10Z — attended cleanup pass: CURRENT_STATE.md committed, deploy gap closed, FR-0015 surfaced to principal
+**Last updated**: 2026-04-23T~17:45Z — session-topology disambiguation + health SHA landed (Phase A stopgap); freeze fix scoped as separate effort awaiting product decision
 
 ---
 
@@ -18,6 +18,14 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
+
+## What just completed (2026-04-23T~17:45Z, topology stopgap)
+- **Home-page disambiguation** (`93cd79e`): top of `/` now shows an amber "Supervised executive session" panel with a direct `https://claude.ai/code/session_*` link to the supervised `general` tmux instance. Copy on the threads panel renamed from "Executive / workspace executive" → "Ephemeral threads" to stop the framing collision that had the principal landing on the wrong surface.
+- **Bridge URL surfacing**: new `src/lib/claudeSessions.ts` reads `/root/.claude/sessions/<pid>.json` (CLI-maintained per-PID state with `bridgeSessionId`) and correlates to tmux supervised PIDs via `tmux list-panes`. `/api/project-status` now returns `{pid, bridgeUrl, bridgeSessionId, conflictingPids}` per session. Portfolio cards link out to claude.ai per project. Ad-hoc claude instances at the same cwd as a supervised tmux session get flagged with ⚠ dup.
+- **Health SHA** (`43b1275`): `/api/health` now includes the deployed commit SHA. `npm run build` writes `dist/.version`; health reads it with `git rev-parse HEAD` fallback for dev. Smoke asserts 40-char hex.
+- **Freeze diagnosis confirmed** at `threadConversation.ts:116` (Claude) and `:161` (Codex): `execFileSync` spawns fresh `claude -p --resume` / `codex exec resume` per turn. Blocking, no streaming. Per-turn cost = process spawn + full JSONL replay. Full rewrite scoped in handoff `runtime/.handoff/general-command-freeze-fix-scoping-2026-04-23T17-45Z.md` — requires a product decision on whether ephemeral threads keep the current architecture or collapse into a streaming-attach onto supervised tmux.
+- **ADR-0028 promotion requested** via `runtime/.handoff/general-command-adr-0028-ready-2026-04-23T17-30Z.md`. Review artifact clean; one-line status flip needed by charter holder.
+- **Not pushed**: HEAD is `93cd79e` (3 commits ahead of origin). Local deploy is at `93cd79e` / smoke 29/29 green. Awaiting principal OK before `git push origin main`.
 
 ## What just completed (2026-04-23T~16:10Z, attended pass)
 - **Cleanup pass executed**: committed the 6-cycle-stale reflection updates to `CURRENT_STATE.md`. Deploy gap closed (`npm run deploy` — build + restart + smoke; the only drift since `4b5261c` was a comment-only change in `page.tsx` from `8e63f97` and reflection doc updates in `194c720`, so this is a verification restart rather than a functional deploy). FR-0015 is unresolvable by any non-human path; the URGENT handoff is now surfaced to the principal directly in the session handback. ADR-0028 left at `proposed` — the general session holds charter authority for promotion; this project session is not that authority per note at the top of the ADR.
