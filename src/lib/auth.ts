@@ -1,5 +1,7 @@
-import { sign, verify } from 'jsonwebtoken'
+import { sign } from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+
+import { verifyToken } from './jwt'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'command-jwt-secret-change-in-production'
 const COOKIE_NAME = 'command_token'
@@ -8,14 +10,7 @@ export function createToken(): string {
   return sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '7d' })
 }
 
-export function verifyToken(token: string): boolean {
-  try {
-    verify(token, JWT_SECRET)
-    return true
-  } catch {
-    return false
-  }
-}
+export { verifyToken }
 
 export async function isAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies()

@@ -417,6 +417,13 @@ export default function ExecutivePage() {
                 >
                   View pane →
                 </Link>
+                <Link
+                  href={`/attach/${supervisedExecutive.name}`}
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-neutral-200 hover:border-white/20"
+                  title="Live-streaming read-only attach (experimental — Phase C1)"
+                >
+                  Live stream ↗
+                </Link>
                 {supervisedExecutive.claude?.conflictingPids && supervisedExecutive.claude.conflictingPids.length > 0 && (
                   <span className="text-xs text-amber-200">
                     ⚠ ad-hoc claude instance detected at the same cwd (pid {supervisedExecutive.claude.conflictingPids.join(', ')}) — supervised

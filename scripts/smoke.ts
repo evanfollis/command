@@ -13,6 +13,7 @@
  * broken build cannot silently serve traffic.
  */
 import { readFileSync } from 'fs'
+import WebSocket from 'ws'
 import { WORKSPACE_PATHS } from '../src/lib/workspacePaths'
 
 const BASE = process.env.SMOKE_BASE || 'http://localhost:3100'
@@ -28,6 +29,65 @@ let failed = 0
 function check(name: string, ok: boolean, detail?: string) {
   console.log(`${ok ? '\u2713' : '\u2717'} ${name}${detail ? ` — ${detail}` : ''}`)
   if (!ok) failed++
+}
+
+interface WebSocketCheckOpts {
+  label: string
+  authToken?: string
+  rejectUnauthed?: boolean   // expect immediate close/401 with no cookie
+  rejectOpen?: boolean       // expect server to close after upgrade (allowlist miss)
+  expectSnapshot?: boolean   // expect at least one 'snapshot' frame within 2s
+}
+
+async function checkWebSocket(url: string, opts: WebSocketCheckOpts): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const headers: Record<string, string> = {}
+    if (opts.authToken) headers.Cookie = `command_token=${opts.authToken}`
+    const ws = new WebSocket(url, { headers, handshakeTimeout: 3000 })
+
+    let done = false
+    let opened = false
+
+    const finish = (pass: boolean, detail?: string) => {
+      if (done) return
+      done = true
+      clearTimeout(timeout)
+      try { ws.terminate() } catch { /* noop */ }
+      check(opts.label, pass, detail)
+      resolve()
+    }
+
+    const timeout = setTimeout(() => {
+      if (opts.expectSnapshot) finish(false, 'no snapshot within 2s')
+      else if (opts.rejectUnauthed) finish(true, 'no frame within timeout (ok for auth-reject)')
+      else if (opts.rejectOpen) finish(true, 'no frame within timeout (ok for allowlist-reject)')
+      else finish(false, 'timeout with no decisive signal')
+    }, 2500)
+
+    ws.on('open', () => { opened = true })
+    ws.on('message', (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString())
+        if (msg.type === 'snapshot') {
+          if (opts.expectSnapshot) finish(true, `snapshot bytes=${(msg.text || '').length}`)
+          else if (opts.rejectOpen) finish(false, 'server streamed snapshot despite allowlist reject')
+        }
+      } catch { /* ignore */ }
+    })
+    ws.on('unexpected-response', (_req, res) => {
+      const rejectedStatus = [401, 404]
+      if (opts.rejectUnauthed) finish(res.statusCode === 401, `http=${res.statusCode}`)
+      else if (opts.rejectOpen) finish(rejectedStatus.includes(res.statusCode ?? 0), `http=${res.statusCode}`)
+      else finish(false, `unexpected http=${res.statusCode}`)
+    })
+    ws.on('error', () => {
+      if (opts.rejectUnauthed || opts.rejectOpen) finish(true, 'connect rejected')
+    })
+    ws.on('close', () => {
+      if (opts.rejectOpen && opened) finish(true, 'opened then closed by server')
+      else if (opts.rejectUnauthed && !opened) finish(true, 'closed before open')
+    })
+  })
 }
 
 async function main() {
@@ -131,6 +191,20 @@ async function main() {
     'health response has sha (40-char hex)',
     typeof healthBody?.sha === 'string' && /^[0-9a-f]{40}$/.test(healthBody.sha),
     `sha="${healthBody?.sha}"`
+  )
+
+  // Phase C1 durable attach (read-only streaming). Covers auth gate + allowlist.
+  await checkWebSocket(
+    `${BASE.replace(/^http/, 'ws')}/api/attach/general/stream`,
+    { rejectUnauthed: true, label: 'ws unauthed /api/attach/general/stream → 401/close' }
+  )
+  await checkWebSocket(
+    `${BASE.replace(/^http/, 'ws')}/api/attach/not-in-allowlist/stream`,
+    { authToken: token, rejectOpen: true, label: 'ws authed /api/attach/not-in-allowlist/stream → rejected' }
+  )
+  await checkWebSocket(
+    `${BASE.replace(/^http/, 'ws')}/api/attach/general/stream`,
+    { authToken: token, expectSnapshot: true, label: 'ws authed /api/attach/general/stream → snapshot frame' }
   )
 
   // Artifacts inbox (ADR-0028). Auth-gated markdown reader over a narrow
