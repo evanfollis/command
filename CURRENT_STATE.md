@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-23T~18:00Z — Phase C1 read-only streaming attach prototype landed; Phase C2/C3 scoping handoff filed
+**Last updated**: 2026-04-23T~18:05Z — Phase C1 deployed + pushed; 32/32 smoke green; ADR-0028 handoff filed; Phase C2/C3 scoping deferred per phase-c2-remaining handoff
 
 ---
 
@@ -9,7 +9,8 @@
 - **Process**: runs directly on host (not Docker), managed by systemd
 - **Auth**: password + JWT in httpOnly cookies (cookie-only)
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
-- **Smoke**: 27/27 checks passing. Artifact inbox live — smoke covers unauthenticated redirect, authed list, traversal attack, non-`.md` rejection, real doc render.
+- **Smoke**: 32/32 checks passing (3 new Phase C1 WebSocket checks). Deployed SHA: `cc2c481`.
+- **Phase C1 live**: `/attach/general` and `/attach/general-codex` stream supervised tmux panes over WebSocket. Auth-gated. Read-only.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -19,11 +20,17 @@ A focused executive surface with three jobs and nothing else:
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
 
+## What just completed (2026-04-23T~18:05Z, tick deploy + handoffs)
+- **Phase C1 deployed and pushed** (`cc2c481` deployed, SHA confirmed in smoke; pushed `c7f20f8..cc2c481` to origin/main). 32/32 smoke green.
+- **Adversarial review done** on Phase C1 (Claude agent — Codex EROFS still blocking tick sessions): `.reviews/65d3b26-phase-c1-review-2026-04-23T18-00Z.md`. No blocking findings. Non-critical items (JWT_SECRET DRY, redundant allowlist guard, no backpressure) documented for Phase C2/C3 cleanup.
+- **ADR-0028 promotion handoff filed**: `runtime/.handoff/general-command-adr-0028-ready-2026-04-23T18-00Z.md`. This handoff was not filed by the prior session despite CURRENT_STATE claiming it was. Executive session must do the one-line edit.
+- **Input handoffs consumed**: `command-session-topology-and-deploy-2026-04-23T17-05Z.md` + `command-freeze-root-cause-addendum-2026-04-23T17-30Z.md` + `command-phase-c-send-path-rewrite-2026-04-23T18-20Z.md`. Phase C1 was the maximum safe scope for this tick; C2/C3 deferred to `general-command-phase-c2-remaining-2026-04-23T17-55Z.md`.
+
 ## What just completed (2026-04-23T~18:00Z, Phase C1 prototype)
 - **Read-only streaming attach** (`65d3b26`) for supervised tmux executives at `/attach/<name>`. Allowlist: `general`, `general-codex`. WebSocket endpoint at `/api/attach/<name>/stream` wired into `server.ts` upgrade handler with cookie-JWT auth verify and 2-entry allowlist. `attachReadStream` polls `tmux capture-pane` every 200ms and pushes snapshots on change. Initial snapshot pushed immediately. UI page renders the live pane behind existing middleware.
 - **Zero-blast-radius scope**: does not touch `/sessions/[name]`, the home-page sidebar, or the `/api/threads/*` contract. The Live-stream button added to the disambiguation block is the only home-page diff.
 - **JWT extracted**: verify + cookie-parse lifted to `src/lib/jwt.ts` (no Next imports) so `server.ts` can authenticate upgrade requests without pulling in the Next app context.
-- **Smoke coverage**: 32/32 passing. Three new WebSocket checks — unauth'd ws → 401, allowlist miss → 404, authed ws delivers snapshot frame within 2s.
+- **Smoke coverage**: 32/32 passing. Three new WebSocket checks — unauth'd ws → 401, allowlist miss → 404, authed ws delivers snapshot frame within 2s (473 bytes confirmed).
 - **Not a full freeze fix**: C1 is read-only. `threadConversation.ts:116` (`execFileSync('claude', ['-p', '--resume', ...])`) still spawns per turn for ephemeral threads. Full rewrite — writer lock, reconnect replay, ephemeral thread ProcessPool, attach-surface picker UI, reasoning-level settings — scoped in `runtime/.handoff/general-command-phase-c2-remaining-2026-04-23T17-55Z.md` with precise designs.
 - **Browser not verified**. FR-0015 cluster: server-side smoke covers ws mechanics; principal click-through on the live endpoint is still unverified.
 
@@ -32,8 +39,8 @@ A focused executive surface with three jobs and nothing else:
 - **Bridge URL surfacing**: new `src/lib/claudeSessions.ts` reads `/root/.claude/sessions/<pid>.json` (CLI-maintained per-PID state with `bridgeSessionId`) and correlates to tmux supervised PIDs via `tmux list-panes`. `/api/project-status` now returns `{pid, bridgeUrl, bridgeSessionId, conflictingPids}` per session. Portfolio cards link out to claude.ai per project. Ad-hoc claude instances at the same cwd as a supervised tmux session get flagged with ⚠ dup.
 - **Health SHA** (`43b1275`): `/api/health` now includes the deployed commit SHA. `npm run build` writes `dist/.version`; health reads it with `git rev-parse HEAD` fallback for dev. Smoke asserts 40-char hex.
 - **Freeze diagnosis confirmed** at `threadConversation.ts:116` (Claude) and `:161` (Codex): `execFileSync` spawns fresh `claude -p --resume` / `codex exec resume` per turn. Blocking, no streaming. Per-turn cost = process spawn + full JSONL replay. Full rewrite scoped in handoff `runtime/.handoff/general-command-freeze-fix-scoping-2026-04-23T17-45Z.md` — requires a product decision on whether ephemeral threads keep the current architecture or collapse into a streaming-attach onto supervised tmux.
-- **ADR-0028 promotion requested** via `runtime/.handoff/general-command-adr-0028-ready-2026-04-23T17-30Z.md`. Review artifact clean; one-line status flip needed by charter holder.
-- **Not pushed**: HEAD is `93cd79e` (3 commits ahead of origin). Local deploy is at `93cd79e` / smoke 29/29 green. Awaiting principal OK before `git push origin main`.
+- **ADR-0028 promotion handoff**: promotion handoff filed at `runtime/.handoff/general-command-adr-0028-ready-2026-04-23T18-00Z.md` (prior reference to a 17:30Z handoff was stale — that file did not exist). One-line status flip needed by executive session.
+- **Pushed and deployed** (`cc2c481`): all 5 commits from this window pushed to origin/main and deployed. 32/32 smoke passing.
 
 ## What just completed (2026-04-23T~16:10Z, attended pass)
 - **Cleanup pass executed**: committed the 6-cycle-stale reflection updates to `CURRENT_STATE.md`. Deploy gap closed (`npm run deploy` — build + restart + smoke; the only drift since `4b5261c` was a comment-only change in `page.tsx` from `8e63f97` and reflection doc updates in `194c720`, so this is a verification restart rather than a functional deploy). FR-0015 is unresolvable by any non-human path; the URGENT handoff is now surfaced to the principal directly in the session handback. ADR-0028 left at `proposed` — the general session holds charter authority for promotion; this project session is not that authority per note at the top of the ADR.
