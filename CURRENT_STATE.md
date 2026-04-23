@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-20T~16:55Z — adversarial review complete for artifact inbox; ADR-0028 ready for promotion (blocked on supervisor write access from tick sessions)
+**Last updated**: 2026-04-23T~16:10Z — attended cleanup pass: CURRENT_STATE.md committed, deploy gap closed, FR-0015 surfaced to principal
 
 ---
 
@@ -9,7 +9,7 @@
 - **Process**: runs directly on host (not Docker), managed by systemd
 - **Auth**: password + JWT in httpOnly cookies (cookie-only)
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
-- **Smoke**: 27/27 checks passing (deployed at `4b5261c`, 2026-04-20). Artifact inbox live — smoke covers unauthenticated redirect, authed list, traversal attack, non-`.md` rejection, real doc render.
+- **Smoke**: 27/27 checks passing. Artifact inbox live — smoke covers unauthenticated redirect, authed list, traversal attack, non-`.md` rejection, real doc render.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -18,6 +18,27 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
+
+## What just completed (2026-04-23T~16:10Z, attended pass)
+- **Cleanup pass executed**: committed the 6-cycle-stale reflection updates to `CURRENT_STATE.md`. Deploy gap closed (`npm run deploy` — build + restart + smoke; the only drift since `4b5261c` was a comment-only change in `page.tsx` from `8e63f97` and reflection doc updates in `194c720`, so this is a verification restart rather than a functional deploy). FR-0015 is unresolvable by any non-human path; the URGENT handoff is now surfaced to the principal directly in the session handback. ADR-0028 left at `proposed` — the general session holds charter authority for promotion; this project session is not that authority per note at the top of the ADR.
+
+## What just completed (2026-04-23T14:23Z, reflection pass)
+- **Reflection pass** (`command-reflection-2026-04-23T14-23-20Z.md`): sixth consecutive quiet window — no commits, no user activity, no telemetry events. FR-0015 handoff filed at `runtime/.handoff/URGENT-command-fr0015-principal-decision-needed.md` — reflection loop will stop re-escalating after this. Attended-session cleanup pass still proposed (commit CURRENT_STATE.md, deploy, promote ADR-0028, close FR-0015). CURRENT_STATE.md now ~72h uncommitted (6 cycles).
+
+## What just completed (2026-04-23T02:23Z, reflection pass)
+- **Reflection pass** (`command-reflection-2026-04-23T02-23-14Z.md`): fifth consecutive quiet window — no commits, no user activity, no telemetry events. All prior carry-forwards persist. CURRENT_STATE.md now ~60h uncommitted (5 cycles). FR-0015 10th cycle — now degrading signal quality. ADR-0028 >96h at proposed. Reflection proposes a 10-minute attended-session cleanup pass to close all five stale items at once.
+
+## What just completed (2026-04-22T14:22Z, reflection pass)
+- **Reflection pass** (`command-reflection-2026-04-22T14-22-45Z.md`): fourth consecutive quiet window — no commits. One new signal: iPhone login-page view at 03:26Z (CriOS/147, navType "navigate", no referrer). No post-auth telemetry events — telemetry gap identified: client beacon covers login page load but not auth success or post-login navigation. All prior carry-forwards persist. CURRENT_STATE.md now ~36h uncommitted (4 cycles). FR-0015 9th cycle.
+
+## What just completed (2026-04-22T02:24Z, reflection pass)
+- **Reflection pass** (`command-reflection-2026-04-22T02-24-07Z.md`): third consecutive quiet window — no commits, no user interaction. All prior carry-forwards persist. CURRENT_STATE.md has now been sitting uncommitted for ~24h (3 reflection cycles). Deploy gap still open (HEAD `194c720` vs deployed `4b5261c`). FR-0015 entering 8th cycle — reflection loop no longer adding signal; principal resolution needed. ADR-0028 stuck at `proposed` for >48h post-review.
+
+## What just completed (2026-04-21T14:24Z, reflection pass)
+- **Reflection pass** (`command-reflection-2026-04-21T14-24-25Z.md`): quiet window — no commits, no user interaction. All carry-forwards from prior reflection still open. CURRENT_STATE.md sitting uncommitted on disk (prior reflection session updated it but could not commit). Deploy gap and FR-0015 URGENT persist.
+
+## What just completed (2026-04-21T02:28Z, reflection pass)
+- **Reflection pass** (`command-reflection-2026-04-21T02-28-12Z.md`): observed 3 commits from prior window. Deploy gap noted (HEAD 2 commits ahead of `4b5261c`). FR-0015 escalated to 6th cycle. ADR-0028 promotion still blocked on executive write access. Codex EROFS block flagged as structural (cross-project).
 
 ## What just completed (2026-04-20)
 - **Adversarial review of artifact inbox** (this tick): Claude agent review (codex blocked by EROFS in tick sessions). Review at `.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`. Path-traversal guard confirmed sound. Three findings triaged as accepted tradeoffs. No blocking issues. ADR-0028 ready for `proposed → accepted` promotion — blocked only on supervisor directory being read-only from tick sessions; executive session must write the status change.
@@ -50,6 +71,7 @@ A focused executive surface with three jobs and nothing else:
 - **`SESSION_TO_METRICS_KEY` contract (now documented)**: `page.tsx:7-13` hardcodes `{ general: 'admin' }`; any other session name maps to itself. Producer is `/opt/workspace/supervisor/scripts/lib/metrics-rollup.py`, scheduled by `metrics-rollup.timer` (hourly, `OnUnitActiveSec=1h`, `OnBootSec=2min`; `systemctl list-timers metrics-rollup.timer` to verify). Writes `/opt/workspace/runtime/.metrics/<window>.json` for windows `1h`, `today`, `24h`, `7d`, `30d`, `all`, plus `LATEST.json`. Key scheme is cwd-derived: `/opt/workspace`, `/opt/workspace/supervisor`, `/opt/workspace/runtime`, `/root` → `admin`; `/opt/workspace/projects/skillfoundry/*` → `skillfoundry`; `/opt/workspace/projects/context-repository` → `context-repo`; other `/opt/workspace/projects/<name>` → `<name>`; unmapped → `admin`. That's why the `general` session (rooted at `/opt/workspace`) maps to the `admin` key in the producer output, and why `SESSION_TO_METRICS_KEY` rewrites `general → admin` on the command side. Legacy `/opt/projects/*` paths are normalized to the `/opt/workspace/projects/*` equivalents inside the producer. Contract is now written down; if the producer ever renames `admin` or changes the cwd mapping, update both this file and `page.tsx`.
 - **Single-process state integrity assumptions**: `threadConversation.ts` non-atomic transcript append (`57-63`), in-process-only turn lock (`194-200`), no durable error marker on crash (`207-209`). Safe ONLY while command runs single-process. If ever run multi-process, these become active data-corruption bugs. Accepted tradeoff — documented in `.reviews/84b38dc-review-2026-04-18T16-54Z.md:§3`.
 - **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. Intended pressure signal — not a bug to paper over.
+- **Client telemetry post-auth gap**: beacon fires on login *page load* and specific API events, but not on auth success or subsequent page navigation during a session. Mobile access (03:26Z iPhone visit) was visible but post-login behavior was invisible. If mobile becomes a first-class use case, add `client.auth_success` beacon to the auth API route and page-view beacons to `/` and `/artifacts`.
 
 ## Recent decisions
 - **Native session IDs, not prompt stitching**: threads ARE Claude/Codex sessions, not UI buffers. Guarantees CLI resumability and feeds the reflection loop automatically.
@@ -75,7 +97,7 @@ A focused executive surface with three jobs and nothing else:
 - `GET /artifacts` — artifact inbox list · `GET /artifacts/[source]/[...path]` — doc view (markdown rendered server-side)
 
 ## Carry-forwards
-- **FR-0015 Layer-3 proof** (ESCALATED — 5th non-skipped reflection): browser workflow with threads + portfolio needs real-device verification. No session transcript shows a full browser-side thread workflow test. Threshold hit — URGENT.
+- **FR-0015 Layer-3 proof** (HANDOFF FILED — 11th cycle): browser workflow with threads + portfolio needs real-device verification. Handoff at `runtime/.handoff/URGENT-command-fr0015-principal-decision-needed.md`. Two options: (a) test in a real browser (~15 min), (b) explicitly defer with rationale. Reflection loop is not re-escalating further.
 - ~~**Document metrics producer** (URGENT — escalated)~~: **closed 2026-04-20T~16:55Z**. Producer is `supervisor/scripts/lib/metrics-rollup.py` on hourly `metrics-rollup.timer`; key scheme documented above under "Known broken or degraded." Both URGENT handoffs (`URGENT-command-metrics-producer-undocumented-2026-04-20T14-31Z.md` and `command-urgent-metrics-producer-2026-04-20T16-49Z.md`) are now actioned — safe to archive.
 - **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. Acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
 
