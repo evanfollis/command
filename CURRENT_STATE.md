@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-23T~17:45Z — session-topology disambiguation + health SHA landed (Phase A stopgap); freeze fix scoped as separate effort awaiting product decision
+**Last updated**: 2026-04-23T~18:00Z — Phase C1 read-only streaming attach prototype landed; Phase C2/C3 scoping handoff filed
 
 ---
 
@@ -18,6 +18,14 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
+
+## What just completed (2026-04-23T~18:00Z, Phase C1 prototype)
+- **Read-only streaming attach** (`65d3b26`) for supervised tmux executives at `/attach/<name>`. Allowlist: `general`, `general-codex`. WebSocket endpoint at `/api/attach/<name>/stream` wired into `server.ts` upgrade handler with cookie-JWT auth verify and 2-entry allowlist. `attachReadStream` polls `tmux capture-pane` every 200ms and pushes snapshots on change. Initial snapshot pushed immediately. UI page renders the live pane behind existing middleware.
+- **Zero-blast-radius scope**: does not touch `/sessions/[name]`, the home-page sidebar, or the `/api/threads/*` contract. The Live-stream button added to the disambiguation block is the only home-page diff.
+- **JWT extracted**: verify + cookie-parse lifted to `src/lib/jwt.ts` (no Next imports) so `server.ts` can authenticate upgrade requests without pulling in the Next app context.
+- **Smoke coverage**: 32/32 passing. Three new WebSocket checks — unauth'd ws → 401, allowlist miss → 404, authed ws delivers snapshot frame within 2s.
+- **Not a full freeze fix**: C1 is read-only. `threadConversation.ts:116` (`execFileSync('claude', ['-p', '--resume', ...])`) still spawns per turn for ephemeral threads. Full rewrite — writer lock, reconnect replay, ephemeral thread ProcessPool, attach-surface picker UI, reasoning-level settings — scoped in `runtime/.handoff/general-command-phase-c2-remaining-2026-04-23T17-55Z.md` with precise designs.
+- **Browser not verified**. FR-0015 cluster: server-side smoke covers ws mechanics; principal click-through on the live endpoint is still unverified.
 
 ## What just completed (2026-04-23T~17:45Z, topology stopgap)
 - **Home-page disambiguation** (`93cd79e`): top of `/` now shows an amber "Supervised executive session" panel with a direct `https://claude.ai/code/session_*` link to the supervised `general` tmux instance. Copy on the threads panel renamed from "Executive / workspace executive" → "Ephemeral threads" to stop the framing collision that had the principal landing on the wrong surface.
