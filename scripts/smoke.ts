@@ -124,6 +124,15 @@ async function main() {
   const statusBody = await statusRes.json().catch(() => ({}))
   check('project-status returns sessions array', Array.isArray(statusBody?.sessions))
 
+  const healthRes = await fetch(`${BASE}/api/health`, { headers: authHeaders })
+  check('GET /api/health → 200', healthRes.ok, `status=${healthRes.status}`)
+  const healthBody = await healthRes.json().catch(() => ({}))
+  check(
+    'health response has sha (40-char hex)',
+    typeof healthBody?.sha === 'string' && /^[0-9a-f]{40}$/.test(healthBody.sha),
+    `sha="${healthBody?.sha}"`
+  )
+
   // Artifacts inbox (ADR-0028). Auth-gated markdown reader over a narrow
   // code-path-only source allowlist.
   const artifactsUnauth = await fetch(`${BASE}/artifacts`, { redirect: 'manual' })

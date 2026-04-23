@@ -1,5 +1,6 @@
 import { execSync } from 'child_process'
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
 export interface HealthData {
@@ -9,6 +10,29 @@ export interface HealthData {
   containers: ContainerInfo[]
   tunnelActive: boolean
   lastCheck: string
+  sha: string
+}
+
+// Baked into dist/.version at build time (see package.json). In dev mode
+// no dist/.version exists, so we fall back to `git rev-parse HEAD` at
+// runtime. Cache the result for the life of the process — the deployed
+// SHA doesn't change without a restart.
+let cachedSha: string | null = null
+function readSha(): string {
+  if (cachedSha) return cachedSha
+  const versionFile = join(process.cwd(), 'dist', '.version')
+  if (existsSync(versionFile)) {
+    try {
+      cachedSha = readFileSync(versionFile, 'utf-8').trim()
+      return cachedSha
+    } catch { /* fall through */ }
+  }
+  try {
+    cachedSha = execSync('git rev-parse HEAD', { encoding: 'utf-8', timeout: 2000 }).trim()
+  } catch {
+    cachedSha = 'unknown'
+  }
+  return cachedSha
 }
 
 export interface ContainerInfo {
@@ -46,6 +70,7 @@ export function getHealth(): HealthData {
     containers,
     tunnelActive,
     lastCheck,
+    sha: readSha(),
   }
 }
 

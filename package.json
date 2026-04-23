@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "check": "tsx scripts/check-patterns.ts",
-    "build": "npm run check && next build && npx tsc -p tsconfig.server.json",
+    "build": "npm run check && next build && npx tsc -p tsconfig.server.json && git rev-parse HEAD > dist/.version",
     "start": "NODE_ENV=production node dist/server.js",
     "smoke": "tsx scripts/smoke.ts",
     "deploy": "npm run build && systemctl restart command && sleep 2 && npm run smoke",
