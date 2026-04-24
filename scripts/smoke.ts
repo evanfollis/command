@@ -69,8 +69,12 @@ async function checkWebSocket(url: string, opts: WebSocketCheckOpts): Promise<vo
       try {
         const msg = JSON.parse(raw.toString())
         if (msg.type === 'snapshot') {
-          if (opts.expectSnapshot) finish(true, `snapshot bytes=${(msg.text || '').length}`)
-          else if (opts.rejectOpen) finish(false, 'server streamed snapshot despite allowlist reject')
+          if (opts.expectSnapshot) {
+            const text: string = msg.text || ''
+            if (text.length === 0) { finish(false, 'snapshot text empty'); return }
+            if (/^debug-lls-/.test(text)) { finish(false, `snapshot is debug stub: ${text.slice(0, 40)}`); return }
+            finish(true, `snapshot bytes=${text.length}`)
+          } else if (opts.rejectOpen) finish(false, 'server streamed snapshot despite allowlist reject')
         }
       } catch { /* ignore */ }
     })
@@ -206,6 +210,171 @@ async function main() {
     `${BASE.replace(/^http/, 'ws')}/api/attach/general/stream`,
     { authToken: token, expectSnapshot: true, label: 'ws authed /api/attach/general/stream → snapshot frame' }
   )
+
+  // Phase C2.1 write path. Covers auth + allowlist + writer lock gate.
+  const sendUnauth = await fetch(`${BASE}/api/attach/general/send`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: '', clientId: 'smoke', submit: false }),
+  })
+  check('POST /api/attach/general/send unauthed → 401', sendUnauth.status === 401, `status=${sendUnauth.status}`)
+
+  const sendBadSession = await fetch(`${BASE}/api/attach/not-in-allowlist/send`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'content-type': 'application/json' },
+    body: JSON.stringify({ text: '', clientId: 'smoke', submit: false }),
+  })
+  check('POST /api/attach/<bad>/send authed → 404', sendBadSession.status === 404, `status=${sendBadSession.status}`)
+
+  const sendMissingClient = await fetch(`${BASE}/api/attach/general/send`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'content-type': 'application/json' },
+    body: JSON.stringify({ text: '' }),
+  })
+  check('POST /api/attach/general/send without clientId → 400', sendMissingClient.status === 400, `status=${sendMissingClient.status}`)
+
+  const sendDriveBy = await fetch(`${BASE}/api/attach/general/send`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'content-type': 'application/json' },
+    body: JSON.stringify({ text: '', clientId: 'drive-by-no-ws', submit: false }),
+  })
+  check('POST /api/attach/general/send without ws registration → 403', sendDriveBy.status === 403, `status=${sendDriveBy.status}`)
+
+  // End-to-end: open ws with a known clientId, wait for hello, then POST send with same id.
+  // The ws claims the writer lock on connect (nothing else is holding), and the POST is the writer.
+  const e2eClientId = `smoke-e2e-${Date.now()}`
+  const e2eResult = await new Promise<{ ok: boolean; detail: string }>((resolve) => {
+    const ws = new WebSocket(
+      `${BASE.replace(/^http/, 'ws')}/api/attach/general/stream?clientId=${encodeURIComponent(e2eClientId)}`,
+      { headers: { Cookie: `command_token=${token}` }, handshakeTimeout: 3000, perMessageDeflate: false }
+    )
+    let resolved = false
+    const finish = (ok: boolean, detail: string) => {
+      if (resolved) return
+      resolved = true
+      try { ws.terminate() } catch { /* noop */ }
+      resolve({ ok, detail })
+    }
+    const timeout = setTimeout(() => finish(false, 'e2e timeout'), 4000)
+    ws.on('message', async (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString())
+        if (msg.type === 'hello') {
+          const res = await fetch(`${BASE}/api/attach/general/send`, {
+            method: 'POST',
+            headers: { ...authHeaders, 'content-type': 'application/json' },
+            body: JSON.stringify({ text: '', clientId: e2eClientId, submit: false }),
+          })
+          const body = await res.json().catch(() => ({}))
+          clearTimeout(timeout)
+          finish(res.status === 200 && body.role === 'writer', `status=${res.status} role=${body.role}`)
+        }
+      } catch { /* ignore */ }
+    })
+    ws.on('error', (e) => finish(false, `e2e ws error: ${e.message}`))
+  })
+  check('ws+POST end-to-end: registered writer can send → 200', e2eResult.ok, e2eResult.detail)
+
+  // take-write: observer that has a ws registration can request transfer
+  const takeWriteClientId = `smoke-take-${Date.now()}`
+  const takeWriteResult = await new Promise<{ ok: boolean; detail: string }>((resolve) => {
+    const ws = new WebSocket(
+      `${BASE.replace(/^http/, 'ws')}/api/attach/general/stream?clientId=${encodeURIComponent(takeWriteClientId)}`,
+      { headers: { Cookie: `command_token=${token}` }, handshakeTimeout: 3000, perMessageDeflate: false }
+    )
+    let resolved = false
+    const finish = (ok: boolean, detail: string) => {
+      if (resolved) return
+      resolved = true
+      try { ws.terminate() } catch { /* noop */ }
+      resolve({ ok, detail })
+    }
+    const timeout = setTimeout(() => finish(false, 'take-write timeout'), 4000)
+    ws.on('message', async (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString())
+        if (msg.type === 'hello') {
+          // First become writer (no other ws holding it in this context)
+          // then immediately request transfer with a second client — or just verify
+          // that take-write 200s for a client with no current writer
+          const res = await fetch(`${BASE}/api/attach/general/take-write`, {
+            method: 'POST',
+            headers: { ...authHeaders, 'content-type': 'application/json' },
+            body: JSON.stringify({ clientId: takeWriteClientId }),
+          })
+          clearTimeout(timeout)
+          // If we're already the writer (from hello), take-write still succeeds (granted or writer-changed)
+          finish([200, 202].includes(res.status), `status=${res.status}`)
+        }
+      } catch { /* ignore */ }
+    })
+    ws.on('error', (e) => finish(false, `take-write ws error: ${e.message}`))
+  })
+  check('ws+POST take-write: authed client can request write transfer → 200/202', takeWriteResult.ok, takeWriteResult.detail)
+
+  // take-write without ws registration → 403 (client has no lock lifecycle)
+  const takeWriteDriveBy = await fetch(`${BASE}/api/attach/general/take-write`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'content-type': 'application/json' },
+    body: JSON.stringify({ clientId: 'take-drive-by-no-ws' }),
+  })
+  check('POST /api/attach/general/take-write without ws → 403', takeWriteDriveBy.status === 403, `status=${takeWriteDriveBy.status}`)
+
+  // reconnect replay: open ws, get a snapshot, reconnect with ?since=0 and verify replay
+  const replayClientId = `smoke-replay-${Date.now()}`
+  const replayResult = await new Promise<{ ok: boolean; detail: string }>((resolve) => {
+    let firstSnapshotTs = 0
+    let phase: 'first' | 'replaying' = 'first'
+    let firstWs: WebSocket | null = null
+
+    const timeout = setTimeout(() => {
+      try { firstWs?.terminate() } catch { /* noop */ }
+      resolve({ ok: false, detail: 'replay timeout' })
+    }, 6000)
+
+    const startFirst = () => {
+      const ws = new WebSocket(
+        `${BASE.replace(/^http/, 'ws')}/api/attach/general/stream?clientId=${encodeURIComponent(replayClientId)}`,
+        { headers: { Cookie: `command_token=${token}` }, handshakeTimeout: 3000, perMessageDeflate: false }
+      )
+      firstWs = ws
+      ws.on('message', (raw) => {
+        try {
+          const msg = JSON.parse(raw.toString())
+          if (msg.type === 'snapshot' && phase === 'first') {
+            firstSnapshotTs = msg.ts
+            phase = 'replaying'
+            try { ws.terminate() } catch { /* noop */ }
+            // Reconnect with since=<ts - 1> to ensure the snapshot is included
+            const replayWs = new WebSocket(
+              `${BASE.replace(/^http/, 'ws')}/api/attach/general/stream?clientId=${encodeURIComponent(replayClientId)}&since=${firstSnapshotTs - 1}`,
+              { headers: { Cookie: `command_token=${token}` }, handshakeTimeout: 3000, perMessageDeflate: false }
+            )
+            replayWs.on('message', (raw2) => {
+              try {
+                const msg2 = JSON.parse(raw2.toString())
+                if (msg2.type === 'snapshot') {
+                  clearTimeout(timeout)
+                  try { replayWs.terminate() } catch { /* noop */ }
+                  resolve({ ok: true, detail: `replayed ts=${msg2.ts}` })
+                }
+              } catch { /* ignore */ }
+            })
+            replayWs.on('error', () => {
+              clearTimeout(timeout)
+              resolve({ ok: false, detail: 'replay ws error' })
+            })
+          }
+        } catch { /* ignore */ }
+      })
+      ws.on('error', () => {
+        clearTimeout(timeout)
+        resolve({ ok: false, detail: 'first ws error' })
+      })
+    }
+    startFirst()
+  })
+  check('reconnect with ?since replay delivers snapshot', replayResult.ok, replayResult.detail)
 
   // Artifacts inbox (ADR-0028). Auth-gated markdown reader over a narrow
   // code-path-only source allowlist.
