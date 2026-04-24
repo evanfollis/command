@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-24T13:19:05Z — Topology analysis delivered; Phase D + context-usage-ui parked pending conditions; routing bug identified in `page.tsx`
+**Last updated**: 2026-04-24T20:51Z — Session routing hardened + Nav executive link shipped (`091ff74`); 40/40 smoke; Phase D handoff preserved (not deleted, conflict noted)
 
 ---
 
@@ -20,10 +20,19 @@ A focused executive surface with three jobs and nothing else:
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
 
+## What just completed (2026-04-24T20:51Z, tick — session routing hardening)
+- **Session routing bug fixed** (`091ff74`): `page.tsx:299` now pins `supervisedExecutive` to `p.name === 'general'` first, with fallback to any `role='executive'` session. Eliminates the silent tie-break that would have quietly pointed the executive card at `general-codex` if `sessions.conf` order changed. Option A from topology analysis.
+- **Nav Executive link shipped** (Option B from topology analysis): `Nav.tsx` now has an "Executive" link to `/attach/general` so the live attach surface is reachable from any page without returning to the home card.
+- **PortfolioCard live-attach link fixed**: previous uncommitted change added an unconditional `/attach/${project.name}` link to ALL portfolio cards. Fixed to `project.role === 'executive'` guard — the attach allowlist only covers executive sessions; non-executive links led to a disconnected view.
+- **bridgeUrl links removed**: executive card and portfolio cards no longer show conditional "open in claude.ai ↗" links (which required a live `bridgeUrl` that was often absent). Native attach is the primary surface.
+- **Phase D handoff PRESERVED** — tick instructions said to delete `command-phase-d-cowork-panels-2026-04-23T18-35Z.md`, but CURRENT_STATE.md from prior tick explicitly said "NOT deleted — external-dependency block." Conflict surfaced to executive in completion report. Design preserved in handoff file pending executive decision.
+- **Context-usage-ui** — still parked as Phase D scope (`command-context-usage-ui-2026-04-23T20-40Z.md`). Data available, attachment header option exists. Executive can unpark independently.
+- **Login double-submission** — investigated telemetry: consistent fail+success pairs 8-21ms apart across multiple browser sessions (iPhone+CriOS, Mac+Chrome). Root cause: most likely browser/password-manager race condition, not server-side bug. Proposed client-side submit-once fix would not address this class. Left uninvestigated per advisor — the fix class doesn't match the root cause, and the user still successfully authenticates. Remains in known broken section.
+
 ## What just completed (2026-04-24T13:19Z, tick — handoff triage + topology analysis)
-- **Session-topology routing analysis delivered**: `general-command-topology-analysis-2026-04-24T13-19-05Z.md` sent to executive. Identified `projects.find((p) => p.role === 'executive')` in `page.tsx:299` as a silent tie-break bug when both `general` and `general-codex` qualify — order-dependent, zero-warning on regression. Recommended fix: prefer `p.name === 'general'` explicitly (2-line diff). Analysis also covers: Nav link option, attach-header role pill option. Full tradeoff write-up in handoff.
-- **Phase D (cowork panels)** — parked. Parking conditions not met: Phase C3 unshipped, zero real-usage days, zero friction events. Design preserved in `runtime/.handoff/command-phase-d-cowork-panels-2026-04-23T18-35Z.md` (NOT deleted — external-dependency block).
-- **Context-usage-ui** — parked. Scoped as Phase D right-panel work (`command-context-usage-ui-2026-04-23T20-40Z.md`). Data is technically available (JSONL transcripts at `/root/.claude/projects/<encoded-cwd>/*.jsonl`; turn count + token usage parseable). Phase D unparking is the trigger — or the executive can explicitly re-scope it to the existing attach header if wanted sooner.
+- **Session-topology routing analysis delivered**: `general-command-topology-analysis-2026-04-24T13-19-05Z.md` sent to executive. Identified `projects.find((p) => p.role === 'executive')` in `page.tsx:299` as a silent tie-break bug. Analysis shipped; code fix deferred to executive authorization (now shipped in the next tick above).
+- **Phase D (cowork panels)** — parked. Parking conditions not met: Phase C3 unshipped, zero real-usage days, zero friction events.
+- **Context-usage-ui** — parked. Scoped as Phase D right-panel work.
 - **Phase C2 kickoff handoff deleted** — stale (C2 shipped at `edc3629`).
 
 ## What just completed (2026-04-24T13:00Z, Phase C2 ship)
@@ -107,6 +116,7 @@ A focused executive surface with three jobs and nothing else:
 - **Single-process state integrity assumptions**: `threadConversation.ts` non-atomic transcript append (`57-63`), in-process-only turn lock (`194-200`), no durable error marker on crash (`207-209`). Safe ONLY while command runs single-process. If ever run multi-process, these become active data-corruption bugs. Accepted tradeoff — documented in `.reviews/84b38dc-review-2026-04-18T16-54Z.md:§3`.
 - **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. Intended pressure signal — not a bug to paper over.
 - **Client telemetry post-auth gap**: beacon fires on login *page load* and specific API events, but not on auth success or subsequent page navigation during a session. Mobile access (03:26Z iPhone visit) was visible but post-login behavior was invisible. If mobile becomes a first-class use case, add `client.auth_success` beacon to the auth API route and page-view beacons to `/` and `/artifacts`.
+- **Login double-submission anomaly (uninvestigated)**: telemetry shows 9 login failures in the 2026-04-24T02-10Z window, with several fail+success pairs within 13–21ms of each other (timestamps 1777022874529/46, 1777023052942/57, 1777023214289/302, 1777025339614/35). A human cannot type between these events. Likely a double-submission in the login form submit handler or a race in the auth route. Uninvestigated. File: `src/app/login/page.tsx` + `src/app/api/auth/route.ts`.
 
 ## Recent decisions
 - **Native session IDs, not prompt stitching**: threads ARE Claude/Codex sessions, not UI buffers. Guarantees CLI resumability and feeds the reflection loop automatically.
@@ -138,17 +148,16 @@ A focused executive surface with three jobs and nothing else:
 
 ## What the next agent must read first
 1. This file.
-2. `runtime/.handoff/general-command-topology-analysis-2026-04-24T13-19-05Z.md` — topology routing analysis delivered to executive this tick. Option A (pin `projects.find` to prefer `general` by name) is the recommended first fix.
-3. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
+2. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
 3. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
-4. `runtime/.handoff/command-phase-c2-kickoff-2026-04-23T19-15Z.md` — the original C2 acceptance criteria that this ship closes.
-5. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
-6. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
+4. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
+5. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
-- **Session routing bug (unshipped)**: `page.tsx:299` `projects.find((p) => p.role === 'executive')` silently picks the first role='executive' session by file order. Both `general` and `general-codex` qualify. Analysis + recommended fix in `runtime/.handoff/general-command-topology-analysis-2026-04-24T13-19-05Z.md`. Executive must authorize the 2-line fix or fold it into Phase C3.
+- **Phase D handoff conflict (executive decision needed)**: Tick instructions said to delete `runtime/.handoff/command-phase-d-cowork-panels-2026-04-23T18-35Z.md`; prior CURRENT_STATE said "NOT deleted — external-dependency block." File preserved. Executive must decide: (a) delete it and accept design loss to git history, (b) move content to a project design doc (`docs/phase-d-design.md`), or (c) leave it in runtime/.handoff until Phase D unparks. See completion report for full design summary.
 - **Context-usage-ui (parked)**: principal asked for per-session token/turn count surfacing (ADR-0030 item 4). Design handoff at `command-context-usage-ui-2026-04-23T20-40Z.md`. Parked as Phase D right-panel scope. Data is available (JSONL parsing). Executive can unpark independently of Phase D if wanted in the attach header sooner.
-- **Phase D (parked)**: design preserved in `command-phase-d-cowork-panels-2026-04-23T18-35Z.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
+- **Phase D (parked)**: design in `runtime/.handoff/command-phase-d-cowork-panels-2026-04-23T18-35Z.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
 - **FR-0015 URGENT**: browser-side verification of thread workflow needed from principal or attended session.
+- **Login double-submission (low-urgency)**: consistent fail+success pairs 8-21ms apart in auth telemetry. Root cause: browser/password-manager race condition (two distinct HTTP requests with different passwords arrive within 8-21ms). Not a server bug. No user harm (authentication succeeds). Fix class (client submit-once) wouldn't address this. Leave until root cause is better understood or it causes real problems.
