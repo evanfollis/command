@@ -296,7 +296,8 @@ export default function ExecutivePage() {
   }
 
   const operatorAvailable = capabilities?.operator_available === 'yes'
-  const supervisedExecutive = projects.find((p) => p.role === 'executive')
+  const supervisedExecutive = projects.find((p) => p.role === 'executive' && p.name === 'general')
+    ?? projects.find((p) => p.role === 'executive')
 
   return (
     <Shell>
@@ -397,32 +398,18 @@ export default function ExecutivePage() {
                 session rooted at <span className="font-mono text-neutral-100">{supervisedExecutive.cwd}</span>.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-                {supervisedExecutive.claude?.bridgeUrl ? (
-                  <a
-                    href={supervisedExecutive.claude.bridgeUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 font-medium text-amber-100 hover:border-amber-300/40"
-                  >
-                    Open {supervisedExecutive.name} in claude.ai ↗
-                  </a>
-                ) : (
-                  <span className="text-xs text-amber-200/70">
-                    /remote-control URL not yet available (session may be starting).
-                  </span>
-                )}
+                <Link
+                  href={`/attach/${supervisedExecutive.name}`}
+                  className="rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 font-medium text-amber-100 hover:border-amber-300/40"
+                  title="Native in-app attach with writer lock and reconnect replay"
+                >
+                  Open live executive ↗
+                </Link>
                 <Link
                   href={`/sessions/${supervisedExecutive.name}`}
                   className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-neutral-200 hover:border-white/20"
                 >
                   View pane →
-                </Link>
-                <Link
-                  href={`/attach/${supervisedExecutive.name}`}
-                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-neutral-200 hover:border-white/20"
-                  title="Live attach with writer lock and reconnect replay (Phase C2)"
-                >
-                  Live attach ↗
                 </Link>
                 {supervisedExecutive.claude?.conflictingPids && supervisedExecutive.claude.conflictingPids.length > 0 && (
                   <span className="text-xs text-amber-200">

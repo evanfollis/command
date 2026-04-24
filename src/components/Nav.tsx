@@ -29,6 +29,12 @@ export default function Nav() {
 
         <div className="flex shrink-0 items-center gap-2">
           <Link
+            href="/attach/general"
+            className="rounded-full border border-sky-400/20 px-3 py-2 text-sm text-sky-200 hover:border-sky-300/30 hover:text-sky-100"
+          >
+            Executive
+          </Link>
+          <Link
             href="/artifacts"
             className="rounded-full border border-white/10 px-3 py-2 text-sm text-neutral-400 hover:border-white/20 hover:text-neutral-200"
           >

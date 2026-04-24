@@ -212,16 +212,14 @@ export default function PortfolioCard({ project, metrics }: { project: Portfolio
             <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.22em] text-neutral-500">
               <span>{project.agent} session · {project.name}</span>
               <div className="flex items-center gap-3 normal-case tracking-normal">
-                {project.claude?.bridgeUrl && (
-                  <a
-                    href={project.claude.bridgeUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                {project.role === 'executive' && (
+                  <Link
+                    href={`/attach/${project.name}`}
                     className="text-sky-300 hover:text-sky-200"
-                    title={`Open in claude.ai/code (pid ${project.claude.pid})`}
+                    title={`Open ${project.name} in the native attach view`}
                   >
-                    open in claude.ai ↗
-                  </a>
+                    live attach ↗
+                  </Link>
                 )}
                 {paneError && <span className="text-rose-300">{paneError}</span>}
               </div>
