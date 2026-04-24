@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-24T13:00:00Z — Phase C2 shipped; live attach is writable with writer lock and reconnect replay
+**Last updated**: 2026-04-24T13:19:05Z — Topology analysis delivered; Phase D + context-usage-ui parked pending conditions; routing bug identified in `page.tsx`
 
 ---
 
@@ -19,6 +19,12 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
+
+## What just completed (2026-04-24T13:19Z, tick — handoff triage + topology analysis)
+- **Session-topology routing analysis delivered**: `general-command-topology-analysis-2026-04-24T13-19-05Z.md` sent to executive. Identified `projects.find((p) => p.role === 'executive')` in `page.tsx:299` as a silent tie-break bug when both `general` and `general-codex` qualify — order-dependent, zero-warning on regression. Recommended fix: prefer `p.name === 'general'` explicitly (2-line diff). Analysis also covers: Nav link option, attach-header role pill option. Full tradeoff write-up in handoff.
+- **Phase D (cowork panels)** — parked. Parking conditions not met: Phase C3 unshipped, zero real-usage days, zero friction events. Design preserved in `runtime/.handoff/command-phase-d-cowork-panels-2026-04-23T18-35Z.md` (NOT deleted — external-dependency block).
+- **Context-usage-ui** — parked. Scoped as Phase D right-panel work (`command-context-usage-ui-2026-04-23T20-40Z.md`). Data is technically available (JSONL transcripts at `/root/.claude/projects/<encoded-cwd>/*.jsonl`; turn count + token usage parseable). Phase D unparking is the trigger — or the executive can explicitly re-scope it to the existing attach header if wanted sooner.
+- **Phase C2 kickoff handoff deleted** — stale (C2 shipped at `edc3629`).
 
 ## What just completed (2026-04-24T13:00Z, Phase C2 ship)
 - **Phase C2 shipped** (`edc3629`): `POST /api/attach/<name>/send`, in-memory single-writer lock (`src/lib/attachLock.ts`), take-write transfer with 10s decline window, reconnect replay from a 20-snapshot ring buffer, and upgraded attach UI with writer/observer states.
@@ -132,13 +138,17 @@ A focused executive surface with three jobs and nothing else:
 
 ## What the next agent must read first
 1. This file.
-2. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
+2. `runtime/.handoff/general-command-topology-analysis-2026-04-24T13-19-05Z.md` — topology routing analysis delivered to executive this tick. Option A (pin `projects.find` to prefer `general` by name) is the recommended first fix.
+3. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
 3. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
 4. `runtime/.handoff/command-phase-c2-kickoff-2026-04-23T19-15Z.md` — the original C2 acceptance criteria that this ship closes.
 5. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
 6. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
+- **Session routing bug (unshipped)**: `page.tsx:299` `projects.find((p) => p.role === 'executive')` silently picks the first role='executive' session by file order. Both `general` and `general-codex` qualify. Analysis + recommended fix in `runtime/.handoff/general-command-topology-analysis-2026-04-24T13-19-05Z.md`. Executive must authorize the 2-line fix or fold it into Phase C3.
+- **Context-usage-ui (parked)**: principal asked for per-session token/turn count surfacing (ADR-0030 item 4). Design handoff at `command-context-usage-ui-2026-04-23T20-40Z.md`. Parked as Phase D right-panel scope. Data is available (JSONL parsing). Executive can unpark independently of Phase D if wanted in the attach header sooner.
+- **Phase D (parked)**: design preserved in `command-phase-d-cowork-panels-2026-04-23T18-35Z.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
 - **FR-0015 URGENT**: browser-side verification of thread workflow needed from principal or attended session.
