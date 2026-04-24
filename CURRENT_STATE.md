@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-23T~18:05Z — Phase C1 deployed + pushed; 32/32 smoke green; ADR-0028 handoff filed; Phase C2/C3 scoping deferred per phase-c2-remaining handoff
+**Last updated**: 2026-04-24T13:00:00Z — Phase C2 shipped; live attach is writable with writer lock and reconnect replay
 
 ---
 
@@ -9,8 +9,8 @@
 - **Process**: runs directly on host (not Docker), managed by systemd
 - **Auth**: password + JWT in httpOnly cookies (cookie-only)
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
-- **Smoke**: 32/32 checks passing (3 new Phase C1 WebSocket checks). Deployed SHA: `cc2c481`.
-- **Phase C1 live**: `/attach/general` and `/attach/general-codex` stream supervised tmux panes over WebSocket. Auth-gated. Read-only.
+- **Smoke**: 40/40 checks passing, including Phase C2 write-path, writer-lock, and reconnect-replay coverage.
+- **Live attach**: `/attach/general` and `/attach/general-codex` now support authenticated browser write, single-writer lock, take-write transfer, and reconnect replay.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -19,6 +19,12 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
+
+## What just completed (2026-04-24T13:00Z, Phase C2 ship)
+- **Phase C2 shipped** (`edc3629`): `POST /api/attach/<name>/send`, in-memory single-writer lock (`src/lib/attachLock.ts`), take-write transfer with 10s decline window, reconnect replay from a 20-snapshot ring buffer, and upgraded attach UI with writer/observer states.
+- **Reconnect race fixed before ship**: a stale socket close could evict a newer reconnect using the same `clientId`. `unregisterClient()` now verifies the exact `WebSocket` instance before releasing lock state.
+- **Adversarial review recorded**: `.reviews/phase-c2-review-2026-04-24T13-00Z.md` documents the reconnect-lifecycle finding and the post-fix ship verdict.
+- **Gate verification complete**: `npm run build`, `npm run smoke`, and a targeted reconnect lifecycle probe all passed before deploy.
 
 ## What just completed (2026-04-23T~18:05Z, tick deploy + handoffs)
 - **Phase C1 deployed and pushed** (`cc2c481` deployed, SHA confirmed in smoke; pushed `c7f20f8..cc2c481` to origin/main). 32/32 smoke green.
@@ -31,7 +37,7 @@ A focused executive surface with three jobs and nothing else:
 - **Zero-blast-radius scope**: does not touch `/sessions/[name]`, the home-page sidebar, or the `/api/threads/*` contract. The Live-stream button added to the disambiguation block is the only home-page diff.
 - **JWT extracted**: verify + cookie-parse lifted to `src/lib/jwt.ts` (no Next imports) so `server.ts` can authenticate upgrade requests without pulling in the Next app context.
 - **Smoke coverage**: 32/32 passing. Three new WebSocket checks — unauth'd ws → 401, allowlist miss → 404, authed ws delivers snapshot frame within 2s (473 bytes confirmed).
-- **Not a full freeze fix**: C1 is read-only. `threadConversation.ts:116` (`execFileSync('claude', ['-p', '--resume', ...])`) still spawns per turn for ephemeral threads. Full rewrite — writer lock, reconnect replay, ephemeral thread ProcessPool, attach-surface picker UI, reasoning-level settings — scoped in `runtime/.handoff/general-command-phase-c2-remaining-2026-04-23T17-55Z.md` with precise designs.
+- **Not the full freeze fix**: attach C2 is live, but ephemeral threads still use per-turn `execFileSync('claude', ['-p', '--resume', ...])` / `codex exec resume`. The process-pool rewrite remains separate follow-on work.
 - **Browser not verified**. FR-0015 cluster: server-side smoke covers ws mechanics; principal click-through on the live endpoint is still unverified.
 
 ## What just completed (2026-04-23T~17:45Z, topology stopgap)
@@ -126,11 +132,11 @@ A focused executive surface with three jobs and nothing else:
 
 ## What the next agent must read first
 1. This file.
-2. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
-3. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
-4. `.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md` — adversarial review of artifact inbox with triaged findings.
-5. `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` if touching the `/artifacts` surface — source allowlist + read contract.
-6. `src/components/PortfolioCard.tsx` if changing the project-inspection surface.
+2. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
+3. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
+4. `runtime/.handoff/command-phase-c2-kickoff-2026-04-23T19-15Z.md` — the original C2 acceptance criteria that this ship closes.
+5. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
+6. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
