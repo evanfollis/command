@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Shell from '@/components/Shell'
+import type { ContextUsage } from '@/lib/contextUsage'
 
 interface PageProps {
   params: { name: string }
@@ -64,6 +65,7 @@ export default function AttachPage({ params }: PageProps) {
   const [takingWrite, setTakingWrite] = useState(false)
   const [transferPending, setTransferPending] = useState(false)
   const [incomingTransfer, setIncomingTransfer] = useState<{ requestorClientId: string; expiresAt: number } | null>(null)
+  const [contextUsage, setContextUsage] = useState<ContextUsage | null>(null)
   const paneRef = useRef<HTMLPreElement>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const clientIdRef = useRef<string>('')
@@ -169,6 +171,16 @@ export default function AttachPage({ params }: PageProps) {
     }
   }, [text])
 
+  // Fetch context usage once when the connection opens (or reopens after reconnect).
+  // No tight polling — session-level snapshot, not per-turn.
+  useEffect(() => {
+    if (status !== 'open') return
+    fetch(`/api/context-usage/${encodeURIComponent(name)}`)
+      .then((r) => r.json())
+      .then((data: ContextUsage) => setContextUsage(data))
+      .catch(() => { /* graceful: keep showing null */ })
+  }, [name, status])
+
   const handleSend = useCallback(async () => {
     if (!message.trim() || sending) return
     setSending(true)
@@ -254,6 +266,17 @@ export default function AttachPage({ params }: PageProps) {
 
   const ago = lastSnapshotAt ? `${Math.max(0, Math.round((Date.now() - lastSnapshotAt) / 1000))}s ago` : '—'
 
+  const freshnessLabel = contextUsage?.available
+    ? `${Math.round(contextUsage.contextPercent)}% · ${contextUsage.freshness}`
+    : '—'
+  const freshnessTone = !contextUsage?.available
+    ? 'border-neutral-800 bg-neutral-900 text-neutral-600'
+    : contextUsage.freshness === 'fresh'
+      ? 'border-emerald-400/20 bg-emerald-400/5 text-emerald-400'
+      : contextUsage.freshness === 'mid'
+        ? 'border-amber-400/20 bg-amber-400/5 text-amber-300'
+        : 'border-rose-400/20 bg-rose-400/5 text-rose-300'
+
   const canSend = status === 'open' && message.trim().length > 0 && !sending && role === 'writer'
 
   return (
@@ -279,6 +302,7 @@ export default function AttachPage({ params }: PageProps) {
           <div className="flex shrink-0 items-center gap-2 text-xs">
             <span className={`rounded-full border px-3 py-1 ${statusTone}`}>{statusLabel}</span>
             <span className={`rounded-full border px-3 py-1 ${roleTone}`}>{role ?? 'connecting'}</span>
+            <span className={`rounded-full border px-2.5 py-1 font-mono ${freshnessTone}`} title="Context window usage (last turn input tokens / 200K window)">ctx {freshnessLabel}</span>
             <span className="text-neutral-600">snapshot {ago}</span>
           </div>
         </div>

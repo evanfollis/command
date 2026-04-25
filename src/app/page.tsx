@@ -4,6 +4,7 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import Link from 'next/link'
 import Shell from '@/components/Shell'
 import PortfolioCard, { type PortfolioProject, type ProjectMetrics } from '@/components/PortfolioCard'
+import type { ContextUsage } from '@/lib/contextUsage'
 
 // Producer: supervisor/scripts/lib/metrics-rollup.py on metrics-rollup.timer
 // (hourly). Keys are cwd-derived; /opt/workspace and supervisor cwds map to
@@ -95,6 +96,8 @@ export default function ExecutivePage() {
   const [ensuring, setEnsuring] = useState(false)
   const [recovering, setRecovering] = useState(false)
   const [statusNote, setStatusNote] = useState('')
+  const [contextUsageBySession, setContextUsageBySession] = useState<Record<string, ContextUsage>>({})
+  const contextUsageFetchedRef = useRef(false)
   const conversationEndRef = useRef<HTMLDivElement>(null)
 
   const active = useMemo(() => threads.find((t) => t.id === activeId) || null, [threads, activeId])
@@ -131,6 +134,25 @@ export default function ExecutivePage() {
     } catch {
       // non-critical
     }
+  }, [])
+
+  // Fetch context usage once for executive sessions only.
+  // Not part of the 15s project-status poll — separate lazy fetch to avoid
+  // hammering the JSONL on every poll cycle.
+  const fetchContextUsage = useCallback(async (sessionList: PortfolioProject[]) => {
+    const executives = sessionList.filter((p) => p.role === 'executive')
+    await Promise.allSettled(
+      executives.map(async (p) => {
+        try {
+          const res = await fetch(`/api/context-usage/${encodeURIComponent(p.name)}`)
+          if (!res.ok) return
+          const data: ContextUsage = await res.json()
+          setContextUsageBySession((prev) => ({ ...prev, [p.name]: data }))
+        } catch {
+          // graceful: leave entry absent
+        }
+      }),
+    )
   }, [])
 
   const fetchMetrics = useCallback(async () => {
@@ -172,6 +194,14 @@ export default function ExecutivePage() {
       clearInterval(metricsInterval)
     }
   }, [fetchThreads, fetchProjects, fetchCapabilities, fetchMetrics])
+
+  // One-time context usage fetch for executive sessions.
+  // Fires on first project list load only — not on the 15s poll cycle.
+  useEffect(() => {
+    if (projects.length === 0 || contextUsageFetchedRef.current) return
+    contextUsageFetchedRef.current = true
+    fetchContextUsage(projects)
+  }, [projects, fetchContextUsage])
 
   useEffect(() => {
     if (!activeId) {
@@ -526,6 +556,7 @@ export default function ExecutivePage() {
                   key={p.name}
                   project={p}
                   metrics={metricsByProject[metricsKeyForSession(p.name)] ?? null}
+                  contextUsage={contextUsageBySession[p.name] ?? null}
                 />
               ))}
             </div>

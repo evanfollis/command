@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import type { ContextUsage } from '@/lib/contextUsage'
 
 export interface WindowMetrics {
   threads: number
@@ -91,7 +92,7 @@ function MetricsTable({ metrics }: { metrics: ProjectMetrics | null }) {
   )
 }
 
-export default function PortfolioCard({ project, metrics }: { project: PortfolioProject; metrics: ProjectMetrics | null }) {
+export default function PortfolioCard({ project, metrics, contextUsage }: { project: PortfolioProject; metrics: ProjectMetrics | null; contextUsage?: ContextUsage | null }) {
   const [open, setOpen] = useState(false)
   const [paneOutput, setPaneOutput] = useState('')
   const [message, setMessage] = useState('')
@@ -165,6 +166,22 @@ export default function PortfolioCard({ project, metrics }: { project: Portfolio
             className="shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] text-amber-200"
           >
             ⚠ dup
+          </span>
+        )}
+        {project.role === 'executive' && contextUsage && (
+          <span
+            title={contextUsage.available ? `Context window: ${Math.round(contextUsage.contextPercent)}% of ${(contextUsage.contextWindowSize / 1000).toFixed(0)}K (${contextUsage.userTurns} user turns, ${contextUsage.toolUses} tool calls)` : 'Context usage unavailable'}
+            className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[10px] ${
+              !contextUsage.available
+                ? 'border-neutral-800 bg-neutral-900 text-neutral-600'
+                : contextUsage.freshness === 'fresh'
+                  ? 'border-emerald-400/20 bg-emerald-400/5 text-emerald-400'
+                  : contextUsage.freshness === 'mid'
+                    ? 'border-amber-400/20 bg-amber-400/5 text-amber-300'
+                    : 'border-rose-400/20 bg-rose-400/5 text-rose-300'
+            }`}
+          >
+            ctx {contextUsage.available ? `${Math.round(contextUsage.contextPercent)}%` : '—'}
           </span>
         )}
         <span className="min-w-0 flex-1 truncate text-xs text-neutral-500">
