@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-25T~13:25Z — FR-0015 reframed as machine-owned `browser_capability_missing`; URGENT principal escalation removed.
+**Last updated**: 2026-04-25T14:22Z (reflection pass) — context-usage-ui shipped, FR-0015 reframed, login double-submit now 3 cycles.
 
 ---
 
@@ -14,6 +14,12 @@
 
 ## Capability gaps (machine-owned, not principal-owned)
 - **`browser_capability_missing`**: no browser-automation runtime is installed in this repo or on the host. `npm ls` shows no playwright / puppeteer / webdriverio; `which chromium google-chrome chromedriver firefox` returns empty; no `node_modules/.bin` browser entrypoints. Consequence: server-side smoke (38/40 ws + auth + tmux mechanics) is the current evidence. Real-browser verification of `/`, `/attach/general`, `/attach/general-codex`, `/artifacts`, and a portfolio expansion is not currently runnable from a project-session tick. Closing this gap requires either (a) `npm i -D @playwright/test && npx playwright install chromium` plus an authenticated-fetch fixture, or (b) a host-side headless-chrome binary + a thin smoke script. Until either lands, treat browser-layer behavior as unverified — do not weaken the smoke distinction by claiming server-side coverage implies UI correctness.
+
+
+## What bit the last reflection
+- **advisor() pre-commit missing (4 sessions)**: 4 consecutive ship sessions ran without calling advisor() before implementation. Adversarial review via Agent substituted post-implementation, which catches bugs but not wrong approaches. CLAUDE.md rule proposed in reflection.
+- **Login double-submission**: re-investigated 2026-04-25T~15:45Z. Pulled telemetry: 57 fail+success pairs, 8–26 ms apart, median 15 ms — not a human double-click pattern. The login page is a pure HTML form POST (no JS), and the failed call carries a wrong password while the success carries the right one (`api/auth/route.ts:36`). Most likely mechanism: password manager / autofill racing the user's submit. The proposed client-component + `disabled` button fix cannot reach this class — it catches click-driven double-submits, not concurrent autofill + Enter / button submits. Counter-handoff filed: `runtime/.handoff/general-command-login-doublesubmit-classmismatch-2026-04-25T1545Z.md`. The synthesis URGENT cited an empty (1-line) cross-cutting stub, confirming mechanical escalation. **Reframed as a telemetry-hygiene item**, not a user-visible bug — Option A in the counter (10-line meta-scan filter) is the cheapest real fix; Option B (server-side dedup window) is stronger; Option C (the proposed one) is a class mismatch.
+- **ADR-0028 at 7 cycles**: Reflection loop proposed forcing a decision (promote or explicitly defer). Executive write access required.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -158,7 +164,7 @@ A focused executive surface with three jobs and nothing else:
 - `GET /api/context-usage/[name]` — context window freshness for a session (parses JSONL; Codex returns `available: false`)
 
 ## Carry-forwards
-- ~~**FR-0015 Layer-3 proof**~~: reframed 2026-04-25 as the project-owned `browser_capability_missing` capability gap above. The old URGENT escalation (`URGENT-command-fr0015-principal-decision-needed.md`) is archived under `runtime/.handoff/ARCHIVE/2026-04-25/` and is no longer principal work. Reflection loop should stop escalating it; closure path is "install playwright (or equivalent) and add a browser smoke," not "principal clicks through."
+- ~~**FR-0015 Layer-3 proof**~~: reframed 2026-04-25 as the project-owned `browser_capability_missing` capability gap above. The old URGENT escalation (`URGENT-command-fr0015-principal-decision-needed.md`) is archived under `runtime/.handoff/ARCHIVE/2026-04-24/` and is no longer principal work. Reflection loop should stop escalating it; closure path is "install playwright (or equivalent) and add a browser smoke," not "principal clicks through."
 - ~~**Document metrics producer** (URGENT — escalated)~~: **closed 2026-04-20T~16:55Z**. Producer is `supervisor/scripts/lib/metrics-rollup.py` on hourly `metrics-rollup.timer`; key scheme documented above under "Known broken or degraded." Both URGENT handoffs (`URGENT-command-metrics-producer-undocumented-2026-04-20T14-31Z.md` and `command-urgent-metrics-producer-2026-04-20T16-49Z.md`) are now actioned — safe to archive.
 - **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. Acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
 
@@ -175,4 +181,4 @@ A focused executive surface with three jobs and nothing else:
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
 - ~~**FR-0015 URGENT**~~: reframed as the `browser_capability_missing` capability gap (above). Project-owned; not principal work.
-- **Login double-submission (needs fix — 2 reflection cycles)**: fix was planned and scoped in session `8cdc09f6` but dropped without a commit. A plain HTML form with no JS guard permits double-submission from password managers. Fix is straightforward (client component + disabled state). Now 2 reflection windows without resolution. See Known Broken section.
+- **Login double-submission (needs fix — 3 reflection cycles, approaching URGENT)**: fix was planned and scoped in session `8cdc09f6` but dropped without a commit. A plain HTML form with no JS guard permits double-submission from password managers. Fix is straightforward (client component + disabled state). Now 3 reflection windows without resolution. See Known Broken section.
