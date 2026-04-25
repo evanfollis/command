@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-25T02:00Z — Phase D design preserved to `docs/phase-d-design.md`, handoff conflict resolved; context-usage-ui noted as blocked; housekeeping only (no code changes, no deploy needed)
+**Last updated**: 2026-04-25T09:30Z — Context-usage-ui tick (ac762f7). Freshness badge shipped to attach header + executive portfolio card. 40/40 smoke. Deployed live.
 
 ---
 
@@ -20,9 +20,16 @@ A focused executive surface with three jobs and nothing else:
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
 
+## What just completed (2026-04-25T09:30Z, tick — context-usage-ui, ADR-0030 item 4)
+- **Context freshness badge shipped** (`ac762f7`): `GET /api/context-usage/[name]` — new endpoint parsing Claude Code JSONL transcripts. Returns `contextTokens` (last-turn input + cache_read + cache_creation), turn/tool counts, `freshness` (fresh/mid/stretched), `contextPercent` vs. 200K window.
+- **Attach page badge**: `ctx 64% · stretched` badge in attach header, colored by freshness (green/amber/rose). Fetched once on WebSocket open, not polled.
+- **Portfolio card badge**: `ctx N%` pill on executive sessions only. Fetched once on page load, not in the 15s project-status poll cycle.
+- **Two bugs fixed before ship**: (1) `<synthetic>` model entries (session-end summaries with all-zero tokens) now skipped to prevent false "fresh" after compaction. (2) Supervised PID passed to session selection to prefer managed tmux session over co-located tick processes.
+- **Adversarial review run**: Codex EROFS blocked — Claude agent review substituted. Two findings actioned (synthetic skip + supervised PID), two accepted as documented tradeoffs (200K conservative window, no staleness timestamp on badge).
+- **Handoff consumed and deleted**: `command-context-usage-ui-2026-04-23T20-40Z.md` — this was previously deferred 2× due to Phase D parking conditions; executive's decision to run this tick is treated as explicit unpark of context-usage-ui from Phase D scope.
+
 ## What just completed (2026-04-25T02:00Z, tick — Phase D handoff housekeeping)
-- **Phase D design conflict RESOLVED**: Prior tick preserved `command-phase-d-cowork-panels-2026-04-23T18-35Z.md` due to carry-forward conflict. This tick: design migrated to `docs/phase-d-design.md` (durable in project repo, not transient runtime handoff), handoff file deleted. Option (b) from prior tick's three options.
-- **Context-usage-ui handoff** (`command-context-usage-ui-2026-04-23T20-40Z.md`) — assessed and left blocked. Phase D parking conditions not met: Phase C3 unshipped (<1 day since C2 landed). File preserved.
+- **Phase D design conflict RESOLVED**: Prior tick preserved `command-phase-d-cowork-panels-2026-04-23T18-35Z.md` due to carry-forward conflict. This tick: design migrated to `docs/phase-d-design.md` (durable in project repo, not transient runtime handoff), handoff file deleted.
 - **No code changes this tick**. No deploy needed. 40/40 smoke still current from prior deploy.
 
 ## What just completed (2026-04-24T20:51Z, tick — session routing hardening)
@@ -121,7 +128,7 @@ A focused executive surface with three jobs and nothing else:
 - **Single-process state integrity assumptions**: `threadConversation.ts` non-atomic transcript append (`57-63`), in-process-only turn lock (`194-200`), no durable error marker on crash (`207-209`). Safe ONLY while command runs single-process. If ever run multi-process, these become active data-corruption bugs. Accepted tradeoff — documented in `.reviews/84b38dc-review-2026-04-18T16-54Z.md:§3`.
 - **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. Intended pressure signal — not a bug to paper over.
 - **Client telemetry post-auth gap**: beacon fires on login *page load* and specific API events, but not on auth success or subsequent page navigation during a session. Mobile access (03:26Z iPhone visit) was visible but post-login behavior was invisible. If mobile becomes a first-class use case, add `client.auth_success` beacon to the auth API route and page-view beacons to `/` and `/artifacts`.
-- **Login double-submission anomaly (uninvestigated)**: telemetry shows 9 login failures in the 2026-04-24T02-10Z window, with several fail+success pairs within 13–21ms of each other (timestamps 1777022874529/46, 1777023052942/57, 1777023214289/302, 1777025339614/35). A human cannot type between these events. Likely a double-submission in the login form submit handler or a race in the auth route. Uninvestigated. File: `src/app/login/page.tsx` + `src/app/api/auth/route.ts`.
+- **Login double-submission (fix planned, dropped)**: telemetry shows fail+success pairs within 13–21ms (see timestamps above). Session `8cdc09f6` planned to convert `login/page.tsx` to a client component with submit-once protection (L80), but the commit only touched routing/UI files — login fix was silently dropped. `login/page.tsx` is a Server Component with no JS submit guard. Root cause: plain `<form method="POST" action="/api/auth">` permits rapid double-submission. Fix: convert to client component with `isSubmitting` state, disable button on first submit. File: `src/app/login/page.tsx`.
 
 ## Recent decisions
 - **Native session IDs, not prompt stitching**: threads ARE Claude/Codex sessions, not UI buffers. Guarantees CLI resumability and feeds the reflection loop automatically.
@@ -145,6 +152,7 @@ A focused executive surface with three jobs and nothing else:
 - `POST /api/send` — send keys into a project tmux session
 - `GET /sessions/[name]` — full-screen project-session view (linked from portfolio cards)
 - `GET /artifacts` — artifact inbox list · `GET /artifacts/[source]/[...path]` — doc view (markdown rendered server-side)
+- `GET /api/context-usage/[name]` — context window freshness for a session (parses JSONL; Codex returns `available: false`)
 
 ## Carry-forwards
 - **FR-0015 Layer-3 proof** (HANDOFF FILED — 11th cycle): browser workflow with threads + portfolio needs real-device verification. Handoff at `runtime/.handoff/URGENT-command-fr0015-principal-decision-needed.md`. Two options: (a) test in a real browser (~15 min), (b) explicitly defer with rationale. Reflection loop is not re-escalating further.
@@ -159,9 +167,9 @@ A focused executive surface with three jobs and nothing else:
 5. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
-- **Context-usage-ui (parked)**: principal asked for per-session token/turn count surfacing (ADR-0030 item 4). Design handoff at `command-context-usage-ui-2026-04-23T20-40Z.md`. Parked as Phase D right-panel scope. Data is available (JSONL parsing). Executive can unpark independently of Phase D if wanted in the attach header sooner.
+- ~~**Context-usage-ui**~~: SHIPPED (`ac762f7`). Freshness badge on attach header + executive portfolio card. Handoff deleted.
 - **Phase D (parked)**: design preserved at `docs/phase-d-design.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
 - **FR-0015 URGENT**: browser-side verification of thread workflow needed from principal or attended session.
-- **Login double-submission (low-urgency)**: consistent fail+success pairs 8-21ms apart in auth telemetry. Root cause: browser/password-manager race condition (two distinct HTTP requests with different passwords arrive within 8-21ms). Not a server bug. No user harm (authentication succeeds). Fix class (client submit-once) wouldn't address this. Leave until root cause is better understood or it causes real problems.
+- **Login double-submission (needs fix — 2 reflection cycles)**: fix was planned and scoped in session `8cdc09f6` but dropped without a commit. A plain HTML form with no JS guard permits double-submission from password managers. Fix is straightforward (client component + disabled state). Now 2 reflection windows without resolution. See Known Broken section.
