@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-24T20:51Z — Session routing hardened + Nav executive link shipped (`091ff74`); 40/40 smoke; Phase D handoff preserved (not deleted, conflict noted)
+**Last updated**: 2026-04-25T02:00Z — Phase D design preserved to `docs/phase-d-design.md`, handoff conflict resolved; context-usage-ui noted as blocked; housekeeping only (no code changes, no deploy needed)
 
 ---
 
@@ -19,6 +19,11 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
+
+## What just completed (2026-04-25T02:00Z, tick — Phase D handoff housekeeping)
+- **Phase D design conflict RESOLVED**: Prior tick preserved `command-phase-d-cowork-panels-2026-04-23T18-35Z.md` due to carry-forward conflict. This tick: design migrated to `docs/phase-d-design.md` (durable in project repo, not transient runtime handoff), handoff file deleted. Option (b) from prior tick's three options.
+- **Context-usage-ui handoff** (`command-context-usage-ui-2026-04-23T20-40Z.md`) — assessed and left blocked. Phase D parking conditions not met: Phase C3 unshipped (<1 day since C2 landed). File preserved.
+- **No code changes this tick**. No deploy needed. 40/40 smoke still current from prior deploy.
 
 ## What just completed (2026-04-24T20:51Z, tick — session routing hardening)
 - **Session routing bug fixed** (`091ff74`): `page.tsx:299` now pins `supervisedExecutive` to `p.name === 'general'` first, with fallback to any `role='executive'` session. Eliminates the silent tie-break that would have quietly pointed the executive card at `general-codex` if `sessions.conf` order changed. Option A from topology analysis.
@@ -154,9 +159,8 @@ A focused executive surface with three jobs and nothing else:
 5. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
-- **Phase D handoff conflict (executive decision needed)**: Tick instructions said to delete `runtime/.handoff/command-phase-d-cowork-panels-2026-04-23T18-35Z.md`; prior CURRENT_STATE said "NOT deleted — external-dependency block." File preserved. Executive must decide: (a) delete it and accept design loss to git history, (b) move content to a project design doc (`docs/phase-d-design.md`), or (c) leave it in runtime/.handoff until Phase D unparks. See completion report for full design summary.
 - **Context-usage-ui (parked)**: principal asked for per-session token/turn count surfacing (ADR-0030 item 4). Design handoff at `command-context-usage-ui-2026-04-23T20-40Z.md`. Parked as Phase D right-panel scope. Data is available (JSONL parsing). Executive can unpark independently of Phase D if wanted in the attach header sooner.
-- **Phase D (parked)**: design in `runtime/.handoff/command-phase-d-cowork-panels-2026-04-23T18-35Z.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
+- **Phase D (parked)**: design preserved at `docs/phase-d-design.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
 - **FR-0015 URGENT**: browser-side verification of thread workflow needed from principal or attended session.
