@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-25T09:30Z — Context-usage-ui tick (ac762f7). Freshness badge shipped to attach header + executive portfolio card. 40/40 smoke. Deployed live.
+**Last updated**: 2026-04-25T~13:25Z — FR-0015 reframed as machine-owned `browser_capability_missing`; URGENT principal escalation removed.
 
 ---
 
@@ -11,6 +11,9 @@
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
 - **Smoke**: 40/40 checks passing, including Phase C2 write-path, writer-lock, and reconnect-replay coverage.
 - **Live attach**: `/attach/general` and `/attach/general-codex` now support authenticated browser write, single-writer lock, take-write transfer, and reconnect replay.
+
+## Capability gaps (machine-owned, not principal-owned)
+- **`browser_capability_missing`**: no browser-automation runtime is installed in this repo or on the host. `npm ls` shows no playwright / puppeteer / webdriverio; `which chromium google-chrome chromedriver firefox` returns empty; no `node_modules/.bin` browser entrypoints. Consequence: server-side smoke (38/40 ws + auth + tmux mechanics) is the current evidence. Real-browser verification of `/`, `/attach/general`, `/attach/general-codex`, `/artifacts`, and a portfolio expansion is not currently runnable from a project-session tick. Closing this gap requires either (a) `npm i -D @playwright/test && npx playwright install chromium` plus an authenticated-fetch fixture, or (b) a host-side headless-chrome binary + a thin smoke script. Until either lands, treat browser-layer behavior as unverified — do not weaken the smoke distinction by claiming server-side coverage implies UI correctness.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -65,7 +68,7 @@ A focused executive surface with three jobs and nothing else:
 - **JWT extracted**: verify + cookie-parse lifted to `src/lib/jwt.ts` (no Next imports) so `server.ts` can authenticate upgrade requests without pulling in the Next app context.
 - **Smoke coverage**: 32/32 passing. Three new WebSocket checks — unauth'd ws → 401, allowlist miss → 404, authed ws delivers snapshot frame within 2s (473 bytes confirmed).
 - **Not the full freeze fix**: attach C2 is live, but ephemeral threads still use per-turn `execFileSync('claude', ['-p', '--resume', ...])` / `codex exec resume`. The process-pool rewrite remains separate follow-on work.
-- **Browser not verified**. FR-0015 cluster: server-side smoke covers ws mechanics; principal click-through on the live endpoint is still unverified.
+- **Browser not verified**: server-side smoke covers ws/auth/tmux mechanics. Real-browser end-to-end is unverified; tracked as the `browser_capability_missing` gap below, not as principal-owned work.
 
 ## What just completed (2026-04-23T~17:45Z, topology stopgap)
 - **Home-page disambiguation** (`93cd79e`): top of `/` now shows an amber "Supervised executive session" panel with a direct `https://claude.ai/code/session_*` link to the supervised `general` tmux instance. Copy on the threads panel renamed from "Executive / workspace executive" → "Ephemeral threads" to stop the framing collision that had the principal landing on the wrong surface.
@@ -155,7 +158,7 @@ A focused executive surface with three jobs and nothing else:
 - `GET /api/context-usage/[name]` — context window freshness for a session (parses JSONL; Codex returns `available: false`)
 
 ## Carry-forwards
-- **FR-0015 Layer-3 proof** (HANDOFF FILED — 11th cycle): browser workflow with threads + portfolio needs real-device verification. Handoff at `runtime/.handoff/URGENT-command-fr0015-principal-decision-needed.md`. Two options: (a) test in a real browser (~15 min), (b) explicitly defer with rationale. Reflection loop is not re-escalating further.
+- ~~**FR-0015 Layer-3 proof**~~: reframed 2026-04-25 as the project-owned `browser_capability_missing` capability gap above. The old URGENT escalation (`URGENT-command-fr0015-principal-decision-needed.md`) is archived under `runtime/.handoff/ARCHIVE/2026-04-25/` and is no longer principal work. Reflection loop should stop escalating it; closure path is "install playwright (or equivalent) and add a browser smoke," not "principal clicks through."
 - ~~**Document metrics producer** (URGENT — escalated)~~: **closed 2026-04-20T~16:55Z**. Producer is `supervisor/scripts/lib/metrics-rollup.py` on hourly `metrics-rollup.timer`; key scheme documented above under "Known broken or degraded." Both URGENT handoffs (`URGENT-command-metrics-producer-undocumented-2026-04-20T14-31Z.md` and `command-urgent-metrics-producer-2026-04-20T16-49Z.md`) are now actioned — safe to archive.
 - **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. Acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
 
@@ -171,5 +174,5 @@ A focused executive surface with three jobs and nothing else:
 - **Phase D (parked)**: design preserved at `docs/phase-d-design.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
-- **FR-0015 URGENT**: browser-side verification of thread workflow needed from principal or attended session.
+- ~~**FR-0015 URGENT**~~: reframed as the `browser_capability_missing` capability gap (above). Project-owned; not principal work.
 - **Login double-submission (needs fix — 2 reflection cycles)**: fix was planned and scoped in session `8cdc09f6` but dropped without a commit. A plain HTML form with no JS guard permits double-submission from password managers. Fix is straightforward (client component + disabled state). Now 2 reflection windows without resolution. See Known Broken section.
