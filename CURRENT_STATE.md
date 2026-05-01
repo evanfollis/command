@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-05-01T05-51Z (tick — browser-agent-legibility) — browser smoke landed: Playwright + Chromium headless installed, 13-check browser smoke passes (auth form, home, attach WS snapshot delivery, portfolio expansion, artifacts). `browser_capability_missing` closed.
+**Last updated**: 2026-05-01T09-30Z (tick — symphony-lite-orchestration) — Symphony-lite task state machine shipped: `GET/POST /api/symphony`, `GET/PATCH /api/symphony/:id`, `/symphony` UI page, Nav link, 10 new smoke checks (50/50 total), full demo verified (ready→running→review with telemetry). Pre-existing `browser-smoke.ts` TypeScript errors fixed as part of this deploy.
 
 ---
 
@@ -9,7 +9,7 @@
 - **Process**: runs directly on host (not Docker), managed by systemd
 - **Auth**: password + JWT in httpOnly cookies (cookie-only)
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
-- **Smoke**: 40/40 checks passing, including Phase C2 write-path, writer-lock, and reconnect-replay coverage.
+- **Smoke**: 50/50 checks passing — 10 new symphony round-trip checks added (create, list, ready→running, invalid transition, cleanup).
 - **Live attach**: `/attach/general` and `/attach/general-codex` now support authenticated browser write, single-writer lock, take-write transfer, and reconnect replay.
 
 ## Capability gaps (machine-owned, not principal-owned)
@@ -33,6 +33,17 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
+5. **Symphony task board** (`/symphony`) — local task state machine (Symphony-lite). Tasks move through `ready→running→review→done` (plus `blocked`/`deferred`). Bounded concurrency: 1 per project, 3 globally. State persisted in `runtime/symphony/tasks.json`. Stale detection: running >2h, review >24h. API: `GET/POST /api/symphony` + `GET/PATCH /api/symphony/:id`.
+
+## What just completed (2026-05-01T09-30Z, tick — symphony-lite-orchestration)
+- **Symphony-lite task state machine shipped** (`4b9f019`): `src/lib/symphonyStore.ts` with 6-state machine (`ready`, `running`, `blocked`, `review`, `done`, `deferred`), bounded concurrency (1 per project, 3 global), stale detection (2h running, 24h review), telemetry on every transition, full audit trail per task. State store at `runtime/symphony/tasks.json`.
+- **API**: `GET/POST /api/symphony` + `GET/PATCH /api/symphony/:id`. Auth via existing middleware. Transition validation returns 422 with `code` field (`invalid_transition`, `concurrency_cap`, `not_found`).
+- **UI**: `/symphony` page with stale warning banner, task rows with expand/collapse, state history, review artifacts, per-state transition buttons. "Symphony" Nav link added.
+- **Smoke**: 10 new checks (50/50 total): unauthed redirect, create, list, ready→running, invalid-transition→422, cleanup.
+- **Demo verified**: Task `479c8834` moved `ready→running→review` with `agentSessionId`, `worktreeIdentity`, `reviewArtifacts` fields — all persisted. Telemetry confirmed: 3 `symphony.transition` events emitted.
+- **Adversarial review**: Claude agent (Codex EROFS). 3 findings: (1) concurrent write — accepted, synchronous single-thread pattern; (2) stale visibility — accepted, main list exposes `stale:boolean`; (3) unenforced blockedBy — accepted v1 design. Review at `.reviews/4b9f019-symphony-lite-review-2026-05-01T09-30Z.md`.
+- **Pre-existing TypeScript bugs fixed**: `browser-smoke.ts` had `context.on('pageerror')` (wrong — context uses `weberror`; fixed to `page.on('pageerror')`) and `PASSWORD` non-null assertion. These were blocking the build.
+- **Handoff consumed**: `command-symphony-lite-orchestration-2026-04-30T21-16Z.md` deleted.
 
 ## What just completed (2026-05-01T05:51Z, tick — browser-agent-legibility)
 - **Browser smoke landed**: `@playwright/test` + Chromium headless installed. `npm run browser:smoke` runs 13-check browser verification: form auth flow, home page session cards, portfolio card expansion, `/attach/general` WS snapshot delivery (8101 chars), `/attach/general-codex` WS snapshot (12933 chars), `/artifacts` render, zero unhandled JS errors. 13/13 pass.
@@ -174,6 +185,8 @@ A focused executive surface with three jobs and nothing else:
 - `GET /sessions/[name]` — full-screen project-session view (linked from portfolio cards)
 - `GET /artifacts` — artifact inbox list · `GET /artifacts/[source]/[...path]` — doc view (markdown rendered server-side)
 - `GET /api/context-usage/[name]` — context window freshness for a session (parses JSONL; Codex returns `available: false`)
+- `GET /api/symphony` — list all symphony tasks (with `stale` computed) · `POST /api/symphony` — create task (state: ready)
+- `GET /api/symphony/:id` — get task · `PATCH /api/symphony/:id` — transition state (validates allowed transitions, enforces concurrency cap)
 
 ## Carry-forwards
 - ~~**FR-0015 Layer-3 proof**~~: reframed 2026-04-25 as the project-owned `browser_capability_missing` capability gap. **CLOSED 2026-05-01** — playwright + browser smoke implemented. Reflection loop must stop escalating this.
@@ -182,16 +195,17 @@ A focused executive surface with three jobs and nothing else:
 
 ## What the next agent must read first
 1. This file.
-2. `scripts/browser-smoke.ts` + `scripts/browser-smoke-wrapper.sh` — new browser-layer evidence. Key constraint: `PLAYWRIGHT_BROWSERS_PATH` must be set before node starts; shell wrapper handles this. `/tmp/browser-libs` is ephemeral.
-3. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
-4. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
-5. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
-6. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
+2. `src/lib/symphonyStore.ts` — the Symphony-lite state machine. Key constraints: synchronous withState (no locks needed for single-process), 1/project + 3/global concurrency cap, stale detection at read time. Owner model: `ownerSession` = tmux session name.
+3. `scripts/browser-smoke.ts` + `scripts/browser-smoke-wrapper.sh` — browser-layer evidence. Key constraint: `PLAYWRIGHT_BROWSERS_PATH` must be set before node starts; shell wrapper handles this. `/tmp/browser-libs` is ephemeral.
+4. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
+5. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
+6. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
+7. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
 - ~~**browser_capability_missing**~~: CLOSED (2026-05-01). `npm run browser:smoke` passes 13 checks. See Capability gaps section for narrow remaining limit (ephemeral /tmp libs).
 - ~~**Context-usage-ui**~~: SHIPPED (`ac762f7`). Freshness badge on attach header + executive portfolio card. Handoff deleted.
-- **Symphony-lite orchestration**: handoff `command-symphony-lite-orchestration-2026-04-30T21-16Z.md` still present. Deferred from this tick (medium priority, orthogonal scope — local task state machine design + implementation). Next tick should consume it.
+- ~~**Symphony-lite orchestration**~~: **SHIPPED** (`4b9f019`, 2026-05-01). Handoff deleted. State machine live at `/symphony`, `GET/POST /api/symphony`, `PATCH /api/symphony/:id`. 50/50 smoke.
 - **Phase D (parked)**: design preserved at `docs/phase-d-design.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
