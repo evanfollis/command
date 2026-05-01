@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-04-25T14:22Z (reflection pass) — context-usage-ui shipped, FR-0015 reframed, login double-submit now 3 cycles.
+**Last updated**: 2026-05-01T05-51Z (tick — browser-agent-legibility) — browser smoke landed: Playwright + Chromium headless installed, 13-check browser smoke passes (auth form, home, attach WS snapshot delivery, portfolio expansion, artifacts). `browser_capability_missing` closed.
 
 ---
 
@@ -13,13 +13,18 @@
 - **Live attach**: `/attach/general` and `/attach/general-codex` now support authenticated browser write, single-writer lock, take-write transfer, and reconnect replay.
 
 ## Capability gaps (machine-owned, not principal-owned)
-- **`browser_capability_missing`**: no browser-automation runtime is installed in this repo or on the host. `npm ls` shows no playwright / puppeteer / webdriverio; `which chromium google-chrome chromedriver firefox` returns empty; no `node_modules/.bin` browser entrypoints. Consequence: server-side smoke (38/40 ws + auth + tmux mechanics) is the current evidence. Real-browser verification of `/`, `/attach/general`, `/attach/general-codex`, `/artifacts`, and a portfolio expansion is not currently runnable from a project-session tick. Closing this gap requires either (a) `npm i -D @playwright/test && npx playwright install chromium` plus an authenticated-fetch fixture, or (b) a host-side headless-chrome binary + a thin smoke script. Until either lands, treat browser-layer behavior as unverified — do not weaken the smoke distinction by claiming server-side coverage implies UI correctness.
+- ~~**`browser_capability_missing`**~~: **CLOSED** (2026-05-01 tick). `@playwright/test` installed as devDependency; Chromium headless binary in `node_modules/playwright-core/.local-browsers/`. System libs (libnspr4, libnss3, libatk, etc.) bootstrapped to `/tmp/browser-libs/` via `npm run browser:setup`. 13-check browser smoke passes: form auth, home page session cards, portfolio card expansion (prose/pre rendered), `/attach/general` WS snapshot (8101 chars), `/attach/general-codex` WS snapshot (12933 chars), `/artifacts` h1 + source labels, zero JS errors. Run `npm run browser:smoke`. Re-run `npm run browser:setup` after host reboot (/tmp is ephemeral; node_modules chromium binary persists).
+  - **Remaining narrow gap**: `/tmp/browser-libs` is ephemeral (reboot clears it). The `browser:setup` script re-downloads and re-extracts ~40MB of .deb files via apt. This requires network access to apt mirrors. If apt is unreachable post-reboot, browser smoke won't run until connectivity is restored. No impact on server-side smoke.
 
 
-## What bit the last reflection
-- **advisor() pre-commit missing (4 sessions)**: 4 consecutive ship sessions ran without calling advisor() before implementation. Adversarial review via Agent substituted post-implementation, which catches bugs but not wrong approaches. CLAUDE.md rule proposed in reflection.
-- **Login double-submission**: re-investigated 2026-04-25T~15:45Z. Pulled telemetry: 57 fail+success pairs, 8–26 ms apart, median 15 ms — not a human double-click pattern. The login page is a pure HTML form POST (no JS), and the failed call carries a wrong password while the success carries the right one (`api/auth/route.ts:36`). Most likely mechanism: password manager / autofill racing the user's submit. The proposed client-component + `disabled` button fix cannot reach this class — it catches click-driven double-submits, not concurrent autofill + Enter / button submits. Counter-handoff filed: `runtime/.handoff/general-command-login-doublesubmit-classmismatch-2026-04-25T1545Z.md`. The synthesis URGENT cited an empty (1-line) cross-cutting stub, confirming mechanical escalation. **Reframed as a telemetry-hygiene item**, not a user-visible bug — Option A in the counter (10-line meta-scan filter) is the cheapest real fix; Option B (server-side dedup window) is stronger; Option C (the proposed one) is a class mismatch.
-- **ADR-0028 at 7 cycles**: Reflection loop proposed forcing a decision (promote or explicitly defer). Executive write access required.
+## What bit the last reflection / this tick
+- **401 auth on prior ticks (resolved for attended sessions, unclear for unattended)**: `command.tick` at 00:51Z on 2026-05-01 failed with `401 authentication_error`. This attended tick (05:27Z) succeeded — 401 was likely the Anthropic API auth failure affecting unattended headless sessions; does not block attended work.
+- **npm cache EROFS (ACTIVE)**: tick sessions cannot run `npm install` with the default cache path (`/root/.npm/_cacache`). Workaround: `NPM_CONFIG_CACHE=/tmp/npm-cache npm install ...`. Applied in this tick for `@playwright/test` install.
+- **apt-get EROFS (ACTIVE for dpkg write)**: tick sessions cannot run `apt-get install` (dpkg cannot write to `/var/lib/dpkg`). Workaround: `apt-get --download-only` + `dpkg-deb -x` to /tmp. Applied in `scripts/browser-libs-setup.sh`.
+- **advisor() pre-commit missing (10 reflection cycles unresolved, proposals suppressed)**: Rule proposed; still not added. Suppressed from proposals per saturation rule — remains here until decision filed.
+- **Login double-submission**: class-mismatch confirmed 2026-04-25. Options A and B documented. 10 reflection cycles; suppressed from proposals per saturation rule. Terminal decision (A/B/won't-fix) still needed. See Known Broken.
+- **ADR-0028 at 16+ cycles**: Still at `proposed`. Artifact inbox live since 2026-04-20. One-line status flip needed.
+- **CURRENT_STATE.md uncommitted — 9 reflection cycles**: content is correct; disk-only. Reflection jobs cannot commit.
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -28,6 +33,13 @@ A focused executive surface with three jobs and nothing else:
 2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
 3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
 4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
+
+## What just completed (2026-05-01T05:51Z, tick — browser-agent-legibility)
+- **Browser smoke landed**: `@playwright/test` + Chromium headless installed. `npm run browser:smoke` runs 13-check browser verification: form auth flow, home page session cards, portfolio card expansion, `/attach/general` WS snapshot delivery (8101 chars), `/attach/general-codex` WS snapshot (12933 chars), `/artifacts` render, zero unhandled JS errors. 13/13 pass.
+- **Three new scripts**: `scripts/browser-smoke.ts` (playwright tests), `scripts/browser-smoke-wrapper.sh` (env bootstrap — PLAYWRIGHT_BROWSERS_PATH must precede node startup), `scripts/browser-libs-setup.sh` (idempotent system dep download/extract to /tmp).
+- **Adversarial review run**: Claude agent (Codex unavailable). Two ship-blocking findings fixed before ship: (1) WS evidence gap — added `waitForFunction` polling for pane content; (2) no JS error capture — added `context.on('pageerror')`. Two should-fix items also addressed: auth throw path now calls check() on failure; chromium binary check in wrapper.
+- **Handoff consumed**: `command-browser-agent-legibility-2026-04-30T21-16Z.md` deleted.
+- **Symphony-lite deferred**: `command-symphony-lite-orchestration-2026-04-30T21-16Z.md` is still present — deferred (medium priority, orthogonal scope requiring separate tick).
 
 ## What just completed (2026-04-25T09:30Z, tick — context-usage-ui, ADR-0030 item 4)
 - **Context freshness badge shipped** (`ac762f7`): `GET /api/context-usage/[name]` — new endpoint parsing Claude Code JSONL transcripts. Returns `contextTokens` (last-turn input + cache_read + cache_creation), turn/tool counts, `freshness` (fresh/mid/stretched), `contextPercent` vs. 200K window.
@@ -137,7 +149,7 @@ A focused executive surface with three jobs and nothing else:
 - **Single-process state integrity assumptions**: `threadConversation.ts` non-atomic transcript append (`57-63`), in-process-only turn lock (`194-200`), no durable error marker on crash (`207-209`). Safe ONLY while command runs single-process. If ever run multi-process, these become active data-corruption bugs. Accepted tradeoff — documented in `.reviews/84b38dc-review-2026-04-18T16-54Z.md:§3`.
 - **Mentor and recruiter have no CURRENT_STATE.md**. Their portfolio cards show the missing-front-door message. Intended pressure signal — not a bug to paper over.
 - **Client telemetry post-auth gap**: beacon fires on login *page load* and specific API events, but not on auth success or subsequent page navigation during a session. Mobile access (03:26Z iPhone visit) was visible but post-login behavior was invisible. If mobile becomes a first-class use case, add `client.auth_success` beacon to the auth API route and page-view beacons to `/` and `/artifacts`.
-- **Login double-submission (fix planned, dropped)**: telemetry shows fail+success pairs within 13–21ms (see timestamps above). Session `8cdc09f6` planned to convert `login/page.tsx` to a client component with submit-once protection (L80), but the commit only touched routing/UI files — login fix was silently dropped. `login/page.tsx` is a Server Component with no JS submit guard. Root cause: plain `<form method="POST" action="/api/auth">` permits rapid double-submission. Fix: convert to client component with `isSubmitting` state, disable button on first submit. File: `src/app/login/page.tsx`.
+- **Login double-submission (reframed: telemetry-hygiene, not user-impacting)**: 57 fail+success pairs at 8–26 ms (median 15 ms), wrong password on fail / correct password on success. This is a password manager autofill race, not a click race. A client-component + disabled-button fix cannot reach concurrent autofill+Enter submits — confirmed class mismatch (2026-04-25T15:48Z, commit `0ec1c04`). The user always authenticates successfully. Real options: (A) meta-scan filter to suppress noise from telemetry (10-line change); (B) server-side dedup window within 30ms (stronger). Counter-handoff filed to general session. Not an active bug.
 
 ## Recent decisions
 - **Native session IDs, not prompt stitching**: threads ARE Claude/Codex sessions, not UI buffers. Guarantees CLI resumability and feeds the reflection loop automatically.
@@ -164,21 +176,24 @@ A focused executive surface with three jobs and nothing else:
 - `GET /api/context-usage/[name]` — context window freshness for a session (parses JSONL; Codex returns `available: false`)
 
 ## Carry-forwards
-- ~~**FR-0015 Layer-3 proof**~~: reframed 2026-04-25 as the project-owned `browser_capability_missing` capability gap above. The old URGENT escalation (`URGENT-command-fr0015-principal-decision-needed.md`) is archived under `runtime/.handoff/ARCHIVE/2026-04-24/` and is no longer principal work. Reflection loop should stop escalating it; closure path is "install playwright (or equivalent) and add a browser smoke," not "principal clicks through."
+- ~~**FR-0015 Layer-3 proof**~~: reframed 2026-04-25 as the project-owned `browser_capability_missing` capability gap. **CLOSED 2026-05-01** — playwright + browser smoke implemented. Reflection loop must stop escalating this.
 - ~~**Document metrics producer** (URGENT — escalated)~~: **closed 2026-04-20T~16:55Z**. Producer is `supervisor/scripts/lib/metrics-rollup.py` on hourly `metrics-rollup.timer`; key scheme documented above under "Known broken or degraded." Both URGENT handoffs (`URGENT-command-metrics-producer-undocumented-2026-04-20T14-31Z.md` and `command-urgent-metrics-producer-2026-04-20T16-49Z.md`) are now actioned — safe to archive.
 - **Review findings (accepted tradeoffs)**: Codex session ID race under concurrent thread creation, no durable error marker for failed turns, in-process-only turn lock. Acceptable for single-user single-process deployment. If command ever runs multi-process, these become real bugs.
 
 ## What the next agent must read first
 1. This file.
-2. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
-3. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
-4. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
-5. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
+2. `scripts/browser-smoke.ts` + `scripts/browser-smoke-wrapper.sh` — new browser-layer evidence. Key constraint: `PLAYWRIGHT_BROWSERS_PATH` must be set before node starts; shell wrapper handles this. `/tmp/browser-libs` is ephemeral.
+3. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
+4. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
+5. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
+6. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
+- ~~**browser_capability_missing**~~: CLOSED (2026-05-01). `npm run browser:smoke` passes 13 checks. See Capability gaps section for narrow remaining limit (ephemeral /tmp libs).
 - ~~**Context-usage-ui**~~: SHIPPED (`ac762f7`). Freshness badge on attach header + executive portfolio card. Handoff deleted.
+- **Symphony-lite orchestration**: handoff `command-symphony-lite-orchestration-2026-04-30T21-16Z.md` still present. Deferred from this tick (medium priority, orthogonal scope — local task state machine design + implementation). Next tick should consume it.
 - **Phase D (parked)**: design preserved at `docs/phase-d-design.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
 - **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
-- ~~**FR-0015 URGENT**~~: reframed as the `browser_capability_missing` capability gap (above). Project-owned; not principal work.
-- **Login double-submission (needs fix — 3 reflection cycles, approaching URGENT)**: fix was planned and scoped in session `8cdc09f6` but dropped without a commit. A plain HTML form with no JS guard permits double-submission from password managers. Fix is straightforward (client component + disabled state). Now 3 reflection windows without resolution. See Known Broken section.
+- ~~**FR-0015 URGENT**~~: reframed as the `browser_capability_missing` capability gap (now closed). Not principal work.
+- **Login double-submission (reframed 2026-04-25T15:48Z)**: class-mismatch confirmed — client-component fix rejected. Real options: (A) meta-scan filter, (B) server-side dedup window. Counter-handoff sent to general. Not approaching URGENT — users authenticate successfully. See Known Broken section for analysis.

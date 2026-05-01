@@ -8,6 +8,8 @@
     "build": "npm run check && next build && npx tsc -p tsconfig.server.json && git rev-parse HEAD > dist/.version",
     "start": "NODE_ENV=production node dist/server.js",
     "smoke": "tsx scripts/smoke.ts",
+    "browser:setup": "bash scripts/browser-libs-setup.sh",
+    "browser:smoke": "bash scripts/browser-smoke-wrapper.sh",
     "deploy": "npm run build && systemctl restart command && sleep 2 && npm run smoke",
     "meta:scan": "tsx scripts/meta-scan.ts"
   },
@@ -27,6 +29,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/typography": "^0.5.19",
     "@types/jsonwebtoken": "^9.0.0",
     "@types/node": "^20.14.0",
