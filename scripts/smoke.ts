@@ -437,6 +437,83 @@ async function main() {
     renderedOk ? undefined : 'missing heading or title text'
   )
 
+  // Symphony task API (Symphony-lite orchestration).
+  // Round-trip: create task → list → transition ready→running → invalid transition → cleanup.
+  const symphUnauth = await fetch(`${BASE}/api/symphony`, { redirect: 'manual' })
+  check(
+    'GET /api/symphony unauthed → redirect to /login',
+    [302, 307].includes(symphUnauth.status),
+    `status=${symphUnauth.status}`
+  )
+
+  const symphCreateRes = await fetch(`${BASE}/api/symphony`, {
+    method: 'POST',
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'smoke-test task',
+      description: 'Created by smoke test — safe to ignore',
+      targetProject: 'command',
+      ownerSession: 'smoke',
+    }),
+  })
+  check(
+    'POST /api/symphony creates task → 201',
+    symphCreateRes.status === 201,
+    `status=${symphCreateRes.status}`
+  )
+  const { task: symphTask } = await symphCreateRes.json()
+  check(
+    'created symphony task has state=ready',
+    symphTask?.state === 'ready',
+    `state=${symphTask?.state}`
+  )
+
+  const symphListRes = await fetch(`${BASE}/api/symphony`, { headers: authHeaders })
+  const { tasks: symphTasks } = await symphListRes.json()
+  check(
+    'GET /api/symphony lists tasks',
+    Array.isArray(symphTasks) && symphTasks.some((t: { id: string }) => t.id === symphTask?.id),
+    `found=${symphTasks?.some((t: { id: string }) => t.id === symphTask?.id)}`
+  )
+
+  if (symphTask?.id) {
+    const symphTransRes = await fetch(`${BASE}/api/symphony/${symphTask.id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: 'running', by: 'smoke' }),
+    })
+    check(
+      'PATCH /api/symphony/:id ready→running → 200',
+      symphTransRes.status === 200,
+      `status=${symphTransRes.status}`
+    )
+    const { task: symphTransitioned } = await symphTransRes.json()
+    check(
+      'transitioned symphony task has state=running',
+      symphTransitioned?.state === 'running',
+      `state=${symphTransitioned?.state}`
+    )
+
+    // Invalid transition should fail
+    const symphBadTrans = await fetch(`${BASE}/api/symphony/${symphTask.id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: 'ready', by: 'smoke' }),
+    })
+    check(
+      'PATCH /api/symphony/:id invalid transition → 422',
+      symphBadTrans.status === 422,
+      `status=${symphBadTrans.status}`
+    )
+
+    // Clean up: advance to done
+    await fetch(`${BASE}/api/symphony/${symphTask.id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: 'done', by: 'smoke', reason: 'smoke test cleanup' }),
+    })
+  }
+
   console.log(failed === 0 ? '\nSMOKE PASSED' : `\nSMOKE FAILED (${failed} check${failed > 1 ? 's' : ''})`)
   process.exit(failed === 0 ? 0 : 1)
 }

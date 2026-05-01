@@ -35,6 +35,12 @@ export default function Nav() {
             Executive
           </Link>
           <Link
+            href="/symphony"
+            className="rounded-full border border-white/10 px-3 py-2 text-sm text-neutral-400 hover:border-white/20 hover:text-neutral-200"
+          >
+            Symphony
+          </Link>
+          <Link
             href="/artifacts"
             className="rounded-full border border-white/10 px-3 py-2 text-sm text-neutral-400 hover:border-white/20 hover:text-neutral-200"
           >

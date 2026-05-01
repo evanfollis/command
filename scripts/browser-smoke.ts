@@ -55,14 +55,14 @@ async function main() {
     viewport: { width: 1280, height: 900 },
   })
 
+  const page = await context.newPage()
+
   // F2: capture client-side JS errors — the failure class server-side smoke cannot see
   let pageErrors = 0
-  context.on('pageerror', (err) => {
+  page.on('pageerror', (err) => {
     console.error(`  BROWSER JS ERROR: ${err.message}`)
     pageErrors++
   })
-
-  const page = await context.newPage()
 
   try {
     // 1. /login — form renders with password field
@@ -75,7 +75,7 @@ async function main() {
     // F3: catch auth failure cleanly instead of letting waitForURL throw
     let authed = false
     try {
-      await page.locator('input[type="password"]').fill(PASSWORD)
+      await page.locator('input[type="password"]').fill(PASSWORD!)
       await Promise.all([
         page.waitForURL(`${BASE}/`, { timeout: 8000 }),
         page.locator('button[type="submit"]').click(),

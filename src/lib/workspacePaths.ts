@@ -16,6 +16,7 @@ export const WORKSPACE_PATHS = {
   healthStatus: `${RUNTIME_ROOT}/.health-status.txt`,
   metaDir: `${RUNTIME_ROOT}/.meta`,
   taskStore: `${RUNTIME_ROOT}/.command-runtime/tasks.json`,
+  symphonyTasks: `${RUNTIME_ROOT}/symphony/tasks.json`,
   metaStore: `${RUNTIME_ROOT}/.command-runtime/meta-observations.json`,
   envLocal: `${PROJECTS_ROOT}/command/.env.local`,
 } as const
