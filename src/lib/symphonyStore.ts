@@ -129,7 +129,7 @@ function emitTelemetry(task: SymphonyTask, fromState: SymphonyState | null, toSt
     source: 'command.symphony',
     eventType: 'symphony.transition',
     level: 'info',
-    sourceType: 'system',
+    sourceType: by === 'operator' ? 'user' : 'system',
     taskId: task.id,
     details: {
       title: task.title,

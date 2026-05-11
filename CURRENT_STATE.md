@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-05-01T09-30Z (tick — symphony-lite-orchestration) — Symphony-lite task state machine shipped: `GET/POST /api/symphony`, `GET/PATCH /api/symphony/:id`, `/symphony` UI page, Nav link, 10 new smoke checks (50/50 total), full demo verified (ready→running→review with telemetry). Pre-existing `browser-smoke.ts` TypeScript errors fixed as part of this deploy.
+**Last updated**: 2026-05-11T14-24-14Z (reflection pass) — Extended dormancy (10 days, 14th quiet window). No commits. symphony-lite remains last shipped feature (50/50 smoke). Two principal-decision items open: login double-submit (option A unblocked maintenance), /artifacts retirement. cycle29 synthesis (08:48Z) named command CURRENT_STATE.md stale as a cross-project structural issue; dispatch deadline 2026-05-12T03:25Z.
 
 ---
 
@@ -18,13 +18,12 @@
 
 
 ## What bit the last reflection / this tick
-- **401 auth on prior ticks (resolved for attended sessions, unclear for unattended)**: `command.tick` at 00:51Z on 2026-05-01 failed with `401 authentication_error`. This attended tick (05:27Z) succeeded — 401 was likely the Anthropic API auth failure affecting unattended headless sessions; does not block attended work.
-- **npm cache EROFS (ACTIVE)**: tick sessions cannot run `npm install` with the default cache path (`/root/.npm/_cacache`). Workaround: `NPM_CONFIG_CACHE=/tmp/npm-cache npm install ...`. Applied in this tick for `@playwright/test` install.
-- **apt-get EROFS (ACTIVE for dpkg write)**: tick sessions cannot run `apt-get install` (dpkg cannot write to `/var/lib/dpkg`). Workaround: `apt-get --download-only` + `dpkg-deb -x` to /tmp. Applied in `scripts/browser-libs-setup.sh`.
-- **advisor() pre-commit missing (10 reflection cycles unresolved, proposals suppressed)**: Rule proposed; still not added. Suppressed from proposals per saturation rule — remains here until decision filed.
-- **Login double-submission**: class-mismatch confirmed 2026-04-25. Options A and B documented. 10 reflection cycles; suppressed from proposals per saturation rule. Terminal decision (A/B/won't-fix) still needed. See Known Broken.
-- **ADR-0028 at 16+ cycles**: Still at `proposed`. Artifact inbox live since 2026-04-20. One-line status flip needed.
-- **CURRENT_STATE.md uncommitted — 9 reflection cycles**: content is correct; disk-only. Reflection jobs cannot commit.
+- **CURRENT_STATE.md uncommitted (10 days, 12+ reflection cycles)**: Last committed in `11576ee` (2026-05-01T09:30Z). Reflection jobs have since updated on disk but cannot commit. Working tree has CURRENT_STATE.md + tsconfig.tsbuildinfo modified. Next attended tick must `git add CURRENT_STATE.md && git commit` — this is item 1, nothing else first.
+- **symphony.transition sourceType hardcoded 'system' (ACTIVE, 6th cycle — threshold crossed 3 cycles ago; synthesis URGENT gate has not fired — governance gap)**: `symphonyStore.ts:132` emits `sourceType: 'system'` for all transitions including UI-initiated operator actions (`by: 'operator'`). Violates S1-P2. Fix: derive from `by` field — 'operator' → 'user', agent session names → 'system'. 3-line change, no principal decision needed. 3-cycle escalation threshold crossed — synthesis job should escalate if it has not.
+- **Login double-submission (option A reclassified as unblocked)**: class-mismatch confirmed 2026-04-25, now 17 days open. Option A (meta-scan filter, 10 lines) does NOT require principal A/B decision — it is orthogonal maintenance. Can ship in any attended session. Option B (server-side dedup) remains principal-gated.
+- **npm cache EROFS / apt-get EROFS (ACTIVE for tick sessions)**: workarounds documented. Does not affect attended sessions.
+- **advisor() pre-commit missing (suppressed)**: Rule proposed, never added to CLAUDE.md. Suppressed from proposals per saturation rule.
+- ~~**ADR-0028**~~: CLOSED (2026-05-01T14-32-21Z).
 
 ## What this is now
 A focused executive surface with three jobs and nothing else:
@@ -207,7 +206,7 @@ A focused executive surface with three jobs and nothing else:
 - ~~**Context-usage-ui**~~: SHIPPED (`ac762f7`). Freshness badge on attach header + executive portfolio card. Handoff deleted.
 - ~~**Symphony-lite orchestration**~~: **SHIPPED** (`4b9f019`, 2026-05-01). Handoff deleted. State machine live at `/symphony`, `GET/POST /api/symphony`, `PATCH /api/symphony/:id`. 50/50 smoke.
 - **Phase D (parked)**: design preserved at `docs/phase-d-design.md`. Unlocks when: Phase C3 shipped + 3 days principal usage + 20 friction events.
-- **ADR-0028 promotion**: adversarial review done (`.reviews/4b5261c-artifacts-review-2026-04-20T16-49Z.md`). Executive session must edit `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status from `proposed → accepted` (supervisor dir read-only from tick sessions).
+- ~~**ADR-0028 promotion**~~: **CLOSED** (2026-05-01T14-32-21Z reflection). `supervisor/decisions/0028-command-artifact-inbox-read-contract.md` status confirmed `accepted`.
 - **Principal confirmation of `/artifacts`** end-to-end on device. Once confirmed: retire the cloudflared `/_inbox` stopgap (`synaplex-inbox.service`, `/etc/cloudflared/config.yml` lines 7–10, `runtime/inbox/`, `inbox-render.py`, `inbox-server.py`). Do not delete source artifacts under `runtime/research/`.
 - ~~**FR-0015 URGENT**~~: reframed as the `browser_capability_missing` capability gap (now closed). Not principal work.
 - **Login double-submission (reframed 2026-04-25T15:48Z)**: class-mismatch confirmed — client-component fix rejected. Real options: (A) meta-scan filter, (B) server-side dedup window. Counter-handoff sent to general. Not approaching URGENT — users authenticate successfully. See Known Broken section for analysis.
