@@ -77,15 +77,26 @@ function readCurrentState(session: SessionRow): { path: string | null; content: 
 }
 
 function getLastCommit(cwd: string): { subject: string; relativeTime: string } | null {
-  if (!cwd || !existsSync(`${cwd}/.git`)) return null
+  if (!cwd) return null
+  // `existsSync('.git')` is a necessary-but-insufficient repo check —
+  // an empty .git directory (e.g. /opt/workspace/.git, created but never
+  // initialised) passes the path test but makes `git log` print
+  // "fatal: not a git repository (or any of the parent directories): .git"
+  // to stderr. Require .git/HEAD, the canonical marker of a usable repo,
+  // before invoking git — and `stdio: ['ignore', 'pipe', 'ignore']`
+  // suppresses stderr for any unexpected failure (corrupt HEAD, dangling
+  // ref, etc.) so the journal stays clean.
+  if (!existsSync(`${cwd}/.git/HEAD`)) return null
   try {
     const subject = execFileSync('git', ['-C', cwd, 'log', '-1', '--format=%s'], {
       encoding: 'utf-8',
       timeout: 2000,
+      stdio: ['ignore', 'pipe', 'ignore'],
     }).trim()
     const relativeTime = execFileSync('git', ['-C', cwd, 'log', '-1', '--format=%ar'], {
       encoding: 'utf-8',
       timeout: 2000,
+      stdio: ['ignore', 'pipe', 'ignore'],
     }).trim()
     return { subject: truncate(subject, 80) || '', relativeTime }
   } catch {

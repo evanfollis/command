@@ -439,6 +439,35 @@ async function main() {
 
   // Symphony task API (Symphony-lite orchestration).
   // Round-trip: create task → list → transition ready→running → invalid transition → cleanup.
+  //
+  // Startup eviction: orphaned `running` tasks targeting command (from a
+  // crashed prior smoke run or an ad-hoc verification test that didn't
+  // tear down) hold the MAX_RUNNING_PER_PROJECT cap and 422 the smoke's
+  // own ready→running transition. Evict any running command-task whose
+  // `runningAt` is more than 5 minutes old — comfortable margin above a
+  // healthy smoke iteration (<60s).
+  const symphPre = await fetch(`${BASE}/api/symphony`, { headers: authHeaders })
+  const { tasks: prePruneTasks } = await symphPre.json()
+  const fiveMinAgo = Date.now() - 5 * 60 * 1000
+  const orphans: Array<{ id: string }> = (prePruneTasks || []).filter(
+    (t: { state: string; targetProject: string; runningAt?: number }) =>
+      t.state === 'running' && t.targetProject === 'command' && (t.runningAt ?? 0) < fiveMinAgo,
+  )
+  for (const orphan of orphans) {
+    await fetch(`${BASE}/api/symphony/${orphan.id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: 'done',
+        by: 'smoke',
+        reason: 'smoke startup eviction: stale running task (>5min)',
+      }),
+    })
+  }
+  if (orphans.length > 0) {
+    console.log(`  (evicted ${orphans.length} stale running task${orphans.length > 1 ? 's' : ''} before symphony smoke)`)
+  }
+
   const symphUnauth = await fetch(`${BASE}/api/symphony`, { redirect: 'manual' })
   check(
     'GET /api/symphony unauthed → redirect to /login',
