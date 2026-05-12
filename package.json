@@ -10,7 +10,7 @@
     "smoke": "tsx scripts/smoke.ts",
     "browser:setup": "bash scripts/browser-libs-setup.sh",
     "browser:smoke": "bash scripts/browser-smoke-wrapper.sh",
-    "deploy": "npm run build && systemctl restart command && sleep 2 && npm run smoke",
+    "deploy": "tsx scripts/check-clean-tree.ts && npm run build && systemctl restart command && sleep 2 && npm run smoke",
     "meta:scan": "tsx scripts/meta-scan.ts"
   },
   "dependencies": {

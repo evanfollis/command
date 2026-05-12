@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-05-11T14-24-14Z (reflection pass) — Extended dormancy (10 days, 14th quiet window). No commits. symphony-lite remains last shipped feature (50/50 smoke). Two principal-decision items open: login double-submit (option A unblocked maintenance), /artifacts retirement. cycle29 synthesis (08:48Z) named command CURRENT_STATE.md stale as a cross-project structural issue; dispatch deadline 2026-05-12T03:25Z.
+**Last updated**: 2026-05-12T~07:05Z — `npm run deploy` now gates on a clean working tree. Closes the deploy-before-commit ordering failure mode that left `dist/.version` stale.
 
 ---
 
@@ -18,9 +18,11 @@
 
 
 ## What bit the last reflection / this tick
-- **CURRENT_STATE.md uncommitted (10 days, 12+ reflection cycles)**: Last committed in `11576ee` (2026-05-01T09:30Z). Reflection jobs have since updated on disk but cannot commit. Working tree has CURRENT_STATE.md + tsconfig.tsbuildinfo modified. Next attended tick must `git add CURRENT_STATE.md && git commit` — this is item 1, nothing else first.
-- **symphony.transition sourceType hardcoded 'system' (ACTIVE, 6th cycle — threshold crossed 3 cycles ago; synthesis URGENT gate has not fired — governance gap)**: `symphonyStore.ts:132` emits `sourceType: 'system'` for all transitions including UI-initiated operator actions (`by: 'operator'`). Violates S1-P2. Fix: derive from `by` field — 'operator' → 'user', agent session names → 'system'. 3-line change, no principal decision needed. 3-cycle escalation threshold crossed — synthesis job should escalate if it has not.
-- **Login double-submission (option A reclassified as unblocked)**: class-mismatch confirmed 2026-04-25, now 17 days open. Option A (meta-scan filter, 10 lines) does NOT require principal A/B decision — it is orthogonal maintenance. Can ship in any attended session. Option B (server-side dedup) remains principal-gated.
+- ~~**CURRENT_STATE.md uncommitted (10 days)**~~: **COMMITTED** (`0f65f27`, 2026-05-11T16:53Z). Backlog closed.
+- ~~**symphony.transition sourceType hardcoded 'system' (6th cycle)**~~: **FIXED** (`0f65f27`). `symphonyStore.ts:132` now derives `sourceType` from the `by` field. S1-P2 compliant.
+- ~~**`dist/.version` stale SHA**~~: **FIXED** (2026-05-12T~07:05Z). `scripts/check-clean-tree.ts` now runs as the first step of `npm run deploy`; a dirty working tree aborts the deploy before `npm run build` touches `dist/.version`. Verified: dirty tree → exit 1 with the listing of changed files; clean tree → deploy completes and `/api/health.sha` matches `git rev-parse HEAD`. Also untracked `tsconfig.tsbuildinfo` (was tracked but regenerated every build, so it was permanently dirty and would have made the gate fire spuriously); added to `.gitignore`.
+- **health.ts `git rev-parse HEAD` startup errors**: Two `fatal: not a git repository` errors logged at each service restart. Handled exception, noisy but harmless. See reflection O2 for fix.
+- **Login double-submission (option A unblocked, 19 days)**: Meta-scan filter (10 lines, no blocking decision) still unimplemented.
 - **npm cache EROFS / apt-get EROFS (ACTIVE for tick sessions)**: workarounds documented. Does not affect attended sessions.
 - **advisor() pre-commit missing (suppressed)**: Rule proposed, never added to CLAUDE.md. Suppressed from proposals per saturation rule.
 - ~~**ADR-0028**~~: CLOSED (2026-05-01T14-32-21Z).
