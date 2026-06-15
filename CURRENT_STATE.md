@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-06-15T02-20-40Z — reflection pass. No user activity, no telemetry. 16th consecutive quiet window. O1/O2 suppressed (saturation rule). O3 (symphony DELETE endpoint, 16 cycles) + O4 (/inbox stopgap, 11 cycles) still open. M5 handoff now 10th cycle — suppressed at cycle 4, no further escalation.
+**Last updated**: 2026-06-15T14-21-33Z — reflection pass. No user activity, no telemetry. 17th consecutive quiet window. O1/O2 suppressed (saturation rule). O3 (symphony DELETE endpoint, 17 cycles) + O4 (/inbox stopgap, 12 cycles) still open. M5 handoff 11th cycle — suppressed. NEW: supervisor INBOX holds 10 unconsumed synthesis proposals (>25 days old).
 
 ---
 
