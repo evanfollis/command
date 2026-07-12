@@ -19,6 +19,8 @@
 #   - smoke failure rolls `current` back to the previous release
 set -euo pipefail
 
+source "$(dirname "$0")/release-lib.sh"
+
 REPO=/opt/workspace/projects/command
 RELEASES=/opt/workspace/runtime/releases/command
 KEEP=5
@@ -37,6 +39,7 @@ SHORT=$(git rev-parse --short HEAD)
 DIRTY=false
 if [ -n "$(git status --porcelain)" ]; then
   if [ "${ALLOW_DIRTY:-0}" = "1" ]; then
+    bash scripts/assert-dirty-release-inputs.sh "$REPO"
     DIRTY=true
   elif [ "${HEAD_ONLY:-0}" = "1" ]; then
     echo "note: working tree has uncommitted changes; releasing committed HEAD only" >&2
@@ -67,6 +70,7 @@ if [ "$DIRTY" = true ]; then
   git diff HEAD | (cd "$STAGE" && git apply --allow-empty -)
 fi
 cp "$REPO/.env.local" "$STAGE/.env.local" 2>/dev/null || true
+SERVICE_PORT=$(resolve_command_port "$STAGE/.env.local")
 
 # Compute from the staged release source, never the mutable working tree. The
 # cache contains full dependencies because this exact tree must build and run
@@ -111,7 +115,7 @@ systemctl restart "$SERVICE"
 
 wait_for_service() {
   for _ in $(seq 1 15); do
-    if systemctl is-active --quiet "$SERVICE" && [ "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/login 2>/dev/null || true)" = "200" ]; then return 0; fi
+    if systemctl is-active --quiet "$SERVICE" && [ "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${SERVICE_PORT}/login" 2>/dev/null || true)" = "200" ]; then return 0; fi
     sleep 1
   done
   return 1

@@ -145,16 +145,27 @@ function validateProjectionV1(parsed: Record<string, unknown>): void {
   if (parsed.projection_version !== '1.0.0' || typeof parsed.generated_at !== 'string' || Number.isNaN(Date.parse(parsed.generated_at)) || typeof parsed.digest !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(parsed.digest)) throw new Error('public projection version, timestamp, or digest is invalid')
   const counts = parsed.counts
   if (!counts || typeof counts !== 'object' || !hasExactKeys(counts as Record<string, unknown>, ['research', 'findings', 'mechanisms'])) throw new Error('public projection counts shape is not exact v1')
+  if (!Object.values(counts as Record<string, unknown>).every((value) => Number.isInteger(value) && Number(value) >= 0)) throw new Error('public projection counts must be nonnegative integers')
   const researchRequired = ['id', 'slug', 'title', 'summary', 'status', 'validity', 'registered_at', 'updated_at', 'superseded_by', 'public_artifact', 'provenance']
   const findingRequired = ['id', 'claim_id', 'decision_id', 'evidence_ids', 'statement', 'validity', 'decided_at', 'superseded_by']
   const mechanismRequired = ['id', 'title', 'summary', 'status', 'public_artifact']
   if (!Array.isArray(parsed.research) || !parsed.research.every((item) => item && typeof item === 'object' && hasExactKeys(item as Record<string, unknown>, researchRequired, ['block']))) throw new Error('public projection research shape is not exact v1')
   if (!Array.isArray(parsed.findings) || !parsed.findings.every((item) => item && typeof item === 'object' && hasExactKeys(item as Record<string, unknown>, findingRequired))) throw new Error('public projection findings shape is not exact v1')
   if (!Array.isArray(parsed.mechanisms) || !parsed.mechanisms.every((item) => item && typeof item === 'object' && hasExactKeys(item as Record<string, unknown>, mechanismRequired))) throw new Error('public projection mechanisms shape is not exact v1')
+  const strings = (item: Record<string, unknown>, keys: string[]) => keys.every((key) => typeof item[key] === 'string' && String(item[key]).length > 0)
+  const statuses = new Set(['active', 'blocked', 'completed', 'invalidated', 'withdrawn', 'superseded'])
+  const validities = new Set(['pending', 'valid', 'invalid', 'withdrawn', 'superseded'])
   for (const item of parsed.research as Array<Record<string, unknown>>) {
+    if (!strings(item, ['id', 'slug', 'title', 'summary', 'status', 'validity', 'registered_at', 'updated_at', 'public_artifact']) || !statuses.has(String(item.status)) || !validities.has(String(item.validity)) || Number.isNaN(Date.parse(String(item.registered_at))) || Number.isNaN(Date.parse(String(item.updated_at))) || !String(item.public_artifact).startsWith('/') || !(item.superseded_by === null || typeof item.superseded_by === 'string')) throw new Error('public projection research semantics are invalid')
     const provenance = item.provenance
-    if (!provenance || typeof provenance !== 'object' || !hasExactKeys(provenance as Record<string, unknown>, ['claim_id', 'decision_id', 'evidence_ids']) || !Array.isArray((provenance as Record<string, unknown>).evidence_ids)) throw new Error('public projection provenance shape is not exact v1')
+    if (!provenance || typeof provenance !== 'object' || !hasExactKeys(provenance as Record<string, unknown>, ['claim_id', 'decision_id', 'evidence_ids']) || typeof (provenance as Record<string, unknown>).claim_id !== 'string' || !((provenance as Record<string, unknown>).decision_id === null || typeof (provenance as Record<string, unknown>).decision_id === 'string') || !Array.isArray((provenance as Record<string, unknown>).evidence_ids) || !((provenance as Record<string, unknown>).evidence_ids as unknown[]).every((id) => typeof id === 'string')) throw new Error('public projection provenance shape is not exact v1')
+    if (item.block !== undefined) {
+      const block = item.block as Record<string, unknown>
+      if (!block || typeof block !== 'object' || !hasExactKeys(block, ['code', 'since', 'summary', 'source_digest']) || !strings(block, ['code', 'since', 'summary', 'source_digest']) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(block.code)) || Number.isNaN(Date.parse(String(block.since))) || !/^sha256:[a-f0-9]{64}$/.test(String(block.source_digest))) throw new Error('public projection block semantics are invalid')
+    }
   }
+  for (const item of parsed.findings as Array<Record<string, unknown>>) if (!strings(item, ['id', 'claim_id', 'decision_id', 'statement', 'validity', 'decided_at']) || item.validity !== 'valid' || Number.isNaN(Date.parse(String(item.decided_at))) || !Array.isArray(item.evidence_ids) || item.evidence_ids.length === 0 || !item.evidence_ids.every((id) => typeof id === 'string') || !(item.superseded_by === null || typeof item.superseded_by === 'string')) throw new Error('public projection finding semantics are invalid')
+  for (const item of parsed.mechanisms as Array<Record<string, unknown>>) if (!strings(item, mechanismRequired) || !String(item.public_artifact).startsWith('/')) throw new Error('public projection mechanism semantics are invalid')
 }
 
 function collectPublicProjection(): PublicProjectionSummary {
