@@ -13,7 +13,8 @@
     "observatory:test": "node --import tsx scripts/observatory-test.ts",
     "deploy": "bash scripts/release.sh",
     "meta:scan": "tsx scripts/meta-scan.ts",
-    "release:rollback": "bash scripts/rollback.sh"
+    "release:rollback": "bash scripts/rollback.sh",
+    "release:test": "bash scripts/release-invariants-test.sh"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.10.0",

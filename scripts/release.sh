@@ -53,10 +53,9 @@ TS=$(date -u +%Y%m%dT%H%M%SZ)
 RELEASE_ID="$TS-$SHORT"; [ "$DIRTY" = true ] && RELEASE_ID="$RELEASE_ID-dirty"
 RELEASE="$RELEASES/$RELEASE_ID"
 STAGE=$(mktemp -d /opt/workspace/runtime/staging/command-build.XXXXXX)
-LOCK_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
-DEPS="$RELEASES/.deps-$LOCK_HASH"
+DEPS_STAGE=""
 
-cleanup() { cd "$REPO"; git worktree remove --force "$STAGE" 2>/dev/null || rm -rf "$STAGE"; }
+cleanup() { cd "$REPO"; git worktree remove --force "$STAGE" 2>/dev/null || rm -rf "$STAGE"; [ -z "$DEPS_STAGE" ] || rm -rf "$DEPS_STAGE"; }
 trap cleanup EXIT
 
 echo "==> building $RELEASE_ID (sha=$SHORT dirty=$DIRTY) in an isolated worktree"
@@ -67,25 +66,25 @@ if [ "$DIRTY" = true ]; then
   # Incident builds must reproduce what is actually in the tree, not just HEAD.
   git diff HEAD | (cd "$STAGE" && git apply --allow-empty -)
 fi
-ln -s "$REPO/node_modules" "$STAGE/node_modules"
 cp "$REPO/.env.local" "$STAGE/.env.local" 2>/dev/null || true
 
-( cd "$STAGE" && npm run build )
-
-# Dependencies are part of the release compatibility boundary. A shared link to
-# the mutable repo node_modules made a Next 15 smoke rollback crash against a
-# Next 14 build. Materialize one read-only production dependency tree per lockfile
-# digest; releases with the same lockfile may safely share that immutable tree.
+# Compute from the staged release source, never the mutable working tree. The
+# cache contains full dependencies because this exact tree must build and run
+# the staged lockfile; using repo dependencies for the build recreates the same
+# cross-version contamination class as using them at runtime.
+LOCK_HASH=$(sha256sum "$STAGE/package-lock.json" | cut -d' ' -f1)
+DEPS="$RELEASES/.deps-v2-$LOCK_HASH"
 if [ ! -d "$DEPS/node_modules" ]; then
   DEPS_STAGE=$(mktemp -d /opt/workspace/runtime/staging/command-deps.XXXXXX)
   cp "$STAGE/package.json" "$STAGE/package-lock.json" "$DEPS_STAGE/"
-  ( cd "$DEPS_STAGE" && npm ci --omit=dev )
+  ( cd "$DEPS_STAGE" && npm ci )
   chmod -R a-w "$DEPS_STAGE/node_modules"
-  mkdir -p "$DEPS"
-  mv "$DEPS_STAGE/node_modules" "$DEPS/node_modules"
-  cp "$DEPS_STAGE/package.json" "$DEPS_STAGE/package-lock.json" "$DEPS/"
-  rm -rf "$DEPS_STAGE"
+  mv "$DEPS_STAGE" "$DEPS"
+  DEPS_STAGE=""
 fi
+ln -s "$DEPS/node_modules" "$STAGE/node_modules"
+
+( cd "$STAGE" && npm run build )
 
 echo "==> assembling immutable release"
 mkdir -p "$RELEASE"
@@ -110,15 +109,28 @@ mv -Tf "$RELEASES/current.tmp" "$RELEASES/current"   # rename(2): atomic
 [ -n "$PREV" ] && ln -sfn "$PREV" "$RELEASES/previous.tmp" && mv -Tf "$RELEASES/previous.tmp" "$RELEASES/previous"
 systemctl restart "$SERVICE"
 
-sleep 2
-if ( cd "$REPO" && npm run smoke ); then
+wait_for_service() {
+  for _ in $(seq 1 15); do
+    if systemctl is-active --quiet "$SERVICE" && [ "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/login 2>/dev/null || true)" = "200" ]; then return 0; fi
+    sleep 1
+  done
+  return 1
+}
+
+if wait_for_service && ( cd "$REPO" && npm run smoke ); then
   echo "==> release $RELEASE_ID live and smoked"
 else
+  echo "!! new release failed service/login health or smoke" >&2
   echo "!! smoke FAILED — rolling back to $(basename "${PREV:-none}")" >&2
   if [ -n "$PREV" ]; then
     ln -sfn "$PREV" "$RELEASES/current.tmp"; mv -Tf "$RELEASES/current.tmp" "$RELEASES/current"
     systemctl restart "$SERVICE"
-    echo "!! rolled back." >&2
+    if wait_for_service; then
+      echo "!! rolled back and verified service active with /login=200." >&2
+    else
+      echo "!! ROLLBACK TARGET UNHEALTHY: $(basename "$PREV")" >&2
+      exit 2
+    fi
   fi
   exit 1
 fi

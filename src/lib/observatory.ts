@@ -24,7 +24,8 @@ export interface PublicProjectionSummary extends ObservatorySignal {
   projectionVersion: string | null
   digest: string | null
   generatedAt: string | null
-  recordCounts: Record<string, number>
+  counts: { research: number; findings: number; mechanisms: number }
+  provenance: { decisionRefs: number; evidenceRefs: number }
 }
 
 export interface OwnerDecision extends ObservatorySignal {
@@ -38,6 +39,8 @@ export interface ObservatorySnapshot {
   posture: ObservatoryState
   postureReason: string
   publicProjection: PublicProjectionSummary
+  publicCoherence: ObservatorySignal
+  ownerQueueState: ObservatorySignal
   ownerQueue: OwnerDecision[]
   knowledgeLoop: ObservatorySignal
   knowledge: ObservatorySignal[]
@@ -132,19 +135,42 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value)
 }
 
+function hasExactKeys(value: Record<string, unknown>, required: string[], optional: string[] = []): boolean {
+  const keys = Object.keys(value)
+  return required.every((key) => keys.includes(key)) && keys.every((key) => required.includes(key) || optional.includes(key))
+}
+
+function validateProjectionV1(parsed: Record<string, unknown>): void {
+  if (!hasExactKeys(parsed, ['projection_version', 'generated_at', 'digest', 'counts', 'research', 'findings', 'mechanisms'])) throw new Error('public projection top-level shape is not exact v1')
+  if (parsed.projection_version !== '1.0.0' || typeof parsed.generated_at !== 'string' || Number.isNaN(Date.parse(parsed.generated_at)) || typeof parsed.digest !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(parsed.digest)) throw new Error('public projection version, timestamp, or digest is invalid')
+  const counts = parsed.counts
+  if (!counts || typeof counts !== 'object' || !hasExactKeys(counts as Record<string, unknown>, ['research', 'findings', 'mechanisms'])) throw new Error('public projection counts shape is not exact v1')
+  const researchRequired = ['id', 'slug', 'title', 'summary', 'status', 'validity', 'registered_at', 'updated_at', 'superseded_by', 'public_artifact', 'provenance']
+  const findingRequired = ['id', 'claim_id', 'decision_id', 'evidence_ids', 'statement', 'validity', 'decided_at', 'superseded_by']
+  const mechanismRequired = ['id', 'title', 'summary', 'status', 'public_artifact']
+  if (!Array.isArray(parsed.research) || !parsed.research.every((item) => item && typeof item === 'object' && hasExactKeys(item as Record<string, unknown>, researchRequired, ['block']))) throw new Error('public projection research shape is not exact v1')
+  if (!Array.isArray(parsed.findings) || !parsed.findings.every((item) => item && typeof item === 'object' && hasExactKeys(item as Record<string, unknown>, findingRequired))) throw new Error('public projection findings shape is not exact v1')
+  if (!Array.isArray(parsed.mechanisms) || !parsed.mechanisms.every((item) => item && typeof item === 'object' && hasExactKeys(item as Record<string, unknown>, mechanismRequired))) throw new Error('public projection mechanisms shape is not exact v1')
+  for (const item of parsed.research as Array<Record<string, unknown>>) {
+    const provenance = item.provenance
+    if (!provenance || typeof provenance !== 'object' || !hasExactKeys(provenance as Record<string, unknown>, ['claim_id', 'decision_id', 'evidence_ids']) || !Array.isArray((provenance as Record<string, unknown>).evidence_ids)) throw new Error('public projection provenance shape is not exact v1')
+  }
+}
+
 function collectPublicProjection(): PublicProjectionSummary {
   const path = publicProjectionPath()
   if (!path) return {
     ...signal({ id: 'public-projection', title: 'Public projection', state: 'unknown', sourceRef: 'projects/synaplex/knowledge/{projection.json,public-projection.json,index.json}', reason: 'No versioned public projection has been emitted yet.' }),
-    availability: 'empty', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, recordCounts: {},
+    availability: 'empty', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 },
   }
   const raw = readBounded(path, MAX_JSON_BYTES)
   if (!raw.trim()) return {
     ...signal({ id: 'public-projection', title: 'Public projection', state: 'unknown', sourceRef: path, reason: 'The projection file exists but is empty.' }),
-    availability: 'empty', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, recordCounts: {},
+    availability: 'empty', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 },
   }
   const parsed = JSON.parse(raw) as Record<string, unknown>
   if (containsPrivateProjectionField(parsed)) throw new Error('public projection contains a private-field key')
+  validateProjectionV1(parsed)
   const declaredDigest = typeof parsed.digest === 'string' ? parsed.digest : null
   const digestPayload = { ...parsed }
   delete digestPayload.digest
@@ -153,16 +179,12 @@ function collectPublicProjection(): PublicProjectionSummary {
   const research = Array.isArray(parsed.research) ? parsed.research as Array<Record<string, unknown>> : []
   const mechanisms = Array.isArray(parsed.mechanisms) ? parsed.mechanisms as Array<Record<string, unknown>> : []
   const findings = Array.isArray(parsed.findings) ? parsed.findings as Array<Record<string, unknown>> : []
-  const recordCounts = {
-    claims: research.length,
-    frozenGates: research.length,
-    evidence: research.reduce((count, item) => count + (Array.isArray((item.provenance as Record<string, unknown> | undefined)?.evidence_ids) ? ((item.provenance as Record<string, unknown>).evidence_ids as unknown[]).length : 0), 0),
-    decisions: research.filter((item) => (item.provenance as Record<string, unknown> | undefined)?.decision_id).length,
-    invariants: mechanisms.filter((item) => item.status === 'operational').length,
-    podReuse: 0,
-    blockedResearch: research.filter((item) => item.status === 'blocked').length,
-    findings: findings.length,
-    mechanisms: mechanisms.length,
+  const declaredCounts = parsed.counts as Record<string, unknown> | undefined
+  const counts = { research: Number(declaredCounts?.research), findings: Number(declaredCounts?.findings), mechanisms: Number(declaredCounts?.mechanisms) }
+  if (!Object.values(counts).every(Number.isInteger) || counts.research !== research.length || counts.findings !== findings.length || counts.mechanisms !== mechanisms.length) throw new Error('public projection counts do not match typed v1 arrays')
+  const provenance = {
+    decisionRefs: research.filter((item) => (item.provenance as Record<string, unknown> | undefined)?.decision_id).length,
+    evidenceRefs: research.reduce((count, item) => count + (Array.isArray((item.provenance as Record<string, unknown> | undefined)?.evidence_ids) ? ((item.provenance as Record<string, unknown>).evidence_ids as unknown[]).length : 0), 0),
   }
   const generatedAt = typeof parsed.generated_at === 'string' ? parsed.generated_at : null
   const age = generatedAt ? Date.now() - Date.parse(generatedAt) : Number.POSITIVE_INFINITY
@@ -174,7 +196,8 @@ function collectPublicProjection(): PublicProjectionSummary {
     projectionVersion: typeof parsed.projection_version === 'string' ? parsed.projection_version : null,
     digest: declaredDigest,
     generatedAt,
-    recordCounts,
+    counts,
+    provenance,
   }
 }
 
@@ -184,24 +207,17 @@ function frontMatter(text: string): Record<string, string> {
   return Object.fromEntries(match[1].split('\n').map((line) => line.match(/^([a-z_]+):\s*(.*)$/)).filter(Boolean).map((part) => [part![1], part![2]]))
 }
 
-function collectOwnerQueue(): OwnerDecision[] {
-  const dir = join(WORKSPACE_PATHS.runtimeRoot, '.handoff')
-  if (!existsSync(dir)) return []
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
-    .map((entry) => ({ entry, stat: statSync(join(dir, entry.name)) }))
-    .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs)
-    .slice(0, 50)
-    .flatMap(({ entry, stat }) => {
-      const path = join(dir, entry.name)
-      const meta = frontMatter(readBounded(path, 48_000))
-      const authorityGate = /principal|owner|authority|money|legal|credential/i.test(`${meta.blocked_by ?? ''} ${meta.requires ?? ''} ${meta.decision_owner ?? ''}`)
-      const ordinaryWork = /implementation|test|fix|refactor|deploy|review/i.test(entry.name)
-      if (!authorityGate || ordinaryWork || meta.status === 'complete') return []
-      const item = signal({ id: `owner-${entry.name}`, title: entry.name.replace(/\.md$/, '').replace(/[-_]/g, ' '), state: 'blocked', observedAt: stat.mtime.toISOString(), sourceRef: path, reason: 'Handoff metadata names a people, money, credential, legal, or authority gate.' })
-      return [{ ...item, requestedBy: meta.from || 'workspace' }]
-    })
-    .slice(0, 8)
+function collectOwnerQueue(): { state: ObservatorySignal; decisions: OwnerDecision[] } {
+  const path = process.env.OWNER_AUTHORITY_PATH || join(WORKSPACE_PATHS.runtimeRoot, '.owner-decisions', 'queue.json')
+  if (!existsSync(path)) return { state: signal({ id: 'owner-queue-state', title: 'Owner authority source', state: 'unknown', sourceRef: path, reason: 'No typed principal-authority queue has been emitted. Handoff filenames and prose are not authority evidence.' }), decisions: [] }
+  const parsed = JSON.parse(readBounded(path, 128_000)) as { schemaVersion?: string; generatedAt?: string; entries?: unknown[] }
+  if (parsed.schemaVersion !== 'command.owner-authority.v1' || !Array.isArray(parsed.entries)) throw new Error('owner authority source does not match command.owner-authority.v1')
+  const allowed = new Set(['people', 'money', 'authority', 'legal', 'credential'])
+  const entries = parsed.entries as Array<Record<string, unknown>>
+  const pending = entries.filter((item) => item.status === 'pending' && typeof item.id === 'string' && typeof item.title === 'string' && typeof item.reason === 'string' && typeof item.sourceRef === 'string' && allowed.has(String(item.authorityType)))
+  if (pending.length !== entries.filter((item) => item.status === 'pending').length) throw new Error('pending owner authority entry is missing a typed field')
+  const observedAt = typeof parsed.generatedAt === 'string' ? parsed.generatedAt : iso()
+  return { state: signal({ id: 'owner-queue-state', title: 'Owner authority source', state: pending.length ? 'blocked' : 'healthy', observedAt, sourceRef: path, reason: pending.length ? `${pending.length} typed principal-authority decision(s) are pending.` : 'Typed principal-authority source is present and contains no pending decisions.' }), decisions: pending.slice(0, 8).map((item) => ({ ...signal({ id: String(item.id), title: String(item.title), state: 'blocked', observedAt, sourceRef: String(item.sourceRef), reason: String(item.reason) }), requestedBy: typeof item.requestedBy === 'string' ? item.requestedBy : 'workspace' })) }
 }
 
 function collectKnowledgeLoop(): ObservatorySignal {
@@ -213,18 +229,14 @@ function collectKnowledgeLoop(): ObservatorySignal {
 }
 
 function collectKnowledgeState(projection: PublicProjectionSummary): ObservatorySignal[] {
-  const labels = [
-    ['claims', 'Claims'], ['frozenGates', 'Frozen gates'], ['evidence', 'Evidence'],
-    ['decisions', 'Decisions'], ['invariants', 'Invariants'], ['podReuse', 'Pod reuse'],
-  ] as const
-  return labels.map(([label, title]) => signal({
-    id: `knowledge-${label}`,
-    title,
-    state: projection.availability === 'present' ? (label === 'podReuse' ? 'unknown' : (label === 'claims' || label === 'frozenGates') && (projection.recordCounts.blockedResearch ?? 0) > 0 ? 'blocked' : 'healthy') : 'unknown',
-    sourceRef: projection.sourceRef,
-    reason: projection.availability === 'present' ? (label === 'podReuse' ? 'The current public contract does not expose pod-reuse records.' : (label === 'claims' || label === 'frozenGates') && (projection.recordCounts.blockedResearch ?? 0) > 0 ? `${projection.recordCounts[label] ?? 0} projected records; ${projection.recordCounts.blockedResearch} has a frozen blocked transition.` : `${projection.recordCounts[label] ?? 0} projected records.`) : 'Unavailable until the first valid public projection is emitted.',
-    details: { count: projection.recordCounts[label] ?? 0 },
-  }))
+  const exposed = projection.availability === 'present'
+  const exact = ([key, title]: ['research' | 'findings' | 'mechanisms', string]) => signal({ id: `knowledge-${key}`, title, state: exposed ? 'healthy' : 'unknown', sourceRef: projection.sourceRef, reason: exposed ? `${projection.counts[key]} records in the typed public v1 contract.` : 'Unavailable until a valid public projection is emitted.', details: { count: projection.counts[key] } })
+  const unknown = (id: string, title: string) => signal({ id: `knowledge-${id}`, title, state: 'unknown', sourceRef: projection.sourceRef, reason: `The public v1 contract does not expose a typed ${title.toLowerCase()} count, and no separate bounded private canon collector is configured.` })
+  return [
+    exact(['research', 'Research']), exact(['findings', 'Findings']), exact(['mechanisms', 'Mechanisms']),
+    signal({ id: 'knowledge-provenance', title: 'Decision / Evidence provenance', state: exposed ? 'healthy' : 'unknown', sourceRef: projection.sourceRef, reason: exposed ? `${projection.provenance.decisionRefs} Decision references and ${projection.provenance.evidenceRefs} Evidence references are explicitly present on research records.` : 'Projection provenance is unavailable.', details: projection.provenance }),
+    unknown('claims', 'Claims'), unknown('frozen-gates', 'Frozen gates'), unknown('invariants', 'Invariants'), unknown('pod-reuse', 'Pod reuse'),
+  ]
 }
 
 function collectTelemetry(): ObservatorySignal[] {
@@ -245,30 +257,26 @@ function collectTelemetry(): ObservatorySignal[] {
 async function collectAutomation(): Promise<ObservatorySignal[]> {
   const output = await execFileAsync('systemctl', ['list-units', '--state=failed', '--no-legend', '--no-pager'])
   const failed = output.split('\n').filter(Boolean).map((line) => line.trim().split(/\s+/)[0]).slice(0, 12)
-  return [signal({ id: 'automation', title: 'Automation health', state: failed.length ? 'degraded' : 'healthy', sourceRef: 'systemd:list-units(state=failed)', reason: failed.length ? `${failed.length} failed unit(s) require engineering attention.` : 'No failed systemd units are reported.', details: { failedUnits: failed.join(', ') || 'none' } })]
+  return [signal({ id: 'automation', title: 'Failed systemd units', state: failed.length ? 'degraded' : 'healthy', sourceRef: 'systemd:list-units(state=failed)', reason: failed.length ? `${failed.length} failed unit(s) require engineering attention.` : 'No failed systemd units are reported. This card does not claim timer freshness.', details: { failedUnits: failed.join(', ') || 'none' } })]
 }
 
 function collectOperationalPressure(): ObservatorySignal[] {
-  const handoffDir = join(WORKSPACE_PATHS.runtimeRoot, '.handoff')
-  const activeHandoffs = existsSync(handoffDir) ? readdirSync(handoffDir, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith('.md')).length : 0
   const frontDoors = existsSync(WORKSPACE_PATHS.projectsRoot) ? readdirSync(WORKSPACE_PATHS.projectsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).flatMap((entry) => {
     const path = join(WORKSPACE_PATHS.projectsRoot, entry.name, 'CURRENT_STATE.md')
     return existsSync(path) ? [{ name: entry.name, ageMs: Date.now() - statSync(path).mtimeMs }] : []
   }) : []
   const stale = frontDoors.filter((item) => item.ageMs > 7 * 86_400_000)
   return [
-    signal({ id: 'handoff-pressure', title: 'Handoff pressure', state: activeHandoffs > 20 ? 'degraded' : 'healthy', sourceRef: handoffDir, reason: `${activeHandoffs} active top-level handoff(s) indexed; archive and rejected directories are excluded.`, details: { activeHandoffs } }),
+    signal({ id: 'handoff-pressure', title: 'Handoff pressure', state: 'unknown', sourceRef: join(WORKSPACE_PATHS.runtimeRoot, '.handoff', 'index.json'), reason: 'No typed lifecycle index is available to exclude dispatched and completed handoffs; filename counts are not health evidence.' }),
     signal({ id: 'front-door-freshness', title: 'Front-door freshness', state: stale.length ? 'degraded' : frontDoors.length ? 'healthy' : 'unknown', sourceRef: `${WORKSPACE_PATHS.projectsRoot}/*/CURRENT_STATE.md`, reason: stale.length ? `${stale.length} project front door(s) are older than seven days.` : frontDoors.length ? `${frontDoors.length} project front door(s) are within seven days.` : 'No project front doors were found.', details: { observed: frontDoors.length, stale: stale.length } }),
   ]
 }
 
 function collectRecentChanges(): ObservatorySignal[] {
-  const roots = [WORKSPACE_PATHS.projectsRoot, join(WORKSPACE_PATHS.runtimeRoot, '.handoff')]
   const files: Array<{ path: string; mtimeMs: number }> = []
-  for (const root of roots) {
-    if (!existsSync(root)) continue
-    for (const entry of readdirSync(root, { withFileTypes: true }).slice(0, 100)) {
-      const path = join(root, entry.name, entry.isDirectory() && root === WORKSPACE_PATHS.projectsRoot ? 'CURRENT_STATE.md' : '')
+  if (existsSync(WORKSPACE_PATHS.projectsRoot)) {
+    for (const entry of readdirSync(WORKSPACE_PATHS.projectsRoot, { withFileTypes: true }).filter((item) => item.isDirectory()).slice(0, 100)) {
+      const path = join(WORKSPACE_PATHS.projectsRoot, entry.name, 'CURRENT_STATE.md')
       if (existsSync(path) && statSync(path).isFile()) files.push({ path, mtimeMs: statSync(path).mtimeMs })
     }
   }
@@ -281,10 +289,11 @@ export async function getObservatorySnapshot(options: { bypassCache?: boolean } 
   const safe = async <T>(collector: string, fallback: T, fn: () => Promise<T> | T): Promise<T> => {
     try { return await timed(collector, fn) } catch (error) { errors.push({ collector, reason: error instanceof Error ? error.message : String(error) }); return fallback }
   }
-  const publicFallback: PublicProjectionSummary = { ...signal({ id: 'public-projection', title: 'Public projection', state: 'unknown', sourceRef: 'projects/synaplex/knowledge', reason: 'Projection collector failed.' }), availability: 'unknown', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, recordCounts: {} }
+  const publicFallback: PublicProjectionSummary = { ...signal({ id: 'public-projection', title: 'Public projection', state: 'unknown', sourceRef: 'projects/synaplex/knowledge', reason: 'Projection collector failed.' }), availability: 'unknown', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 } }
+  const ownerFallback = { state: signal({ id: 'owner-queue-state', title: 'Owner authority source', state: 'unknown', sourceRef: 'runtime/.owner-decisions/queue.json', reason: 'Owner authority collector failed.' }), decisions: [] as OwnerDecision[] }
   const [projection, ownerQueue, knowledgeLoop, automation, telemetry, changes] = await Promise.all([
     safe('publicProjection', publicFallback, collectPublicProjection),
-    safe('ownerQueue', [], collectOwnerQueue),
+    safe('ownerQueue', ownerFallback, collectOwnerQueue),
     safe('knowledgeLoop', signal({ id: 'knowledge-loop', title: 'Knowledge loop', state: 'unknown', sourceRef: 'runtime/.meta/LATEST_SYNTHESIS', reason: 'Collector failed.' }), collectKnowledgeLoop),
     safe('automation', [signal({ id: 'automation', title: 'Automation health', state: 'unknown', sourceRef: 'systemd', reason: 'Collector failed or timed out.' })], collectAutomation),
     safe('telemetry', [signal({ id: 'telemetry', title: 'Model and eval telemetry', state: 'unknown', sourceRef: WORKSPACE_PATHS.telemetryLog, reason: 'Collector failed.' })], collectTelemetry),
@@ -292,15 +301,11 @@ export async function getObservatorySnapshot(options: { bypassCache?: boolean } 
   ])
   const knowledge = collectKnowledgeState(projection)
   automation.push(...collectOperationalPressure())
-  if (projection.availability === 'present' && projection.generatedAt && changes[0] && Date.parse(changes[0].observedAt) > Date.parse(projection.generatedAt)) {
-    projection.state = 'degraded'
-    projection.reason = 'Private source state is newer than the emitted public projection; projection drift is visible.'
-    projection.details = { ...(projection.details ?? {}), newestPrivateSourceAt: changes[0].observedAt }
-  }
-  const allSignals = [projection, knowledgeLoop, ...knowledge, ...automation, ...telemetry, ...ownerQueue]
+  const publicCoherence = signal({ id: 'public-coherence', title: 'Projection coherence', state: 'unknown', sourceRef: projection.sourceRef, reason: projection.availability === 'present' ? 'The v1 artifact digest verifies projection integrity, but the contract exposes no authoritative producer-input digest for source-drift comparison.' : 'Projection coherence cannot be evaluated without a valid projection and authoritative producer-input digest.' })
+  const allSignals = [projection, publicCoherence, ownerQueue.state, knowledgeLoop, ...knowledge, ...automation, ...telemetry, ...ownerQueue.decisions]
   const posture = derivePosture(allSignals)
   const generatedAt = iso()
-  const snapshot: ObservatorySnapshot = { schemaVersion: 'command.observatory.v1', generatedAt, expiresAt: iso(Date.now() + SNAPSHOT_TTL_MS), posture: posture.posture, postureReason: posture.reason, publicProjection: projection, ownerQueue, knowledgeLoop, knowledge, automation, modelTelemetry: telemetry, recentChanges: changes, collectorErrors: errors }
+  const snapshot: ObservatorySnapshot = { schemaVersion: 'command.observatory.v1', generatedAt, expiresAt: iso(Date.now() + SNAPSHOT_TTL_MS), posture: posture.posture, postureReason: posture.reason, publicProjection: projection, publicCoherence, ownerQueueState: ownerQueue.state, ownerQueue: ownerQueue.decisions, knowledgeLoop, knowledge, automation, modelTelemetry: telemetry, recentChanges: changes, collectorErrors: errors }
   cached = { expires: Date.now() + SNAPSHOT_TTL_MS, snapshot }
   return snapshot
 }

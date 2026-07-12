@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'fs'
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { containsPrivateProjectionField, derivePosture, getObservatorySnapshot, readTail, type ObservatorySignal } from '../src/lib/observatory'
@@ -24,12 +24,20 @@ for (const line of tail.trim().split('\n')) assert.doesNotThrow(() => JSON.parse
 const projectionRoot = join(dir, 'knowledge')
 mkdirSync(projectionRoot)
 process.env.SYNAPLEX_PROJECTION_ROOT = projectionRoot
-writeFileSync(join(projectionRoot, 'projection.json'), JSON.stringify({ schemaVersion: 'synaplex.public.v1', version: 'test', generatedAt: new Date().toISOString(), records: { claims: [{ id: 'claim-1', transcript: 'private' }] } }))
+copyFileSync(join(process.cwd(), 'test/fixtures/public-projection-v1.json'), join(projectionRoot, 'projection.json'))
 async function main() {
   const isolated = await getObservatorySnapshot({ bypassCache: true })
-  assert.equal(isolated.publicProjection.availability, 'unknown')
-  assert.ok(isolated.collectorErrors.some((error) => error.collector === 'publicProjection'))
-  assert.ok(isolated.automation.length > 0, 'one failed collector must not erase other collector results')
+  assert.equal(isolated.publicProjection.availability, 'present')
+  assert.deepEqual(isolated.publicProjection.counts, { research: 1, findings: 0, mechanisms: 1 })
+  assert.equal(isolated.publicProjection.digest, 'sha256:a27957cf505852e341fd22c61ab5680c5060db52b8a96cba66b426d5ba7b7709')
+  assert.equal(isolated.ownerQueueState.state, 'unknown')
+  const contaminated = JSON.parse(readFileSync(join(projectionRoot, 'projection.json'), 'utf8'))
+  contaminated.research[0].transcript = 'private'
+  writeFileSync(join(projectionRoot, 'projection.json'), JSON.stringify(contaminated))
+  const rejected = await getObservatorySnapshot({ bypassCache: true })
+  assert.equal(rejected.publicProjection.availability, 'unknown')
+  assert.ok(rejected.collectorErrors.some((error) => error.collector === 'publicProjection'))
+  assert.ok(rejected.automation.length > 0, 'one failed collector must not erase other collector results')
   console.log('observatory contract, posture, bounded-tail, partial-failure, and redaction tests passed')
 }
 

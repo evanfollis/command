@@ -9,4 +9,12 @@ CUR=$(readlink -f "$RELEASES/current")
 ln -sfn "$PREV" "$RELEASES/current.tmp"; mv -Tf "$RELEASES/current.tmp" "$RELEASES/current"
 ln -sfn "$CUR"  "$RELEASES/previous.tmp"; mv -Tf "$RELEASES/previous.tmp" "$RELEASES/previous"
 systemctl restart command
-echo "rolled back to $(basename "$PREV")"
+for _ in $(seq 1 15); do
+  if systemctl is-active --quiet command && [ "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/login 2>/dev/null || true)" = "200" ]; then
+    echo "rolled back to $(basename "$PREV"); service active and /login=200"
+    exit 0
+  fi
+  sleep 1
+done
+echo "ROLLBACK TARGET UNHEALTHY: $(basename "$PREV")" >&2
+exit 2

@@ -1,0 +1,25 @@
+{
+  "projection_version": "1.0.0",
+  "generated_at": "2026-07-12T19:18:00Z",
+  "counts": { "research": 1, "findings": 0, "mechanisms": 1 },
+  "research": [
+    {
+      "id": "claim-1",
+      "slug": "fixture",
+      "title": "Fixture research",
+      "summary": "Typed fixture.",
+      "status": "active",
+      "validity": "pending",
+      "registered_at": "2026-07-12T18:00:00Z",
+      "updated_at": "2026-07-12T19:18:00Z",
+      "superseded_by": null,
+      "public_artifact": "/artifacts/fixture/",
+      "provenance": { "claim_id": "claim-1", "decision_id": null, "evidence_ids": [] }
+    }
+  ],
+  "findings": [],
+  "mechanisms": [
+    { "id": "mechanism:fixture", "title": "Fixture mechanism", "summary": "Typed fixture.", "status": "operational", "public_artifact": "/method/#fixture" }
+  ],
+  "digest": "sha256:a27957cf505852e341fd22c61ab5680c5060db52b8a96cba66b426d5ba7b7709"
+}
