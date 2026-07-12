@@ -44,6 +44,8 @@ async function main() {
   assert.equal(blocked.publicProjection.researchHealth.blocked, 1)
   assert.deepEqual(blocked.publicProjection.researchHealth.blockCodes, ['opposing-review-unavailable'])
   assert.equal(blocked.knowledge.find((item) => item.id === 'knowledge-research')?.state, 'blocked')
+  assert.equal(blocked.knowledge.find((item) => item.id === 'knowledge-findings')?.title, 'Findings contract')
+  assert.equal(blocked.knowledge.find((item) => item.id === 'knowledge-mechanisms')?.title, 'Mechanisms contract')
   assert.match(blocked.knowledge.find((item) => item.id === 'knowledge-research')?.reason ?? '', /1 of 1.*opposing-review-unavailable/)
   assert.equal(blocked.posture, 'blocked')
   copyFileSync(join(process.cwd(), 'test/fixtures/public-projection-v1.json'), join(projectionRoot, 'projection.json'))
