@@ -34,13 +34,17 @@ export async function POST(req: NextRequest) {
   }
 
   if (!checkPassword(password)) {
-    recordTelemetry({
-      project: 'command',
-      source: 'command.api.auth',
-      eventType: 'auth.login_failed',
-      level: 'warn',
-      sourceType: 'user',
-    })
+    // Only emit a failure event for non-empty passwords — empty submissions are
+    // password-manager autofill races, not meaningful security events.
+    if (password.trim().length > 0) {
+      recordTelemetry({
+        project: 'command',
+        source: 'command.api.auth',
+        eventType: 'auth.login_failed',
+        level: 'warn',
+        sourceType: 'user',
+      })
+    }
     if (isForm) return redirect('/login?error=1')
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
   }
