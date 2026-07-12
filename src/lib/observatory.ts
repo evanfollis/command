@@ -26,6 +26,7 @@ export interface PublicProjectionSummary extends ObservatorySignal {
   generatedAt: string | null
   counts: { research: number; findings: number; mechanisms: number }
   provenance: { decisionRefs: number; evidenceRefs: number }
+  researchHealth: { active: number; blocked: number; completed: number; invalidated: number; withdrawn: number; superseded: number; blockCodes: string[] }
 }
 
 export interface OwnerDecision extends ObservatorySignal {
@@ -172,12 +173,12 @@ function collectPublicProjection(): PublicProjectionSummary {
   const path = publicProjectionPath()
   if (!path) return {
     ...signal({ id: 'public-projection', title: 'Public projection', state: 'unknown', sourceRef: 'projects/synaplex/knowledge/{projection.json,public-projection.json,index.json}', reason: 'No versioned public projection has been emitted yet.' }),
-    availability: 'empty', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 },
+    availability: 'empty', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 }, researchHealth: { active: 0, blocked: 0, completed: 0, invalidated: 0, withdrawn: 0, superseded: 0, blockCodes: [] },
   }
   const raw = readBounded(path, MAX_JSON_BYTES)
   if (!raw.trim()) return {
     ...signal({ id: 'public-projection', title: 'Public projection', state: 'unknown', sourceRef: path, reason: 'The projection file exists but is empty.' }),
-    availability: 'empty', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 },
+    availability: 'empty', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 }, researchHealth: { active: 0, blocked: 0, completed: 0, invalidated: 0, withdrawn: 0, superseded: 0, blockCodes: [] },
   }
   const parsed = JSON.parse(raw) as Record<string, unknown>
   if (containsPrivateProjectionField(parsed)) throw new Error('public projection contains a private-field key')
@@ -197,6 +198,15 @@ function collectPublicProjection(): PublicProjectionSummary {
     decisionRefs: research.filter((item) => (item.provenance as Record<string, unknown> | undefined)?.decision_id).length,
     evidenceRefs: research.reduce((count, item) => count + (Array.isArray((item.provenance as Record<string, unknown> | undefined)?.evidence_ids) ? ((item.provenance as Record<string, unknown>).evidence_ids as unknown[]).length : 0), 0),
   }
+  const researchHealth = {
+    active: research.filter((item) => item.status === 'active').length,
+    blocked: research.filter((item) => item.status === 'blocked').length,
+    completed: research.filter((item) => item.status === 'completed').length,
+    invalidated: research.filter((item) => item.status === 'invalidated').length,
+    withdrawn: research.filter((item) => item.status === 'withdrawn').length,
+    superseded: research.filter((item) => item.status === 'superseded').length,
+    blockCodes: [...new Set(research.flatMap((item) => item.status === 'blocked' && item.block && typeof item.block === 'object' && typeof (item.block as Record<string, unknown>).code === 'string' ? [String((item.block as Record<string, unknown>).code)] : []))].sort(),
+  }
   const generatedAt = typeof parsed.generated_at === 'string' ? parsed.generated_at : null
   const age = generatedAt ? Date.now() - Date.parse(generatedAt) : Number.POSITIVE_INFINITY
   const state: ObservatoryState = age <= 24 * 60 * 60_000 ? 'healthy' : generatedAt ? 'degraded' : 'unknown'
@@ -209,6 +219,7 @@ function collectPublicProjection(): PublicProjectionSummary {
     generatedAt,
     counts,
     provenance,
+    researchHealth,
   }
 }
 
@@ -241,10 +252,16 @@ function collectKnowledgeLoop(): ObservatorySignal {
 
 function collectKnowledgeState(projection: PublicProjectionSummary): ObservatorySignal[] {
   const exposed = projection.availability === 'present'
-  const exact = ([key, title]: ['research' | 'findings' | 'mechanisms', string]) => signal({ id: `knowledge-${key}`, title, state: exposed ? 'healthy' : 'unknown', sourceRef: projection.sourceRef, reason: exposed ? `${projection.counts[key]} records in the typed public v1 contract.` : 'Unavailable until a valid public projection is emitted.', details: { count: projection.counts[key] } })
   const unknown = (id: string, title: string) => signal({ id: `knowledge-${id}`, title, state: 'unknown', sourceRef: projection.sourceRef, reason: `The public v1 contract does not expose a typed ${title.toLowerCase()} count, and no separate bounded private canon collector is configured.` })
+  const researchReason = exposed
+    ? projection.researchHealth.blocked > 0
+      ? `${projection.researchHealth.blocked} of ${projection.counts.research} typed research records are blocked (${projection.researchHealth.blockCodes.join(', ') || 'block code missing'}).`
+      : `${projection.counts.research} typed research records; none reports status=blocked. Contract state is reported without inferring research progress.`
+    : 'Unavailable until a valid public projection is emitted.'
   return [
-    exact(['research', 'Research']), exact(['findings', 'Findings']), exact(['mechanisms', 'Mechanisms']),
+    signal({ id: 'knowledge-research', title: 'Research', state: exposed ? projection.researchHealth.blocked > 0 ? 'blocked' : 'healthy' : 'unknown', sourceRef: projection.sourceRef, reason: researchReason, details: { count: projection.counts.research, active: projection.researchHealth.active, blocked: projection.researchHealth.blocked, completed: projection.researchHealth.completed, invalidated: projection.researchHealth.invalidated, withdrawn: projection.researchHealth.withdrawn, superseded: projection.researchHealth.superseded, blockCodes: projection.researchHealth.blockCodes.join(', ') || 'none' } }),
+    signal({ id: 'knowledge-findings', title: 'Findings', state: exposed ? 'healthy' : 'unknown', sourceRef: projection.sourceRef, reason: exposed ? `The typed contract contains ${projection.counts.findings} Findings; count integrity is verified, but zero or nonzero is not treated as progress health.` : 'Unavailable until a valid public projection is emitted.', details: { count: projection.counts.findings } }),
+    signal({ id: 'knowledge-mechanisms', title: 'Mechanisms', state: exposed ? 'healthy' : 'unknown', sourceRef: projection.sourceRef, reason: exposed ? `The typed contract contains ${projection.counts.mechanisms} Mechanisms; this is a contract count, not an invariants or system-health claim.` : 'Unavailable until a valid public projection is emitted.', details: { count: projection.counts.mechanisms } }),
     signal({ id: 'knowledge-provenance', title: 'Decision / Evidence provenance', state: exposed ? 'healthy' : 'unknown', sourceRef: projection.sourceRef, reason: exposed ? `${projection.provenance.decisionRefs} Decision references and ${projection.provenance.evidenceRefs} Evidence references are explicitly present on research records.` : 'Projection provenance is unavailable.', details: projection.provenance }),
     unknown('claims', 'Claims'), unknown('frozen-gates', 'Frozen gates'), unknown('invariants', 'Invariants'), unknown('pod-reuse', 'Pod reuse'),
   ]
@@ -300,7 +317,7 @@ export async function getObservatorySnapshot(options: { bypassCache?: boolean } 
   const safe = async <T>(collector: string, fallback: T, fn: () => Promise<T> | T): Promise<T> => {
     try { return await timed(collector, fn) } catch (error) { errors.push({ collector, reason: error instanceof Error ? error.message : String(error) }); return fallback }
   }
-  const publicFallback: PublicProjectionSummary = { ...signal({ id: 'public-projection', title: 'Public projection', state: 'unknown', sourceRef: 'projects/synaplex/knowledge', reason: 'Projection collector failed.' }), availability: 'unknown', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 } }
+  const publicFallback: PublicProjectionSummary = { ...signal({ id: 'public-projection', title: 'Public projection', state: 'unknown', sourceRef: 'projects/synaplex/knowledge', reason: 'Projection collector failed.' }), availability: 'unknown', contractVersion: null, projectionVersion: null, digest: null, generatedAt: null, counts: { research: 0, findings: 0, mechanisms: 0 }, provenance: { decisionRefs: 0, evidenceRefs: 0 }, researchHealth: { active: 0, blocked: 0, completed: 0, invalidated: 0, withdrawn: 0, superseded: 0, blockCodes: [] } }
   const ownerFallback = { state: signal({ id: 'owner-queue-state', title: 'Owner authority source', state: 'unknown', sourceRef: 'runtime/.owner-decisions/queue.json', reason: 'Owner authority collector failed.' }), decisions: [] as OwnerDecision[] }
   const [projection, ownerQueue, knowledgeLoop, automation, telemetry, changes] = await Promise.all([
     safe('publicProjection', publicFallback, collectPublicProjection),
