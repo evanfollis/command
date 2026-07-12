@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-06-15T14-21-33Z — reflection pass. No user activity, no telemetry. 17th consecutive quiet window. O1/O2 suppressed (saturation rule). O3 (symphony DELETE endpoint, 17 cycles) + O4 (/inbox stopgap, 12 cycles) still open. M5 handoff 11th cycle — suppressed. NEW: supervisor INBOX holds 10 unconsumed synthesis proposals (>25 days old).
+**Last updated**: 2026-07-12T02-22-26Z — reflection pass. Active session this window: ADR-0039 prompt eval adoption tick. 4 prompts extracted, governed, golden cases written — **baselines not run, work uncommitted**. See "What bit the last session" and "Open carry-forwards" below.
 
 ---
 
@@ -18,6 +18,9 @@
 
 
 ## What bit the last reflection / this tick
+- **Tick hit session rate limit before baselines completed (2026-07-12T01:29–02:01Z)**: The ADR-0039 adoption tick did all the structural work (4 prompts extracted, governed, 51 golden cases written, 4 TS files refactored, capture helper created, adapters written) but the background eval runs launched at the end of the session did not complete before "session limit · resets 5:20am UTC" was hit. All work is uncommitted. The handoff `command-prompt-eval-adoption-2026-07-12.md` is still present. Resume: run 4 baselines, verify, flip enforce:true, /review the refactor, commit, deploy.
+- **CURRENT_STATE.md 635h stale (M5 hook signal)**: Last meaningful update was mid-May 2026. Reflection corrects this now.
+
 - ~~**CURRENT_STATE.md uncommitted (10 days)**~~: **COMMITTED** (`0f65f27`, 2026-05-11T16:53Z). Backlog closed.
 - ~~**symphony.transition sourceType hardcoded 'system' (6th cycle)**~~: **FIXED** (`0f65f27`). `symphonyStore.ts:132` now derives `sourceType` from the `by` field. S1-P2 compliant.
 - ~~**`dist/.version` stale SHA**~~: **FIXED** (2026-05-12T~07:05Z). `scripts/check-clean-tree.ts` now runs as the first step of `npm run deploy`; a dirty working tree aborts the deploy before `npm run build` touches `dist/.version`. Verified: dirty tree → exit 1 with the listing of changed files; clean tree → deploy completes and `/api/health.sha` matches `git rev-parse HEAD`. Also untracked `tsconfig.tsbuildinfo` (was tracked but regenerated every build, so it was permanently dirty and would have made the gate fire spuriously); added to `.gitignore`.
@@ -159,6 +162,7 @@ A focused executive surface with three jobs and nothing else:
 - **Thread frame tightened** (`59f3f7b`): frame now explicitly says cross-repo commits ship without asking.
 
 ## Known broken or degraded
+- **ADR-0039 adoption in-flight, uncommitted (ACTIVE)**: `.prompteval/`, `src/prompts/`, `src/lib/promptCapture.ts`, `scripts/prompteval-adapters/` — all on disk, not in git. 4 TS files modified. Golden cases: 51 across 4 prompts. Missing: eval baselines (0 of 4 run). `inventory.json enforce: false` (correct). Deploy gate will fail on governed prompts once baselines run and enforce flips. Handoff `command-prompt-eval-adoption-2026-07-12.md` not consumed. Fix: one attended session, run baselines, commit, deploy.
 - **Symphony task store accumulation (ACTIVE — 11 tasks as of 2026-05-14T14:26Z)**: Live read shows 11 tasks. NOT 1 as prior two reflections claimed — the prior reads were wrong. Current state: `479c8834` is in `review` (NOT absent/cleaned as CURRENT_STATE previously said); `cfd9383f` and `5e8814d4` are in `ready` (smoke tasks, never cleaned up, created 2026-05-13); 8 tasks in `done`. The `7b87ba7` fix only evicts stale `running` tasks — tasks in `ready` and `review` accumulate indefinitely. Accumulation is active, not latent. Fix requires: (1) DELETE endpoint in `src/app/api/symphony/[id]/route.ts`, (2) smoke teardown pass in `scripts/smoke.ts`.
 - **`SESSION_TO_METRICS_KEY` contract (now documented)**: `page.tsx:7-13` hardcodes `{ general: 'admin' }`; any other session name maps to itself. Producer is `/opt/workspace/supervisor/scripts/lib/metrics-rollup.py`, scheduled by `metrics-rollup.timer` (hourly, `OnUnitActiveSec=1h`, `OnBootSec=2min`; `systemctl list-timers metrics-rollup.timer` to verify). Writes `/opt/workspace/runtime/.metrics/<window>.json` for windows `1h`, `today`, `24h`, `7d`, `30d`, `all`, plus `LATEST.json`. Key scheme is cwd-derived: `/opt/workspace`, `/opt/workspace/supervisor`, `/opt/workspace/runtime`, `/root` → `admin`; `/opt/workspace/projects/skillfoundry/*` → `skillfoundry`; `/opt/workspace/projects/context-repository` → `context-repo`; other `/opt/workspace/projects/<name>` → `<name>`; unmapped → `admin`. That's why the `general` session (rooted at `/opt/workspace`) maps to the `admin` key in the producer output, and why `SESSION_TO_METRICS_KEY` rewrites `general → admin` on the command side. Legacy `/opt/projects/*` paths are normalized to the `/opt/workspace/projects/*` equivalents inside the producer. Contract is now written down; if the producer ever renames `admin` or changes the cwd mapping, update both this file and `page.tsx`.
 - **Single-process state integrity assumptions**: `threadConversation.ts` non-atomic transcript append (`57-63`), in-process-only turn lock (`194-200`), no durable error marker on crash (`207-209`). Safe ONLY while command runs single-process. If ever run multi-process, these become active data-corruption bugs. Accepted tradeoff — documented in `.reviews/84b38dc-review-2026-04-18T16-54Z.md:§3`.
@@ -207,6 +211,8 @@ A focused executive surface with three jobs and nothing else:
 7. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
+- **ADR-0039 adoption (ACTIVE — baselines needed)**: All scaffolding done (prompts extracted, specs registered, 51 golden cases, adapters, capture helper, 4 TS files refactored). Blocking step: `prompteval run --no-cache --update-baseline` × 4, then flip `enforce: true` in `inventory.json`, `/review` the refactor, commit, deploy. Completion report to `runtime/.handoff/general-command-prompt-eval-complete-<iso>.md`.
+
 - ~~**browser_capability_missing**~~: CLOSED (2026-05-01). `npm run browser:smoke` passes 13 checks. See Capability gaps section for narrow remaining limit (ephemeral /tmp libs).
 - ~~**Context-usage-ui**~~: SHIPPED (`ac762f7`). Freshness badge on attach header + executive portfolio card. Handoff deleted.
 - ~~**Symphony-lite orchestration**~~: **SHIPPED** (`4b9f019`, 2026-05-01). Handoff deleted. State machine live at `/symphony`, `GET/POST /api/symphony`, `PATCH /api/symphony/:id`. 50/50 smoke.
