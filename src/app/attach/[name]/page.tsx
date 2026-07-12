@@ -1,12 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { use, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Shell from '@/components/Shell'
 import type { ContextUsage } from '@/lib/contextUsage'
 
 interface PageProps {
-  params: { name: string }
+  params: Promise<{ name: string }>
 }
 
 interface HelloMsg {
@@ -54,7 +54,7 @@ function randomClientId(): string {
 const RECONNECT_DELAYS = [2000, 4000, 8000, 10000]
 
 export default function AttachPage({ params }: PageProps) {
-  const { name } = params
+  const { name } = use(params)
   const [text, setText] = useState<string>('')
   const [status, setStatus] = useState<'connecting' | 'open' | 'closed' | 'gone'>('connecting')
   const [lastSnapshotAt, setLastSnapshotAt] = useState<number | null>(null)

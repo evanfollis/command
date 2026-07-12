@@ -4,7 +4,7 @@
  *
  * Exercises routes server-side smoke cannot verify: real form auth,
  * client-side rendering, WebSocket attach streams (snapshot delivery),
- * portfolio expansion.
+ * owner-observatory rendering at desktop and mobile viewports.
  *
  * Kept separate from scripts/smoke.ts — preserves evidence-class distinction
  * between server-side (HTTP + WS) and browser-layer (Chromium rendering + UI).
@@ -91,28 +91,21 @@ async function main() {
       return
     }
 
-    // 3. / (home) — portfolio section with session cards
+    // 3. / (home) — owner observatory, with truthful empty projection state
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {})
-    const sessionCards = await page.locator('button').filter({
-      hasText: /general|command|atlas|skillfoundry|context/i,
-    }).count()
-    check('/ has session cards', sessionCards > 0, `count=${sessionCards}`)
+    check('/ renders owner observatory heading', await page.getByRole('heading', { name: /What changed, what is stuck/i }).count() === 1)
+    check('/ renders decision queue', await page.getByRole('heading', { name: /Owner decision queue/i }).count() === 1)
+    check('/ renders projection coherence', await page.getByRole('heading', { name: /Public versus private state/i }).count() === 1)
+    check('/ reports empty public projection truthfully', await page.getByText('No versioned public projection has been emitted yet.').count() === 1)
     await page.screenshot({ path: path.join(ARTIFACT_DIR, '02-home.png'), fullPage: true })
 
-    // 4. Portfolio card expansion — click first non-executive card
-    const nonExecCard = page.locator('button').filter({
-      hasText: /command|atlas|skillfoundry|context/i,
-    }).first()
-    if (await nonExecCard.count() > 0) {
-      await nonExecCard.click()
-      await page.waitForTimeout(1500)
-      await page.screenshot({ path: path.join(ARTIFACT_DIR, '03-portfolio-expand.png'), fullPage: true })
-      // Card body renders markdown or chat area after open
-      const bodyContent = await page.locator('[class*="prose"], pre').count()
-      check('portfolio card expands and shows content', bodyContent > 0, `prose/pre count=${bodyContent}`)
-    } else {
-      check('portfolio card expands', false, 'no non-executive card found')
-    }
+    // 4. Mobile authenticated coverage uses the same browser session/cookie.
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.reload({ waitUntil: 'networkidle' })
+    check('/ mobile keeps observatory heading visible', await page.getByRole('heading', { name: /What changed, what is stuck/i }).isVisible())
+    check('/ mobile has no horizontal document overflow', await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth))
+    await page.screenshot({ path: path.join(ARTIFACT_DIR, '03-home-mobile.png'), fullPage: true })
+    await page.setViewportSize({ width: 1280, height: 900 })
 
     // 5. /attach/general — h1, live pane section, and WS snapshot delivery
     await page.goto(`${BASE}/attach/general`, { waitUntil: 'domcontentloaded' })

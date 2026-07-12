@@ -1,11 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { use, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Shell from '@/components/Shell'
 
-export default function PMSessionPage({ params }: { params: { name: string } }) {
-  const { name } = params
+export default function PMSessionPage({ params }: { params: Promise<{ name: string }> }) {
+  const { name } = use(params)
   const [output, setOutput] = useState('')
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)

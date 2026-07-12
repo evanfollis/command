@@ -6,13 +6,15 @@ export const runtime = 'nodejs'
 
 const VALID_STATES = new Set<SymphonyState>(['ready', 'running', 'blocked', 'review', 'done', 'deferred'])
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const task = getSymphonyTask(params.id)
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const task = getSymphonyTask(id)
   if (!task) return NextResponse.json({ error: 'not found' }, { status: 404 })
   return NextResponse.json({ task })
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   let body: Record<string, unknown>
   try {
     body = await req.json()
@@ -31,7 +33,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 
   const result = transitionSymphonyTask({
-    id: params.id,
+    id,
     to: to as SymphonyState,
     by,
     reason: typeof body.reason === 'string' ? body.reason : undefined,

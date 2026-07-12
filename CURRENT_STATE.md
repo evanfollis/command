@@ -1,10 +1,11 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-12T12:43Z — **outage recovered**; immutable-release deployment landed (`afbf5e8`, live, verified in-browser on the public host). ADR-0039 prompt-eval work is **preserved uncommitted and NOT trustworthy yet** — see "Prompt eval: do not accept the baselines" below.
+**Last updated**: 2026-07-12T20:05Z — **owner observatory implementation complete and awaiting immutable release**. Root is now a server-rendered private projection over the versioned Synaplex public contract plus bounded runtime overlays. The public projection digest is verified before use; blocked research, projection drift, stale front doors, failed automation, handoff pressure, and model/eval telemetry derive deterministic postures. Chat, attach, Symphony, and raw artifacts moved out of primary navigation to `/operator-tools`. Next/React moved to the patched 15.5.18/19.1.7 line. ADR-0039 prompt-eval work remains **preserved uncommitted and NOT trustworthy** — none of its contaminated baselines are acceptance evidence.
 
 ---
 
 ## Deployed / running state
+- **Pending deploy in this change**: immutable release of the ADR-0046 owner observatory after commit. Contract/build tests pass; local/public authenticated browser evidence must be recorded after the release swap, not inferred from the working-directory build.
 - **URL**: command.synaplex.ai (Cloudflare Tunnel → localhost:3100)
 - **Process**: runs directly on host (not Docker), managed by systemd
 - **Serves from an immutable release, never the working directory** (`afbf5e8`, 2026-07-12). `WorkingDirectory=/opt/workspace/runtime/releases/command/current` (systemd drop-in, mirrored in `deploy/`). Releases are built in a throwaway git worktree, marked read-only, and made live by moving `current` with `rename(2)`. Deploy: `npm run deploy` (→ `scripts/release.sh`); roll back: `npm run release:rollback`. `HEAD_ONLY=1` releases committed HEAD without touching working-tree WIP. **Never run `next build` expecting it to deploy — it only touches the repo's own `.next`, which nothing serves.** That decoupling is the point.

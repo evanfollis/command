@@ -10,19 +10,20 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 interface PageProps {
-  params: { source: string; path: string[] }
+  params: Promise<{ source: string; path: string[] }>
 }
 
 function formatTimestamp(mtime: number): string {
   return new Date(mtime).toISOString().replace('T', ' ').replace(/\.\d+Z$/, 'Z')
 }
 
-export default function ArtifactPage({ params }: PageProps) {
-  const source = describeSource(params.source)
+export default async function ArtifactPage({ params }: PageProps) {
+  const { source: sourceId, path } = await params
+  const source = describeSource(sourceId)
   if (!source) notFound()
 
-  const segments = (params.path || []).map((s) => decodeURIComponent(s))
-  const doc = readArtifact(params.source, segments)
+  const segments = (path || []).map((s) => decodeURIComponent(s))
+  const doc = readArtifact(sourceId, segments)
   if (!doc) notFound()
 
   const frontmatterEntries = Object.entries(doc.frontmatter)

@@ -100,6 +100,10 @@ async function main() {
   check('GET /login returns 200', loginRes.status === 200, `status=${loginRes.status}`)
   check('login page has password field', loginBody.includes('type="password"'))
 
+  const ownerUnauth = await fetch(`${BASE}/`, { redirect: 'manual' })
+  check('GET / owner overlay unauthed → login redirect', [302, 307].includes(ownerUnauth.status), `status=${ownerUnauth.status}`)
+  check('unauthenticated owner response does not contain private source references', !((await ownerUnauth.text()).includes('/opt/workspace')), 'private path absent')
+
   const cssMatch = loginBody.match(/\/_next\/static\/css\/[^"]+\.css/)
   if (cssMatch) {
     const cssRes = await fetch(`${BASE}${cssMatch[0]}`)

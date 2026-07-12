@@ -7,14 +7,16 @@ import { recordTelemetry } from '@/lib/telemetry'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const thread = getThread(params.id)
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const thread = getThread(id)
   if (!thread) return NextResponse.json({ error: 'not found' }, { status: 404 })
-  return NextResponse.json({ thread, messages: getTranscript(params.id) })
+  return NextResponse.json({ thread, messages: getTranscript(id) })
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const thread = getThread(params.id)
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const thread = getThread(id)
   if (!thread) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
   const body = await req.json().catch(() => ({}))
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!message) return NextResponse.json({ error: 'message required' }, { status: 400 })
 
   try {
-    const assistant = await runThreadTurn(params.id, message)
+    const assistant = await runThreadTurn(id, message)
     recordTelemetry({
       project: 'command',
       source: 'command.api.threads',
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       level: 'info',
       sourceType: 'user',
       details: {
-        threadId: params.id,
+        threadId: id,
         model: thread.model,
         inputLength: message.length,
         outputLength: assistant.content.length,
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     })
     return NextResponse.json({
       ok: true,
-      messages: getTranscript(params.id),
+      messages: getTranscript(id),
       assistant,
     })
   } catch (error) {
@@ -49,11 +51,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       eventType: 'thread.turn_failed',
       level: 'error',
       sourceType: 'user',
-      details: { threadId: params.id, model: thread.model, error: errorMessage },
+      details: { threadId: id, model: thread.model, error: errorMessage },
     })
     const status = errorMessage.includes('in flight') ? 409 : 503
     return NextResponse.json(
-      { error: errorMessage, messages: getTranscript(params.id) },
+      { error: errorMessage, messages: getTranscript(id) },
       { status }
     )
   }
