@@ -96,7 +96,9 @@ async function main() {
     check('/ renders owner observatory heading', await page.getByRole('heading', { name: /What changed, what is stuck/i }).count() === 1)
     check('/ renders decision queue', await page.getByRole('heading', { name: /Owner decision queue/i }).count() === 1)
     check('/ renders projection coherence', await page.getByRole('heading', { name: /Public versus private state/i }).count() === 1)
-    check('/ reports empty public projection truthfully', await page.getByText('No versioned public projection has been emitted yet.').count() === 1)
+    const emptyProjection = await page.getByText('No versioned public projection has been emitted yet.').count() === 1
+    const typedProjection = await page.getByText('1.0.0', { exact: true }).count() >= 1 && await page.getByText(/^sha256:[a-f0-9]{64}$/).count() >= 1
+    check('/ reports a truthful typed-v1 or empty projection state', emptyProjection || typedProjection, `empty=${emptyProjection} typedV1=${typedProjection}`)
     await page.screenshot({ path: path.join(ARTIFACT_DIR, '02-home.png'), fullPage: true })
 
     // 4. Mobile authenticated coverage uses the same browser session/cookie.
