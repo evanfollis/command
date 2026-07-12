@@ -53,6 +53,8 @@ TS=$(date -u +%Y%m%dT%H%M%SZ)
 RELEASE_ID="$TS-$SHORT"; [ "$DIRTY" = true ] && RELEASE_ID="$RELEASE_ID-dirty"
 RELEASE="$RELEASES/$RELEASE_ID"
 STAGE=$(mktemp -d /opt/workspace/runtime/staging/command-build.XXXXXX)
+LOCK_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+DEPS="$RELEASES/.deps-$LOCK_HASH"
 
 cleanup() { cd "$REPO"; git worktree remove --force "$STAGE" 2>/dev/null || rm -rf "$STAGE"; }
 trap cleanup EXIT
@@ -70,15 +72,27 @@ cp "$REPO/.env.local" "$STAGE/.env.local" 2>/dev/null || true
 
 ( cd "$STAGE" && npm run build )
 
+# Dependencies are part of the release compatibility boundary. A shared link to
+# the mutable repo node_modules made a Next 15 smoke rollback crash against a
+# Next 14 build. Materialize one read-only production dependency tree per lockfile
+# digest; releases with the same lockfile may safely share that immutable tree.
+if [ ! -d "$DEPS/node_modules" ]; then
+  DEPS_STAGE=$(mktemp -d /opt/workspace/runtime/staging/command-deps.XXXXXX)
+  cp "$STAGE/package.json" "$STAGE/package-lock.json" "$DEPS_STAGE/"
+  ( cd "$DEPS_STAGE" && npm ci --omit=dev )
+  chmod -R a-w "$DEPS_STAGE/node_modules"
+  mkdir -p "$DEPS"
+  mv "$DEPS_STAGE/node_modules" "$DEPS/node_modules"
+  cp "$DEPS_STAGE/package.json" "$DEPS_STAGE/package-lock.json" "$DEPS/"
+  rm -rf "$DEPS_STAGE"
+fi
+
 echo "==> assembling immutable release"
 mkdir -p "$RELEASE"
 mv "$STAGE/.next" "$RELEASE/.next"
 mv "$STAGE/dist"  "$RELEASE/dist"
 cp "$STAGE/package.json" "$STAGE/next.config.js" "$RELEASE/"
-# Shared with the repo rather than copied per release: node_modules is ~hundreds of
-# MB and identical across releases. It is the one part of the tree that is not
-# immutable; `npm install` during a live release is therefore still unsafe.
-ln -s "$REPO/node_modules" "$RELEASE/node_modules"
+ln -s "$DEPS/node_modules" "$RELEASE/node_modules"
 
 VERSION="$SHA"; [ "$DIRTY" = true ] && VERSION="$SHA-dirty"
 printf '%s\n' "$VERSION" > "$RELEASE/dist/.version"

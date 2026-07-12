@@ -15,6 +15,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Next may stream a notFound() boundary with status 200 after route rendering
+  // has begun. Reject invalid artifact extensions before rendering so the raw
+  // artifact contract remains an actual HTTP 404 across framework versions.
+  if (pathname.startsWith('/artifacts/') && !pathname.endsWith('.md')) {
+    return new NextResponse('Not found', { status: 404 })
+  }
+
   const token = req.cookies.get('command_token')?.value
   const origin = process.env.COMMAND_ORIGIN || 'http://localhost:3100'
   if (!token) {
