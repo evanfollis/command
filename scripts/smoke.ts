@@ -146,6 +146,25 @@ async function main() {
   }
   const authHeaders = { Cookie: `command_token=${token}` }
 
+  // Every asset the authenticated shell references must actually resolve.
+  // The 2026-07-12 outage served HTML from one build against a different on-disk
+  // .next: shared chunks still 200'd, only the route chunk (chunks/app/*) 404'd,
+  // and /api/health stayed green throughout. Checking one CSS file on /login could
+  // not see it — the assertion has to follow the authenticated page's own manifest.
+  const homeHtml = await (await fetch(`${BASE}/`, { headers: authHeaders })).text()
+  const assets = [...new Set(homeHtml.match(/\/_next\/static\/[^"']+?\.(?:js|css)/g) || [])]
+  const routeChunks = assets.filter((a) => a.includes('/chunks/app/'))
+  check('authenticated / references a route chunk', routeChunks.length > 0,
+    `assets=${assets.length} routeChunks=${routeChunks.length}`)
+
+  const broken: string[] = []
+  for (const asset of assets) {
+    const res = await fetch(`${BASE}${asset}`, { headers: authHeaders })
+    if (res.status !== 200) broken.push(`${asset} → ${res.status}`)
+  }
+  check(`every asset referenced by authenticated / returns 200 (n=${assets.length})`,
+    broken.length === 0, broken.join(', ') || undefined)
+
   // Threads round-trip (no real agent turn — just plumbing)
   const createRes = await fetch(`${BASE}/api/threads`, {
     method: 'POST',

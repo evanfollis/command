@@ -10,8 +10,9 @@
     "smoke": "tsx scripts/smoke.ts",
     "browser:setup": "bash scripts/browser-libs-setup.sh",
     "browser:smoke": "bash scripts/browser-smoke-wrapper.sh",
-    "deploy": "tsx scripts/check-clean-tree.ts && npm run build && systemctl restart command && sleep 2 && npm run smoke",
-    "meta:scan": "tsx scripts/meta-scan.ts"
+    "deploy": "bash scripts/release.sh",
+    "meta:scan": "tsx scripts/meta-scan.ts",
+    "release:rollback": "bash scripts/rollback.sh"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.10.0",
