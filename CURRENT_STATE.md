@@ -1,12 +1,14 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-12T02-22-26Z — reflection pass. Active session this window: ADR-0039 prompt eval adoption tick. 4 prompts extracted, governed, golden cases written — **baselines not run, work uncommitted**. See "What bit the last session" and "Open carry-forwards" below.
+**Last updated**: 2026-07-12T12:43Z — **outage recovered**; immutable-release deployment landed (`afbf5e8`, live, verified in-browser on the public host). ADR-0039 prompt-eval work is **preserved uncommitted and NOT trustworthy yet** — see "Prompt eval: do not accept the baselines" below.
 
 ---
 
 ## Deployed / running state
 - **URL**: command.synaplex.ai (Cloudflare Tunnel → localhost:3100)
 - **Process**: runs directly on host (not Docker), managed by systemd
+- **Serves from an immutable release, never the working directory** (`afbf5e8`, 2026-07-12). `WorkingDirectory=/opt/workspace/runtime/releases/command/current` (systemd drop-in, mirrored in `deploy/`). Releases are built in a throwaway git worktree, marked read-only, and made live by moving `current` with `rename(2)`. Deploy: `npm run deploy` (→ `scripts/release.sh`); roll back: `npm run release:rollback`. `HEAD_ONLY=1` releases committed HEAD without touching working-tree WIP. **Never run `next build` expecting it to deploy — it only touches the repo's own `.next`, which nothing serves.** That decoupling is the point.
+- **`dist/.version` is truthful**: records SHA *and* dirty state; a dirty release reports as `<sha>-dirty` via `/api/health`, never silently clean.
 - **Auth**: password + JWT in httpOnly cookies (cookie-only)
 - **Middleware**: `COMMAND_ORIGIN=https://command.synaplex.ai` in `.env.local`. Pinned-origin redirect in `middleware.ts`.
 - **Smoke**: 50/50 checks passing — 10 new symphony round-trip checks added (create, list, ready→running, invalid transition, cleanup).
@@ -18,7 +20,16 @@
 
 
 ## What bit the last reflection / this tick
-- **Tick hit session rate limit before baselines completed (2026-07-12T01:29–02:01Z)**: The ADR-0039 adoption tick did all the structural work (4 prompts extracted, governed, 51 golden cases written, 4 TS files refactored, capture helper created, adapters written) but the background eval runs launched at the end of the session did not complete before "session limit · resets 5:20am UTC" was hit. All work is uncommitted. The handoff `command-prompt-eval-adoption-2026-07-12.md` is still present. Resume: run 4 baselines, verify, flip enforce:true, /review the refactor, commit, deploy.
+- **OUTAGE 2026-07-12 11:04–12:36Z — build/serve split brain (RESOLVED, class eliminated)**: A prompt-eval session ran `next build` in the live working directory. Next rewrote `.next` in place; the process (started 07-11 23:25) kept serving the *previous* build's HTML and manifests. Shared chunks still returned 200 — only the route chunk `chunks/app/page-*.js` 404'd — so the browser hydrated against a manifest whose assets no longer existed (React error 423, zero session cards). **`/api/health` stayed green the entire time**: the process was healthy, only the artifacts under it had moved. Recovery: rebuilt committed `eae61cd` in an isolated worktree, atomically swapped `.next`+`dist`, restarted, verified. Permanent fix in `afbf5e8` — the service now serves from an immutable release dir, so a build in the repo *cannot* reach it (verified adversarially: rebuilt the dirty tree while the live service stayed coherent). Smoke now asserts every asset referenced by **authenticated** HTML returns 200; the old CSS-on-`/login` check could not see this.
+  - **Lesson worth keeping**: a liveness endpoint cannot detect an artifact-coherence failure. Assert on what the authenticated page actually references.
+
+- **Prompt eval (ADR-0039): structurally complete, NOT trustworthy — do not accept the baselines.** The tree contains 4 governed prompts, 51 golden cases, adapters, capture, and 4 passing baselines (1.0/1.0/0.93/1.0), and `prompteval check .` passes. It should not be believed, for three independent reasons found on 2026-07-12:
+  1. **The eval cannot see the code it governs.** The Python adapters re-render templates with `re.sub` (safe); the shipped TS rendered with `.replace(str, str)`, which interprets `$&`, `` $` ``, `$'`, `$$` in *values* as replacement patterns. Any diff containing shell silently reached the reviewer mangled. Fixed in the WIP via `src/lib/promptTemplate.ts` (`fillTemplate`, replacer-function form) and verified against the real builder — but the eval could never have caught it, because it grades a reimplementation.
+  2. **The probe pre-answers its own grader.** `PROBE_PREFIX` in `scripts/prompteval-adapters/adapter_llm.py` instructs the model to avoid "should I" / "want me to" / "proceed" — exactly the phrases the `permission-seeking` judge fails on (8 of 14 cases). Verified: with an **empty prompt**, the permission case still passes. Root cause is deeper — the prompt governs *whether an agent acts*, but the probe runs it with tools disabled and tells it to pretend. `adapter_llm.py` is classified `not-a-prompt` in `inventory.json`, which is how a behavior-shaping prompt escaped governance.
+  3. **The holdout is contaminated.** The prompts were rewritten to encode the sealed holdout answers (`offline-synthesis-prompt.md` restates the loop-break holdout rubric almost verbatim; `thread-opening-frame.md` encodes the GitHub-repo holdout). `prompteval check` did **not** catch it. The 1.0 scores are not evidence of generalization.
+  - Not all rotten: the principal-escalation cases genuinely discriminate (empty prompt decided "No" on a $90/mo spend instead of escalating), and the golden inputs are grounded in real workspace failures. The inputs are salvageable; the validity wiring is not.
+  - **Resume plan (agreed with principal 2026-07-12)**: rebuild properly — strip the rubric-answering text from `PROBE_PREFIX`; make adapters call the *real TS builders* (seam exists: `COMMAND_PROMPT_DIR`, plus `PROMPTEVAL_RENDER` so eval renders don't pollute the capture flywheel); retire the contaminated holdouts and seal fresh ones the prompt does not pre-answer; re-baseline with `--no-cache` and **expect the aggregates to drop** — that is the point. Do not accept contaminated baselines to clear the tree.
+  - Also uncommitted and **out of scope** (someone else's in-flight work — leave alone): `src/app/api/auth/route.ts`, `src/app/login/`, `src/app/page.tsx`, `src/app/api/evals/`, `EvalTelemetryPanel.tsx`, `evalTelemetry.ts`.
 - **CURRENT_STATE.md 635h stale (M5 hook signal)**: Last meaningful update was mid-May 2026. Reflection corrects this now.
 
 - ~~**CURRENT_STATE.md uncommitted (10 days)**~~: **COMMITTED** (`0f65f27`, 2026-05-11T16:53Z). Backlog closed.
