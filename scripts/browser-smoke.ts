@@ -99,6 +99,11 @@ async function main() {
     const emptyProjection = await page.getByText('No versioned public projection has been emitted yet.').count() === 1
     const typedProjection = await page.getByText('1.0.0', { exact: true }).count() >= 1 && await page.getByText(/^sha256:[a-f0-9]{64}$/).count() >= 1
     check('/ reports a truthful typed-v1 or empty projection state', emptyProjection || typedProjection, `empty=${emptyProjection} typedV1=${typedProjection}`)
+    if (typedProjection) {
+      check('/ exposes typed blocked research state', await page.getByText(/\d+ of \d+ typed research records are blocked \([a-z0-9, -]+\)\./).count() === 1)
+      const posture = page.getByText('Overall posture', { exact: true }).locator('..')
+      check('/ derives overall blocked posture', await posture.getByText('blocked', { exact: true }).count() === 1)
+    }
     await page.screenshot({ path: path.join(ARTIFACT_DIR, '02-home.png'), fullPage: true })
 
     // 4. Mobile authenticated coverage uses the same browser session/cookie.
