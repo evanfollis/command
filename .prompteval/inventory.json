@@ -1,0 +1,98 @@
+{
+  "enforce": false,
+  "note": "Baselines pending \u2014 enforce disabled until all 4 pass (ADR-0039). Prior tick wrote enforce:true with false certification before baselines completed. See CURRENT_STATE.md.",
+  "prompts": [
+    {
+      "file": "src/prompts/thread-opening-frame.md",
+      "id": "thread-opening-frame",
+      "status": "governed"
+    },
+    {
+      "file": "src/prompts/review-prompt.md",
+      "id": "review-prompt",
+      "status": "governed"
+    },
+    {
+      "file": "src/prompts/codex-task-prompt.md",
+      "id": "codex-task-prompt",
+      "status": "governed"
+    },
+    {
+      "file": "src/prompts/offline-synthesis-prompt.md",
+      "id": "offline-synthesis-prompt",
+      "status": "governed"
+    },
+    {
+      "file": "src/lib/threadConversation.ts",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompt artifact extracted to src/prompts/thread-opening-frame.md, governed via thread-opening-frame spec"
+    },
+    {
+      "file": "src/lib/review.ts",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompt builder; static template extracted to src/prompts/review-prompt.md"
+    },
+    {
+      "file": "src/lib/executor.ts",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompt builder; static template extracted to src/prompts/codex-task-prompt.md"
+    },
+    {
+      "file": "src/lib/metaLearning.ts",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompt builder; static template extracted to src/prompts/offline-synthesis-prompt.md"
+    },
+    {
+      "file": "CURRENT_STATE.md",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "documentation only; mentions --append-system-prompt in narrative context, not a prompt artifact"
+    },
+    {
+      "file": "scripts/prompteval-adapters/thread-opening-frame-adapter.py",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompteval eval adapter for thread-opening-frame; not itself a prompt"
+    },
+    {
+      "file": "scripts/prompteval-adapters/review-prompt-adapter.py",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompteval eval adapter for review-prompt; not itself a prompt"
+    },
+    {
+      "file": "scripts/prompteval-adapters/codex-task-prompt-adapter.py",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompteval eval adapter for codex-task-prompt; not itself a prompt"
+    },
+    {
+      "file": "scripts/prompteval-adapters/offline-synthesis-prompt-adapter.py",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompteval eval adapter for offline-synthesis-prompt; not itself a prompt"
+    },
+    {
+      "file": "scripts/prompteval-adapters/adapter_llm.py",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "shared eval adapter execution helper; not itself a prompt"
+    },
+    {
+      "file": "scripts/generate-golden-cases.py",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "golden case generation script; not a prompt artifact"
+    },
+    {
+      "file": "scripts/render-prompt.ts",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "prompteval rendering bridge; calls real TS builders to render candidate templates. Contains --append-system-prompt in code comments, not a prompt artifact"
+    }
+  ]
+}

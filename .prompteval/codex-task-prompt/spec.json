@@ -1,0 +1,35 @@
+{
+  "id": "codex-task-prompt",
+  "description": "Task dispatch prompt for Codex executive session. Assembles task metadata (id, path, intent, scope, risk, model posture) and description into a structured spec that the Codex session receives via tmux send-keys. KNOWN LIMITATION: the probe runs with tools disabled, so action-taking is observed as stated intent, not execution. The probe wrapper is deliberately behavior-neutral; judges grade substance (was the work done or handed back), not phrasing.",
+  "owner": "command",
+  "source": {
+    "type": "whole_file",
+    "file": "src/prompts/codex-task-prompt.md"
+  },
+  "model": "claude-sonnet-4-6",
+  "params": {},
+  "executor": {
+    "type": "command",
+    "argv": [
+      "python3",
+      "scripts/prompteval-adapters/codex-task-prompt-adapter.py"
+    ],
+    "timeout": 420,
+    "deps": [
+      "scripts/prompteval-adapters/adapter_llm.py",
+      "scripts/render-prompt.ts",
+      "src/lib/executor.ts",
+      "src/lib/promptTemplate.ts"
+    ]
+  },
+  "judge": {
+    "model": "opus",
+    "trials": 3
+  },
+  "gate": {
+    "aggregate_floor_delta": 0.02,
+    "trials": 1,
+    "max_unknown_ratio": 0.2
+  },
+  "created": "2026-07-12T01:29:03Z"
+}

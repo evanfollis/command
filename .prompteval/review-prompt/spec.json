@@ -1,0 +1,35 @@
+{
+  "id": "review-prompt",
+  "description": "Adversarial review instructions for recent code changes. Used by executeReview() via Codex (primary) or Claude (secondary). Should challenge design decisions, failure modes, race conditions \u2014 NOT style. Input: session name, diff, optional focus hint. KNOWN LIMITATION: the probe runs with tools disabled, so action-taking is observed as stated intent, not execution. The probe wrapper is deliberately behavior-neutral; judges grade substance (was the work done or handed back), not phrasing.",
+  "owner": "command",
+  "source": {
+    "type": "whole_file",
+    "file": "src/prompts/review-prompt.md"
+  },
+  "model": "claude-sonnet-4-6",
+  "params": {},
+  "executor": {
+    "type": "command",
+    "argv": [
+      "python3",
+      "scripts/prompteval-adapters/review-prompt-adapter.py"
+    ],
+    "deps": [
+      "scripts/prompteval-adapters/adapter_llm.py",
+      "scripts/render-prompt.ts",
+      "src/lib/promptTemplate.ts",
+      "src/lib/review.ts"
+    ],
+    "timeout": 420
+  },
+  "judge": {
+    "model": "opus",
+    "trials": 3
+  },
+  "gate": {
+    "aggregate_floor_delta": 0.02,
+    "trials": 1,
+    "max_unknown_ratio": 0.2
+  },
+  "created": "2026-07-12T01:29:03Z"
+}

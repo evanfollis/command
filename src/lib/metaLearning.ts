@@ -2,6 +2,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
 
 import type { Task } from './taskStore'
+import { capturePromptInput } from './promptCapture'
+import { fillTemplate, loadPrompt } from './promptTemplate'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
 const STORE_PATH = WORKSPACE_PATHS.metaStore
@@ -157,19 +159,8 @@ export function buildOfflineSynthesisPrompt(patterns: MetaPattern[]): string {
         return `${index + 1}. Project: ${pattern.project}\nCategory: ${pattern.category}\nCount: ${pattern.count}\nPattern: ${pattern.latestSummary}\nEvidence:\n${evidence || '- No attached evidence'}`
       }).join('\n\n')
     : 'No recurring patterns yet.'
-
-  return [
-    'Offline meta-learning synthesis task.',
-    'Use the recurring observations below to propose better explanations and cleaner design changes.',
-    'Do not recommend local band-aids unless they fall out of a deeper explanatory change.',
-    'For each recurring pattern, identify:',
-    '- the hidden design pressure',
-    '- the best explanation of why the system is behaving this way',
-    '- the substrate or architecture change that would remove the class of problems',
-    '- what should become a server-wide rule versus a repo-local fix',
-    '',
-    lines,
-  ].join('\n')
+  capturePromptInput('offline-synthesis-prompt', { pattern_count: patterns.length })
+  return fillTemplate(loadPrompt('offline-synthesis-prompt'), { patterns: lines })
 }
 
 export function synthesizeMetaFindings() {

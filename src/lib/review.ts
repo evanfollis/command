@@ -4,6 +4,8 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { buildScopedShellEnv } from './environments'
 import { recordReviewObservation } from './metaLearning'
+import { capturePromptInput } from './promptCapture'
+import { fillTemplate, loadPrompt } from './promptTemplate'
 import { sendKeys } from './tmux'
 import { updateTask } from './taskStore'
 import { WORKSPACE_PATHS } from './workspacePaths'
@@ -33,11 +35,13 @@ export function gatherDiff(projectPath: string): string {
 }
 
 export function buildReviewPrompt(session: string, diff: string, focus?: string): string {
-  const focusClause = focus ? `Pay special attention to: ${focus}.` : ''
-  return `Adversarial review of recent changes in ${session}. Challenge the implementation — question design decisions, hidden assumptions, failure modes, race conditions, and alternative approaches. Do NOT look for formatting or style issues. Focus on: would this design survive production pressure? ${focusClause}
-
-Recent changes:
-${diff}`
+  capturePromptInput('review-prompt', { session, focus: focus ?? null, diff })
+  const focusClause = focus ? ` Pay special attention to: ${focus}.` : ''
+  return fillTemplate(loadPrompt('review-prompt'), {
+    session,
+    focus_clause: focusClause,
+    diff,
+  })
 }
 
 /**

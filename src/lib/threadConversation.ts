@@ -4,6 +4,8 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 
 import { getThread, touchThread, updateThread, type ThreadMeta } from './threads'
+import { capturePromptInput } from './promptCapture'
+import { loadPrompt } from './promptTemplate'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
 export interface ThreadMessage {
@@ -17,17 +19,16 @@ const CODEX_SESSIONS_DIR = '/root/.codex/sessions'
 const CLAUDE_SESSIONS_DIR = '/root/.claude/projects/-opt-workspace'
 const TURN_TIMEOUT_MS = 240_000
 
-// First-turn system frame per ADR-0020. Injected only when the thread's
-// native session is being created; subsequent turns resume the session
-// and the frame is already in the session's context.
-const THREAD_OPENING_FRAME = [
-  'You are running in an executive steering thread rooted at /opt/workspace with full access.',
-  'Default to reversible action: edit files, run commands, commit with why-messages, update CURRENT_STATE.md, write handoffs.',
-  'Cross-repo commits, edits across boundaries, and touches to supervisor/system surfaces are all reversible — ship them without asking. Boundary concerns are resolved post-hoc via friction or handoff, not by pausing mid-task.',
-  'Preserve epistemic structure — commits carry why, front doors carry what-is-true-now, friction records close when work lands.',
-  'Reserve asks for decisions only the principal can make (novel strategy, irreversible external commitments, legal/FINRA scope, personal-identity credentials).',
-  'For pure assessment or inspection questions, answer diagnostically without forcing action.',
-].join(' ')
+// First-turn system frame per ADR-0020 (ADR-0039: governed artifact in src/prompts/).
+// Loaded lazily (not at module init) so a missing file crashes the call site, not the
+// module import — consistent with the other three governed builders.
+let _threadOpeningFrame: string | undefined
+function getThreadOpeningFrame(): string {
+  if (_threadOpeningFrame === undefined) {
+    _threadOpeningFrame = loadPrompt('thread-opening-frame')
+  }
+  return _threadOpeningFrame
+}
 
 function transcriptPath(id: string) {
   return join(TRANSCRIPT_DIR, `${id}.transcript.jsonl`)
@@ -109,7 +110,8 @@ function runClaudeTurn(message: string, sessionId: string | undefined): { respon
     // Pre-assign so we know the id up front
     assignedId = cryptoRandomUuid()
     args.push('--session-id', assignedId)
-    args.push('--append-system-prompt', THREAD_OPENING_FRAME)
+    args.push('--append-system-prompt', getThreadOpeningFrame())
+    capturePromptInput('thread-opening-frame', { message })
   }
   args.push(message)
 
@@ -156,7 +158,7 @@ function runCodexTurn(message: string, sessionId: string | undefined): { respons
   // durable history; subsequent turns inherit it naturally.
   const effectiveInput = sessionId
     ? message
-    : `[thread frame] ${THREAD_OPENING_FRAME}\n\n[first message from principal]\n${message}`
+    : `[thread frame] ${getThreadOpeningFrame()}\n\n[first message from principal]\n${message}`
 
   const stdout = execFileSync('codex', args, {
     encoding: 'utf-8',

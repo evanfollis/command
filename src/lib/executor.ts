@@ -1,5 +1,7 @@
 import { getEnvironmentProfile, resolveEnvironment } from './environments'
 import { recordTaskFailureObservation, recordTaskSuccessObservation } from './metaLearning'
+import { capturePromptInput } from './promptCapture'
+import { fillTemplate, loadPrompt } from './promptTemplate'
 import { sendKeys, capturePane, parseAgentInfo } from './tmux'
 import { updateTask, type Task } from './taskStore'
 import { WORKSPACE_PATHS } from './workspacePaths'
@@ -228,25 +230,28 @@ function resolveProjectPath(project?: string): string {
   return WORKSPACE_PATHS.generalRoot
 }
 
-function buildCodexPrompt(task: Task): string {
+export function buildCodexPrompt(task: Task): string {
   const projectPath = resolveProjectPath(task.signals.project)
   const decision: RoutingDecision = {
     ...task.decision,
     ...task.overrides,
   }
-  const lines = [
-    `Task ID: ${task.id}`,
-    `Working directory: ${projectPath}`,
-    `Intent: ${task.signals.intent || 'unknown'}`,
-    `Scope: ${task.signals.scope || 'unknown'}`,
-    `Risk: ${task.signals.risk || 'low'}`,
-    `Requested model posture: ${decision.model} / ${decision.reasoning}`,
-  ]
-
-  if (task.signals.project) {
-    lines.push(`Target project: ${task.signals.project}`)
-  }
-
-  lines.push('', task.description)
-  return lines.join('\n')
+  const intent = task.signals.intent || 'unknown'
+  const scope = task.signals.scope || 'unknown'
+  const risk = task.signals.risk || 'low'
+  const modelPosture = `${decision.model} / ${decision.reasoning}`
+  // Trailing newline, not a bare line: the template puts {target_project_line} and
+  // {description} on adjacent lines, so the separating blank line comes from here.
+  const targetProjectLine = task.signals.project ? `Target project: ${task.signals.project}\n` : ''
+  capturePromptInput('codex-task-prompt', { intent, scope, risk, project: task.signals.project ?? null })
+  return fillTemplate(loadPrompt('codex-task-prompt'), {
+    task_id: task.id,
+    project_path: projectPath,
+    intent,
+    scope,
+    risk,
+    model_posture: modelPosture,
+    target_project_line: targetProjectLine,
+    description: task.description,
+  })
 }

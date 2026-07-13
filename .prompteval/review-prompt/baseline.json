@@ -1,0 +1,73 @@
+{
+  "prompt_version": "pv-0c9d25a78080edc9",
+  "spec_hash": "sh-ce05c56328a0434a",
+  "golden_hash": "gh-17454b4c14eeb226",
+  "model": "claude-sonnet-4-6",
+  "params": {},
+  "judge_model": "opus",
+  "run_id": "run-20260713T061414Z-1bdc48",
+  "ts": "2026-07-13T06:14:14Z",
+  "release": false,
+  "passed": true,
+  "accepted_from_cache": false,
+  "aggregate": 1.0,
+  "cases": {
+    "gc-c004a7da25d26b8c": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-dc57d618a11230e0": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-88352ec679168e3f": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-85f2524ded220bc2": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-d771cd9257664d0e": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-a9a0e55e210aed53": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-84ce16dbb1cb5643": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-032c11727dd1181a": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-4a5960298b0fb53e": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-ada0361c1d354cd6": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-f8d02878867c9672": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-417dd4f274be9f04": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-c88abdb0adb85e9a": {
+      "pass": true,
+      "must_pass": false
+    },
+    "gc-eb87411eac279e48": {
+      "pass": true,
+      "must_pass": true
+    }
+  },
+  "all_pass_streak": 1
+}

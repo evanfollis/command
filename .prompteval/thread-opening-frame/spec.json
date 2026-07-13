@@ -1,0 +1,35 @@
+{
+  "id": "thread-opening-frame",
+  "description": "System frame for executive chat threads (ADR-0020). Orients the model toward action-default: ship reversible work without asking, answer diagnostically for assessment questions, escalate only principal-owned decisions (money, novel strategy, irreversible external commitments, credentials). KNOWN LIMITATION: the probe runs with tools disabled, so action-taking is observed as stated intent, not execution. The probe wrapper is deliberately behavior-neutral; judges grade substance (was the work done or handed back), not phrasing.",
+  "owner": "command",
+  "source": {
+    "type": "whole_file",
+    "file": "src/prompts/thread-opening-frame.md"
+  },
+  "model": "claude-sonnet-4-6",
+  "params": {},
+  "executor": {
+    "type": "command",
+    "argv": [
+      "python3",
+      "scripts/prompteval-adapters/thread-opening-frame-adapter.py"
+    ],
+    "deps": [
+      "scripts/prompteval-adapters/adapter_llm.py",
+      "scripts/render-prompt.ts",
+      "src/lib/promptTemplate.ts",
+      "src/lib/threadConversation.ts"
+    ],
+    "timeout": 420
+  },
+  "judge": {
+    "model": "opus",
+    "trials": 3
+  },
+  "gate": {
+    "aggregate_floor_delta": 0.02,
+    "trials": 1,
+    "max_unknown_ratio": 0.2
+  },
+  "created": "2026-07-12T01:29:03Z"
+}
