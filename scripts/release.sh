@@ -52,6 +52,9 @@ if [ -n "$(git status --porcelain)" ]; then
   fi
 fi
 
+echo "==> preflight checks"
+/opt/workspace/supervisor/scripts/lib/preflight-deploy.sh "$REPO"
+
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 RELEASE_ID="$TS-$SHORT"; [ "$DIRTY" = true ] && RELEASE_ID="$RELEASE_ID-dirty"
 RELEASE="$RELEASES/$RELEASE_ID"

@@ -34,6 +34,13 @@ async function main() {
     template?: string
   }
 
+  // Validate id before writing to disk: the switch below is the authoritative whitelist,
+  // but it comes AFTER writeFileSync, so a crafted id could escape the temp dir.
+  const VALID_PROMPT_IDS = ['thread-opening-frame', 'review-prompt', 'codex-task-prompt', 'offline-synthesis-prompt']
+  if (!VALID_PROMPT_IDS.includes(id)) {
+    throw new Error(`render-prompt: unknown prompt id "${id}"`)
+  }
+
   // Point the real loader at the candidate template before importing the builders —
   // promptTemplate reads COMMAND_PROMPT_DIR at module init.
   let tmpDir: string | undefined
