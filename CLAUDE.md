@@ -27,7 +27,7 @@ Cross-platform web app that serves as the principal-facing executive surface for
 ### Quality standard
 - **No bandaid fixes.** If a bug can only be "fixed" by asking the user to clear their cache, switch browsers, or change settings, you haven't found the bug. Those are diagnostic hints. The real fix lives in the server code, the response headers, or the infrastructure config — find it.
 - **Read the user's evidence literally before theorizing.** A screenshot showing `localhost` in the URL bar is a complete answer, not a clue. Don't build speculative explanations over primary evidence.
-- **Behind cloudflared: never build absolute URLs from `req.url`, `req.headers.host`, or `new URL(path, req.url)`.** The internal origin is `localhost:3000`; the public origin is `command.synaplex.ai`. Use relative `Location` headers for redirects. If you need a public URL, pin it in config — never infer it from request headers.
+- **Behind cloudflared: never build absolute URLs from `req.url`, `req.headers.host`, or by passing `req.url` as the base to a `URL()` constructor.** The internal origin is `localhost:3000`; the public origin is `command.synaplex.ai`. Use relative `Location` headers for redirects. If you need a public URL, pin it in config — never infer it from request headers.
 - **"Works on my machine" / curl-from-localhost is not verification.** Curl doesn't replay browser caches, service workers, SameSite enforcement, or ITP. When a fix depends on client-side behavior, confirm from the actual failing client or reason explicitly about why the client path matches the curl path.
 - **Eliminate failure classes, not instances.** A `buildOrigin()` helper papers over one proxy mismatch; a relative `Location` header eliminates every proxy mismatch of that shape forever. Prefer the second kind of fix.
 
@@ -48,7 +48,7 @@ Cross-platform web app that serves as the principal-facing executive surface for
 - Logs: `journalctl -u command --no-pager -f`
 - **Deploy: `npm run deploy`** — build + restart + smoke. Never restart manually; use this so a broken build cannot silently serve traffic.
 - Smoke only: `npm run smoke` — 13-check post-deploy verification.
-- Pattern check: `npm run check` — blocks known bug-class patterns (e.g. `new URL(path, req.url)` behind a proxy).
+- Pattern check: `npm run check` — blocks known bug-class patterns (e.g. using `req.url` as a URL base behind a proxy).
 - Meta scan: `npm run meta:scan` — reads telemetry, surfaces anomalies to `/opt/workspace/runtime/.meta/observations.md`. Runs hourly via `command-meta-scan.timer`.
 
 ## Observability contract

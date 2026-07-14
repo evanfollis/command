@@ -4,9 +4,10 @@
  * already paid for. Fails the build (or pre-commit) if violations are found.
  *
  * Banned:
- *   - `new URL(<path>, req.url)` — produces an absolute URL from the internal
- *     origin (localhost:3000 behind cloudflared). Use relative paths in
- *     Location headers instead. Caused the mobile login-loop incident.
+ *   - Using req.url as the base of a URL() constructor call — produces an
+ *     absolute URL rooted in the internal origin (localhost:3000 behind
+ *     cloudflared). Use relative paths in Location headers instead.
+ *     Caused the mobile login-loop incident.
  *   - `NextResponse.redirect(new URL(` — same failure mode via the Next helper.
  */
 import { readFileSync, readdirSync, statSync } from 'fs'
