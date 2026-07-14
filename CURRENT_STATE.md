@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-14T14-20-00Z — reflection pass. This window: 5 commits (holdout ID fix, review artifacts, README, CURRENT_STATE update). Background prompteval runs executed but CACHE IS NOT PERSISTING — same 14 cases re-run 3× without producing a baseline (telemetry evidence: gc-53664273 at 05:43, 09:58, 10:30 UTC). Net: 5 prompteval FAILs unchanged. Observatory.ts (306 lines) enters 4th cycle without adversarial review. Untracked eval files (src/app/api/evals/, EvalTelemetryPanel.tsx, evalTelemetry.ts) enter 5th window uncommitted.
+**Last updated**: 2026-07-14T17-52-00Z — tick (owner-dashboard-shared-projection handoff). This window: 1 commit (`c4bb659`). Observatory adversarial review completed (finding: `handoff-pressure` was hardcoded `unknown` and permanently poisoned posture — now excluded from posture signals). Observatory test rewritten to not be time-sensitive. Deploy still blocked on prompteval baselines (5 FAILs). Next.js 15.5.18 vs 16.2.10 version gap noted, requires attended session. Untracked eval files enter 6th window uncommitted (leave alone).
 
 ---
 
@@ -19,6 +19,15 @@
 - ~~**`browser_capability_missing`**~~: **CLOSED** (2026-05-01 tick). `@playwright/test` installed as devDependency; Chromium headless binary in `node_modules/playwright-core/.local-browsers/`. System libs (libnspr4, libnss3, libatk, etc.) bootstrapped to `/tmp/browser-libs/` via `npm run browser:setup`. 13-check browser smoke passes: form auth, home page session cards, portfolio card expansion (prose/pre rendered), `/attach/general` WS snapshot (8101 chars), `/attach/general-codex` WS snapshot (12933 chars), `/artifacts` h1 + source labels, zero JS errors. Run `npm run browser:smoke`. Re-run `npm run browser:setup` after host reboot (/tmp is ephemeral; node_modules chromium binary persists).
   - **Remaining narrow gap**: `/tmp/browser-libs` is ephemeral (reboot clears it). The `browser:setup` script re-downloads and re-extracts ~40MB of .deb files via apt. This requires network access to apt mirrors. If apt is unreachable post-reboot, browser smoke won't run until connectivity is restored. No impact on server-side smoke.
 
+
+## What just completed (2026-07-14T17-52Z, tick — owner-dashboard-shared-projection)
+- **Observatory adversarial review completed** (`c4bb659`): Claude agent review of `src/lib/observatory.ts`, `src/components/ObservatoryDashboard.tsx`, `scripts/observatory-test.ts`. Two real findings, both fixed:
+  1. **Posture bug (must-fix)**: `handoff-pressure` signal was hardcoded `state: 'unknown'` with no real collector and was included in `allSignals` for posture derivation — meaning the observatory could **never** report `healthy` posture regardless of actual system state. Fixed by excluding it from `postureSignals` (it still appears in the automation section for display). Root cause: no typed handoff lifecycle index exists yet, so the signal correctly declares `unknown`, but it should not gate the overall posture.
+  2. **Test time-sensitivity bug (must-fix)**: `scripts/observatory-test.ts` loaded a static fixture (`test/fixtures/public-projection-v1.json`) with `generated_at: 2026-07-12T19:18:00Z`. After 24h the test failed because the projection appeared stale. Rewritten to build a fresh fixture at runtime. Also re-signs contaminated test fixtures before injecting them, isolating `containsPrivateProjectionField` from the digest check.
+- **Review artifact**: `.reviews/command-observatory-claude-review-2026-07-14T18-00Z.md`. Codex EROFS-blocked, Claude agent substituted.
+- **Next.js version gap documented**: installed 15.5.18 vs published 16.2.10. Major version bump — warrants a dedicated attended session to validate (server.ts, App Router, immutable-release pipeline). Do not upgrade in a tick.
+- **Deploy still blocked**: prompteval 5 FAILs unchanged. Same exact-commands block as before. Cannot deploy new code (commit `c4bb659`) until baselines pass.
+- **Handoff consumed**: `command-owner-dashboard-shared-projection-2026-07-12.md` deleted.
 
 ## What bit the last reflection / this tick
 - **Prompteval cache not persisting across run invocations (NEW — reflection 14:20Z)**: Telemetry shows thread-opening-frame case `gc-53664273f3744b7e` executed at 05:43, 09:58, and 10:30 UTC on 2026-07-14 — same case, three separate runs, no baseline produced. The harness is starting fresh each time. Either the executor cache key changes between runs, or cached results are not being found. Diagnose before the next attended baseline session. `--allow-cached-baseline` flag is about accepting a non-`--release` baseline, not about executor-level caching.
@@ -51,13 +60,19 @@
 - ~~**ADR-0028**~~: CLOSED (2026-05-01T14-32-21Z).
 
 ## What this is now
-A focused executive surface with three jobs and nothing else:
+Private owner observatory per ADR-0046. One typed server-side `ObservatorySnapshot` (15s cache, 1.2s per-collector timeout, parallel collection, partial-failure isolation). Dashboard sections:
 
-1. **Executive chat** — multi-thread, one model per thread (Claude or Codex). Each thread is backed by a native resumable session: `claude --session-id <uuid>` on first turn, `--resume <uuid>` after; Codex captures session id via `~/.codex/sessions/` diff, resumes with `codex exec resume <uuid>`. Sidebar UI with `+ New thread` / rename / delete. Threads live in `/opt/workspace/runtime/.threads/<uuid>.meta.json` + `<uuid>.transcript.jsonl`. **Resumable from any terminal via CLI.**
-2. **Portfolio** — each project card renders its `CURRENT_STATE.md` front door as markdown at full fidelity (no regex summary). Per-project metrics table (threads, compute, tokens across 1h/24h/7d/30d windows) rendered inline. Missing front doors surface as visible pressure ("front door missing or stale") — that's a feature.
-3. **Operator tools** — collapsed `<details>`: ensure executive lane, recover session fabric. Appear only when capability attestation says operator is real.
-4. **Artifact inbox** (`/artifacts`) — read-only, auth-gated markdown browser over a narrow code-path-only source allowlist. Sources: `research` (`runtime/research/`, recursive, `.md` only) and `syntheses` (`runtime/.meta/cross-cutting-*.md`, flat regex-filtered). See ADR-0028.
-5. **Symphony task board** (`/symphony`) — local task state machine (Symphony-lite). Tasks move through `ready→running→review→done` (plus `blocked`/`deferred`). Bounded concurrency: 1 per project, 3 globally. State persisted in `runtime/symphony/tasks.json`. Stale detection: running >2h, review >24h. API: `GET/POST /api/symphony` + `GET/PATCH /api/symphony/:id`.
+1. **Owner decision queue** — typed `command.owner-authority.v1` JSON source at `runtime/.owner-decisions/queue.json`. Only `people/money/authority/legal/credential` gates. No queue file → `unknown` (not green).
+2. **Knowledge loop** — freshness of `runtime/.meta/LATEST_SYNTHESIS`. Stale > 7 days → `degraded`.
+3. **Knowledge state** — typed v1 public projection counts (research, findings, mechanisms). Blocked research → `blocked`.
+4. **Automation and front-door health** — systemd failed units + per-project `CURRENT_STATE.md` freshness. `handoff-pressure` shown here for display but excluded from posture (no real collector yet).
+5. **Prompt, eval, fallback, cost telemetry** — bounded 400-event tail of `telemetry/events.jsonl`.
+6. **Public projection coherence** — typed v1 projection validation (digest, semantic counts, exact-key schema, private-field redaction check, age).
+7. **Recent material changes** — sorted front-door timestamps across all projects.
+
+Secondary surface at `/operator-tools`: executive recovery attach, Symphony task board, raw artifact browser. These are capability-attested operator tools, not dashboard sections.
+
+**Routes preserved from earlier iteration**: `/attach/[name]` (WebSocket live attach with writer lock + reconnect replay), `/symphony` (state machine), `/artifacts` (bounded markdown browser). Their backend routes are intact — callers are operator-tools links only.
 
 ## What just completed (2026-05-01T09-30Z, tick — symphony-lite-orchestration)
 - **Symphony-lite task state machine shipped** (`4b9f019`): `src/lib/symphonyStore.ts` with 6-state machine (`ready`, `running`, `blocked`, `review`, `done`, `deferred`), bounded concurrency (1 per project, 3 global), stale detection (2h running, 24h review), telemetry on every transition, full audit trail per task. State store at `runtime/symphony/tasks.json`.
@@ -191,7 +206,7 @@ A focused executive surface with three jobs and nothing else:
   ```
   WARNING (reflection 14:20Z): The cache is NOT persisting across separate run invocations — telemetry shows identical case IDs re-executed 3× (05:43, 09:58, 10:30 UTC) with no baseline produced. Diagnose cache miss before next attempt: check what cache key the harness uses and whether executor results are being written. `--allow-cached-baseline` applies to baseline acceptance, not executor caching. Expect scores to be non-perfect. Then: `sed -i 's/"enforce": false/"enforce": true/' .prompteval/inventory.json`, commit, push, and `npm run deploy`.
 - **Deploy gap: multiple commits not live (ACTIVE)**: Everything from 479bd4c (2026-07-12) through f1da6e5 (2026-07-14, README) is committed but not deployed. Blocked on prompteval baselines. Will unblock once baselines pass and preflight goes green.
-- **No /review on observatory feature**: `src/lib/observatory.ts` (306 lines, new data-exposure surface) shipped without adversarial review. Should run before next deploy.
+- ~~**No /review on observatory feature**~~: **RESOLVED** (`c4bb659`, 2026-07-14T18:00Z). Adversarial review done; posture bug and test time-sensitivity bug fixed before ship. Review at `.reviews/command-observatory-claude-review-2026-07-14T18-00Z.md`.
 - **Symphony task store accumulation (ACTIVE — 11 tasks as of 2026-05-14T14:26Z)**: Live read shows 11 tasks. NOT 1 as prior two reflections claimed — the prior reads were wrong. Current state: `479c8834` is in `review` (NOT absent/cleaned as CURRENT_STATE previously said); `cfd9383f` and `5e8814d4` are in `ready` (smoke tasks, never cleaned up, created 2026-05-13); 8 tasks in `done`. The `7b87ba7` fix only evicts stale `running` tasks — tasks in `ready` and `review` accumulate indefinitely. Accumulation is active, not latent. Fix requires: (1) DELETE endpoint in `src/app/api/symphony/[id]/route.ts`, (2) smoke teardown pass in `scripts/smoke.ts`.
 - **`SESSION_TO_METRICS_KEY` contract (now documented)**: `page.tsx:7-13` hardcodes `{ general: 'admin' }`; any other session name maps to itself. Producer is `/opt/workspace/supervisor/scripts/lib/metrics-rollup.py`, scheduled by `metrics-rollup.timer` (hourly, `OnUnitActiveSec=1h`, `OnBootSec=2min`; `systemctl list-timers metrics-rollup.timer` to verify). Writes `/opt/workspace/runtime/.metrics/<window>.json` for windows `1h`, `today`, `24h`, `7d`, `30d`, `all`, plus `LATEST.json`. Key scheme is cwd-derived: `/opt/workspace`, `/opt/workspace/supervisor`, `/opt/workspace/runtime`, `/root` → `admin`; `/opt/workspace/projects/skillfoundry/*` → `skillfoundry`; `/opt/workspace/projects/context-repository` → `context-repo`; other `/opt/workspace/projects/<name>` → `<name>`; unmapped → `admin`. That's why the `general` session (rooted at `/opt/workspace`) maps to the `admin` key in the producer output, and why `SESSION_TO_METRICS_KEY` rewrites `general → admin` on the command side. Legacy `/opt/projects/*` paths are normalized to the `/opt/workspace/projects/*` equivalents inside the producer. Contract is now written down; if the producer ever renames `admin` or changes the cwd mapping, update both this file and `page.tsx`.
 - **Single-process state integrity assumptions**: `threadConversation.ts` non-atomic transcript append (`57-63`), in-process-only turn lock (`194-200`), no durable error marker on crash (`207-209`). Safe ONLY while command runs single-process. If ever run multi-process, these become active data-corruption bugs. Accepted tradeoff — documented in `.reviews/84b38dc-review-2026-04-18T16-54Z.md:§3`.
@@ -233,14 +248,13 @@ A focused executive surface with three jobs and nothing else:
 ## What the next agent must read first
 1. This file.
 2. **Run `prompteval check .`** — still returns 5 FAILs (infrastructure repaired, baselines still needed). Use the exact commands above under "ADR-0039" in Known broken. DIAGNOSE cache miss first (see cache-miss warning above) — background runs have re-executed the same cases 3× without caching. Once cache persistence is confirmed working, use `--allow-cached-baseline` to accept any partial run. After all 4 pass: flip `enforce: true` in `.prompteval/inventory.json`, commit, push, run `npm run deploy`. Each baseline run takes ~2-3 hours at observed LLM response rates — **plan for dedicated time, not a tick**.
-3. **Second pending handoff** `command-owner-dashboard-shared-projection-2026-07-12.md` — major ADR-0046 refactor (private owner projection dashboard). Out of scope for this tick; next tick or attended principal session.
-3. `src/lib/observatory.ts` — the new observatory feature. 306 lines, serving the ObservatoryDashboard. Needs `/review` before next deploy.
-4. `src/lib/symphonyStore.ts` — the Symphony-lite state machine. Key constraints: synchronous withState (no locks needed for single-process), 1/project + 3/global concurrency cap, stale detection at read time. Owner model: `ownerSession` = tmux session name.
-3. `scripts/browser-smoke.ts` + `scripts/browser-smoke-wrapper.sh` — browser-layer evidence. Key constraint: `PLAYWRIGHT_BROWSERS_PATH` must be set before node starts; shell wrapper handles this. `/tmp/browser-libs` is ephemeral.
-4. `.reviews/phase-c2-review-2026-04-24T13-00Z.md` — ship review for the attach write path and reconnect lifecycle.
-5. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
-6. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
-7. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
+3. **Next.js version gap**: installed 15.5.18, published 16.2.10 (major). Do not upgrade in a tick — needs attended session with build + full smoke validation. React 19.1.7 → 19.2.7 (patch) is safer but should also wait for the same attended session.
+4. `src/lib/observatory.ts` + `src/components/ObservatoryDashboard.tsx` — adversarial review done (`c4bb659`). Next deploy needs baselines first.
+5. `src/lib/symphonyStore.ts` — the Symphony-lite state machine. Key constraints: synchronous withState (no locks needed for single-process), 1/project + 3/global concurrency cap, stale detection at read time. Owner model: `ownerSession` = tmux session name.
+6. `scripts/browser-smoke.ts` + `scripts/browser-smoke-wrapper.sh` — browser-layer evidence. Key constraint: `PLAYWRIGHT_BROWSERS_PATH` must be set before node starts; shell wrapper handles this. `/tmp/browser-libs` is ephemeral.
+7. `src/lib/attachLock.ts` + `src/lib/attachStream.ts` — writer lock and replay buffer are the new attach control plane.
+8. `src/lib/threadConversation.ts` if touching Claude/Codex routing — it owns the native session id contract.
+9. `src/lib/artifacts.ts` if touching the artifact inbox — source allowlist and path guard live here.
 
 ## Open carry-forwards
 - **ADR-0039 adoption (ACTIVE — baselines needed)**: All scaffolding done (prompts extracted, specs registered, 51 golden cases, adapters, capture helper, 4 TS files refactored). Blocking step: `prompteval run --no-cache --update-baseline` × 4, then flip `enforce: true` in `inventory.json`, `/review` the refactor, commit, deploy. Completion report to `runtime/.handoff/general-command-prompt-eval-complete-<iso>.md`.
