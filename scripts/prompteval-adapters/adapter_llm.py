@@ -137,7 +137,7 @@ def _calls_for_prompt(
 def run_prompt(prompt: str, model: str, payload: dict, prompt_id: str) -> str:
     return run_with_fallback(
         _calls_for_prompt(prompt, model),
-        timeout=300,
+        timeout=380,
         role="executor-adapter",
         **_telemetry(payload, prompt_id),
     )
@@ -153,7 +153,7 @@ def run_prompt_with_system(
     prompt = f"{system_prompt}\n\n---\n\n{message}"
     return run_with_fallback(
         _calls_for_prompt(prompt, model, system_prompt=system_prompt, message=message),
-        timeout=300,
+        timeout=380,
         role="executor-adapter",
         **_telemetry(payload, prompt_id),
     )
