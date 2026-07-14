@@ -330,8 +330,11 @@ export async function getObservatorySnapshot(options: { bypassCache?: boolean } 
   const knowledge = collectKnowledgeState(projection)
   automation.push(...collectOperationalPressure())
   const publicCoherence = signal({ id: 'public-coherence', title: 'Projection coherence', state: 'unknown', sourceRef: projection.sourceRef, reason: projection.availability === 'present' ? 'The v1 artifact digest verifies projection integrity, but the contract exposes no authoritative producer-input digest for source-drift comparison.' : 'Projection coherence cannot be evaluated without a valid projection and authoritative producer-input digest.' })
-  const allSignals = [projection, publicCoherence, ownerQueue.state, knowledgeLoop, ...knowledge, ...automation, ...telemetry, ...ownerQueue.decisions]
-  const posture = derivePosture(allSignals)
+  // handoff-pressure has no real collector and is always unknown — exclude it from posture so
+  // it cannot permanently hold the overall posture at 'unknown'. It still appears in the
+  // automation section of the dashboard for visibility.
+  const postureSignals = [projection, publicCoherence, ownerQueue.state, knowledgeLoop, ...knowledge, ...automation.filter((s) => s.id !== 'handoff-pressure'), ...telemetry, ...ownerQueue.decisions]
+  const posture = derivePosture(postureSignals)
   const generatedAt = iso()
   const snapshot: ObservatorySnapshot = { schemaVersion: 'command.observatory.v1', generatedAt, expiresAt: iso(Date.now() + SNAPSHOT_TTL_MS), posture: posture.posture, postureReason: posture.reason, publicProjection: projection, publicCoherence, ownerQueueState: ownerQueue.state, ownerQueue: ownerQueue.decisions, knowledgeLoop, knowledge, automation, modelTelemetry: telemetry, recentChanges: changes, collectorErrors: errors }
   cached = { expires: Date.now() + SNAPSHOT_TTL_MS, snapshot }
