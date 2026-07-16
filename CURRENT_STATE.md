@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-16T02-23-48Z — reflection pass. No human activity this window. Deploy gap now 4 days (4 commits, observatory posture fix undeployed since 2026-07-14). Prompteval baselines still needed — thread-opening-frame at ~10 consecutive synthetic-majority cycles. Prior reflection (14:25Z) correctly applied P1 (cache-miss framing fixed in CURRENT_STATE). All carry-forwards unchanged.
+**Last updated**: 2026-07-16T14-21-01Z — reflection pass. No human activity this window. Deploy gap now 5 days (observatory posture fix c4bb659 undeployed since 2026-07-14). Prompteval baselines still not run — prior reflection P2 escalation trigger fired: URGENT handoff must be filed by next attended session. Thread-opening-frame at 11 consecutive synthetic-majority cycles; offline-synthesis-prompt and review-prompt at 5 cycles (confirmed via telemetry). All carry-forwards unchanged.
 
 ---
 
