@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-15T14-25-03Z — reflection pass. No human activity this window. Deploy gap persists (4 commits, blocked on prompteval 5 FAILs). Prompteval cache IS working (247 entries in `command-2206ef` dir) — prior "cache miss" warning was wrong; bottleneck is per-case compute time, not cache. ALL 4 command prompts hit synthetic-majority decay threshold (thread-opening-frame: 9 cycles). Untracked eval files in 7th window (owner-approved: leave alone).
+**Last updated**: 2026-07-16T02-23-48Z — reflection pass. No human activity this window. Deploy gap now 4 days (4 commits, observatory posture fix undeployed since 2026-07-14). Prompteval baselines still needed — thread-opening-frame at ~10 consecutive synthetic-majority cycles. Prior reflection (14:25Z) correctly applied P1 (cache-miss framing fixed in CURRENT_STATE). All carry-forwards unchanged.
 
 ---
 
