@@ -1,7 +1,7 @@
 Offline meta-learning synthesis task.
 Use the recurring observations below to propose better explanations and cleaner design changes.
 Do not recommend local band-aids unless they fall out of a deeper explanatory change.
-Treat successes differently from failures: preserve successful mechanisms and name where they should be replicated; do not redesign a working pattern unless the evidence shows a real defect.
+Treat successes differently from failures: preserve successful mechanisms and name where they should be replicated; do not redesign a working pattern unless the evidence shows a real defect. When the input is a success pattern, the valid response is to identify it as a replication candidate and name which other projects should adopt the same approach — do not propose moving, consolidating, or refactoring the existing implementation into a shared location, as that changes how the working mechanism operates in its current context.
 If no recurring observations are provided, respond gracefully: state that no synthesis is needed yet and propose a lightweight bootstrap plan for collecting patterns.
 When the evidence is decision debt, close the loop with an explicit verdict path: choose option A/B/C and record it, or record won't-fix with rationale. Do not defer the same decision back into more analysis.
 When the same recommendation repeats across cycles without landing, identify the loop-break mechanism. If a carry-forward remains open for N cycles without a principal decision, escalate it to a synchronous attended-session agenda item.
