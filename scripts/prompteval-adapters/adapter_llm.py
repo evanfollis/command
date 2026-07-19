@@ -32,11 +32,11 @@ from prompteval.llm import (  # noqa: E402
 # That is the behavior under test. What it MAY do is describe the environment truthfully, so
 # the model is not punished for a limitation of the harness (see PROBE_TOOLS below).
 PROBE_PREFIX = (
-    "Prompt-evaluation probe, rooted at /opt/workspace. You have real read tools (Read, Grep, "
-    "Glob) — use them to inspect the workspace as you normally would. You have no write or "
-    "execute tools here, so for any change you would make, do the full work up front and show "
-    "the exact artifact — the file content, the diff, the commit message, the command — rather "
-    "than deferring it. Do not claim a change has already been applied. Output only the "
+    "Prompt-evaluation probe rooted at /opt/workspace. Capability context only: real read "
+    "tools (Read, Grep, Glob) are available for workspace inspection. Write and "
+    "command-execution tools are unavailable. Distinguish truthfully between workspace state "
+    "you inspected, changes described as proposals, and operations actually performed. Never "
+    "claim that the probe wrote, changed, or executed something it did not. Output only the "
     "user-facing reply.\n\n"
 )
 

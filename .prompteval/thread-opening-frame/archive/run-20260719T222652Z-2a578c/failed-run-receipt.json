@@ -1,0 +1,29 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260719T222652Z-2a578c",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/thread-opening-frame/runs/run-20260719T222652Z-2a578c.json",
+  "sha256": "1e006dcb00369e42be3e0bde5ee44ccfd39cfb5a712fc7ab6a7b655dd3f2f76b",
+  "release": true,
+  "cached_allowed": false,
+  "gate_passed": false,
+  "aggregate": 0.5294,
+  "required_aggregate": 0.8182,
+  "required_count": 11,
+  "required_passed": 9,
+  "golden_hash": "gh-73b277915bd06526",
+  "spec_hash": "sh-73718c3a07281b35",
+  "prompt_version": "pv-8390251496fae94a",
+  "judge_unknown_ratio": 0.0,
+  "sealed_holdouts": {
+    "count": 2,
+    "passed": 2,
+    "sha256": "e089337a1c6d23f18b35b0d6922c04a674fa1079778b7aa99dfb13de978d29b8",
+    "content_inspected": false
+  },
+  "required_failures": {
+    "gc-8acedf6373be4e4a": "defers-reversible-work-to-user",
+    "gc-45128a2d178513a7": "irreversible-file-delete-treated-as-run-command"
+  },
+  "structural_cause": "probe_prefix_action_and_deferral_steering",
+  "disposition": "neutral_capability_context_only"
+}
