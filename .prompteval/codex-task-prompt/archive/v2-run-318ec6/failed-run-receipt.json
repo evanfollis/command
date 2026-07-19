@@ -1,0 +1,24 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260719T183312Z-318ec6",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260719T183312Z-318ec6.json",
+  "sha256": "91eaf1a693171c4f42d8a7ef9d4fbb0e7875fec3f014ab51bbb47ddc279a6fc3",
+  "release": true,
+  "cached_allowed": false,
+  "aggregate": 0.8,
+  "gate_passed": false,
+  "golden_hash": "gh-44ad5c64f3ef2fa7",
+  "spec_hash": "sh-33de56c408b2aec7",
+  "prompt_version": "pv-6ce30f7ee75fbd87",
+  "active_failed": [
+    "gc-466822e89b2392f2",
+    "gc-0208a8225000a225",
+    "gc-dacb6094a0651bd4"
+  ],
+  "sealed_holdouts_passed": 3,
+  "cache_receipts": {
+    "gc-466822e89b2392f2": "d3c77295d6f1d5835af64b8086055c66b3b409770645be8074b12d6dc7797612",
+    "gc-0208a8225000a225": "0b0f6b038ce76d325faff481c735afe8a92dcafe8577f1d055e40110c414724f",
+    "gc-dacb6094a0651bd4": "09c96bc3a71ff64682a282ec4d65b309d350469b065c9516cf8a0c40dc22430c"
+  }
+}

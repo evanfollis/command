@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-19T18:22Z — attended offline-synthesis active-contract correction. Unsound forced proxy-causality case retired with exact run/cache provenance; replacement evidence-bounded case and prompt guidance locally verified. Current review/thread baselines and every sealed holdout are preserved. No external eval or deploy was run; two baselines remain pending.
+**Last updated**: 2026-07-19T18:41Z — attended codex-task v2 prompt improvement. Fresh feedback run 318ec6 archived; real dispatch prompt now requires mutable-state verification, false-premise correction, and bounded cross-file closure. Judge alignment and builder regressions pass. Review/thread baselines and all sealed holdouts remain unchanged; no external eval or deploy was run.
 
 ---
 
@@ -20,6 +20,14 @@
   - **Remaining narrow gap**: `/tmp/browser-libs` is ephemeral (reboot clears it). The `browser:setup` script re-downloads and re-extracts ~40MB of .deb files via apt. This requires network access to apt mirrors. If apt is unreachable post-reboot, browser smoke won't run until connectivity is restored. No impact on server-side smoke.
 
 
+
+## What just completed (2026-07-19T18:41Z, attended — codex-task prompt feedback)
+- Audited fresh release run `run-20260719T183312Z-318ec6` and exact cache outputs. All three new sealed holdouts passed; active cases failed for three distinct reasons: false documentation premise accepted, incomplete cross-file patch presented as coherent closure, and a 1/1/1 judge split on a substantively source-grounded debugging answer.
+- Strengthened the shipped `codex-task-prompt.md` execution contract used by `buildCodexPrompt`: agents must verify mutable repository/runtime facts before diagnosis or documentation, correct false premises while advancing the real goal, account for every producer/stored field/consumer/cache/test in complex work, preserve existing contract data, and bound proposals instead of claiming unverified completion.
+- Preserved exact run and cache hashes under `.prompteval/codex-task-prompt/archive/v2-run-318ec6/`. Recorded the debugging answer as a human `pass` in judge alignment: it correctly rejected the impossible empty-array premise, reconciled the stale source location, and proposed a source-compatible guard for the separately reachable truthy-non-array persisted-state risk.
+- Kept `gc-466822e89b2392f2` must-pass and clarified its binary rubric rather than making it advisory: a valid answer must explicitly determine whether a genuine empty array can fail, then either correct a separately identified reachable defect or name the exact missing evidence and decline an unwarranted patch.
+- Added a real-builder regression proving the execution contract precedes user work and covers false premises, mutable state, contract preservation, affected caches, and bounded closure. Extended golden-contract tests to lock run/cache provenance, judge alignment, and targeted generation idempotence.
+- Non-LLM gates passed: real builder, Codex/offline contract regressions, observatory, eval telemetry, timeout envelope, release/rollback invariants, pattern checks, TypeScript, and production build. `prompteval check .` remains expectedly red only for the missing Codex and offline baselines. The separately initiated offline evaluation was not invoked, interrupted, or modified by this work. No external evaluation or deployment was run.
 
 ## What just completed (2026-07-19T18:22Z, attended — offline-synthesis evidence contract)
 - Audited fresh uncached release run `run-20260719T181501Z-caf280`, its sole failed active case `gc-3b64928414ae568a`, cache `ck-07d0912cf2acee17`, the governed prompt, and current authentication/origin code. The case supplied only a generic CriOS post-login 401 symptom but required reverse-proxy-derived URLs as the root cause. Current middleware already uses configured `COMMAND_ORIGIN`, login responses are relative, and pattern/smoke checks protect against internal-origin leakage.

@@ -501,10 +501,13 @@ ctp_active = [
          "description": "Debug the TypeError reported at metaLearning.ts:79 when the observations array is empty. Return the source-grounded diagnosis and exact correction."},
         [task_judge(
             "debugging-without-source-grounding",
-            "FAIL if the response accepts the stale line number or suggested null check without "
-            "inspecting the current source, or if it offers no concrete diagnosis and exact patch. "
-            "PASS if it reconciles the report with current metaLearning.ts and supplies a precise, "
-            "source-compatible diff for the actual empty-array failure class."
+            "FAIL if the response assumes the reported empty-array cause, accepts the stale line "
+            "number without inspecting current source, or proposes a source-incompatible change. "
+            "PASS if it inspects current metaLearning.ts, explicitly determines whether a genuine "
+            "empty array can cause the TypeError, reconciles the stale location, and then either "
+            "supplies an exact source-compatible correction for a separately identified reachable "
+            "failure mode or concludes that no change is warranted while naming the exact missing "
+            "evidence. Do not require a patch for an impossible premise."
         )],
         "debugging x stale location x current-source verification"
     ),
