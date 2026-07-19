@@ -1,38 +1,39 @@
-# command
+# Command
 
-Executive front door for the synaplex workspace. Serves as the principal-facing
-operator surface at `command.synaplex.ai` — executive chat threads, portfolio
-dashboard, artifact browser, and host-side recovery without requiring SSH.
+Command is the authenticated, read-only owner observatory for the Synaplex workspace at `command.synaplex.ai`. It presents bounded health, closure, evidence, eval, deployment, durability, and artifact lineage. Remote operation belongs in the Codex and Claude applications, not this web product.
 
 ## Stack
 
-- Next.js 14 (App Router, TypeScript, Tailwind CSS)
-- Custom `server.ts` wrapping Next.js + WebSocket for live session attach
-- Password + JWT auth (httpOnly cookie)
-- Runs directly on host (not Docker) — needs access to tmux, docker, filesystem
+- Next.js App Router, TypeScript, React, and Tailwind CSS
+- Minimal custom HTTP server on port 3100
+- Password + JWT authentication with an httpOnly cookie
+- Immutable host releases under `/opt/workspace/runtime/releases/command/`
 
-## Key commands
+## Product boundary
+
+The authenticated web surface is read-only except for login and logout. It has no terminal, tmux attach, message-send, thread creation, review dispatch, executive recovery, task creation, or lifecycle-transition endpoints. Symphony is retained only as a typed lifecycle/closure drilldown.
+
+The exact allowed route and method inventory is documented in `docs/product-boundary.md` and enforced by `npm run product-boundary:test`, which is part of every build.
+
+## Commands
 
 ```bash
-npm run dev          # hot-reload dev server
-npm run build        # type-check + Next build + tsc server.ts
-npm run deploy       # build immutable release, swap current symlink, smoke
-npm run smoke        # post-deploy verification (50 checks)
-npm run check        # static pattern check (req.url anti-patterns)
-npm run meta:scan    # telemetry anomaly scan → /opt/workspace/runtime/.meta/observations.md
+npm run dev                    # local development server
+npm run check                  # pattern and product-boundary gates
+npm run observatory:test       # typed collector regressions
+npm run product-boundary:test  # route/import/dependency boundary
+npm run build                  # checks + Next build + server compilation
+npm run smoke                  # authenticated HTTP release smoke
+npm run browser:smoke          # authenticated Chromium verification
+npm run release:test           # immutable release/rollback invariants
 ```
 
-## Architecture notes
-
-See `CURRENT_STATE.md` for live operational state. See `CLAUDE.md` for active
-architecture decisions. The service is always deployed from an immutable release
-directory (`/opt/workspace/runtime/releases/command/current`); builds in the
-working directory never affect the running process.
+Deployment remains an explicit separate action (`npm run deploy`). See `CURRENT_STATE.md` for current release and eval-gate state.
 
 ## Internal docs
 
-- `CLAUDE.md` — active decisions and quality standards
-- `CURRENT_STATE.md` — live project state (updated every tick)
-- `.prompteval/` — governed prompt eval loops (ADR-0039)
-- `.reviews/` — adversarial review artifacts per commit
-- `docs/phase-d-design.md` — Phase D design (parked)
+- `CLAUDE.md` — project charter and implementation constraints
+- `CURRENT_STATE.md` — current operational and delivery state
+- `docs/product-boundary.md` — authoritative human web boundary
+- `docs/observatory-contracts.md` — typed collector contracts
+- `.prompteval/` — governed prompt evaluation loops

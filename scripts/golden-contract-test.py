@@ -24,6 +24,9 @@ V2_FEEDBACK_CACHES = {
     'gc-0208a8225000a225': ('ck-29cfd28dc657227b.json', '0b0f6b038ce76d325faff481c735afe8a92dcafe8577f1d055e40110c414724f'),
     'gc-dacb6094a0651bd4': ('ck-934d8d108dbb9821.json', '09c96bc3a71ff64682a282ec4d65b309d350469b065c9516cf8a0c40dc22430c'),
 }
+PRODUCT_BOUNDARY_ARCHIVE = SPEC / 'archive' / 'v2-product-boundary-20260719'
+RETIRED_ATTACH_SOURCE_SHA = '49850946fa91d63e868bf4e58585565ac6281b32ffbee4cabc6ffa374f3895a2'
+RETIRED_ATTACH_CASES_SHA = '47fc8a7bef5b818bb6a64139f80e7c032db2d87fec6425a5c8d73abe0913e8b4'
 FORBIDDEN_ECHOES = {'Task ID:', 'Working directory:', 'Intent:'}
 
 
@@ -57,6 +60,16 @@ v1_active_path = SPEC / 'archive' / 'v1' / 'cases.jsonl'
 v1_holdout_path = SPEC / 'archive' / 'v1' / 'holdout.jsonl'
 assert digest(v1_active_path) == V1_ACTIVE_SHA
 assert digest(v1_holdout_path) == V1_HOLDOUT_SHA
+assert not (ROOT / 'src' / 'lib' / 'attachLock.ts').exists(), 'retired eval subject leaked back into runtime source'
+assert digest(PRODUCT_BOUNDARY_ARCHIVE / 'attachLock.ts') == RETIRED_ATTACH_SOURCE_SHA
+assert digest(PRODUCT_BOUNDARY_ARCHIVE / 'retired-cases.jsonl') == RETIRED_ATTACH_CASES_SHA
+retired_attach_cases = load_jsonl(PRODUCT_BOUNDARY_ARCHIVE / 'retired-cases.jsonl')
+assert {case['input']['task_id'] for case in retired_attach_cases} == {'t-fix-03', 't-docs-07'}
+assert all('attachLock.ts' in case['input']['description'] for case in retired_attach_cases)
+boundary_manifest = json.loads((PRODUCT_BOUNDARY_ARCHIVE / 'manifest.json').read_text())
+assert boundary_manifest['source']['sha256'] == RETIRED_ATTACH_SOURCE_SHA
+assert boundary_manifest['retired_cases']['sha256'] == RETIRED_ATTACH_CASES_SHA
+assert set(boundary_manifest['retired_cases']['ids']) == {case['id'] for case in retired_attach_cases}
 
 receipt = json.loads((SPEC / 'archive' / 'v1' / 'failed-run-receipt.json').read_text())
 assert receipt['status'] == 'retired'
@@ -115,6 +128,20 @@ assert len(active) == 12
 assert 2 <= len(holdout) <= 4
 assert not ({case['id'] for case in active} & {case['id'] for case in holdout})
 assert not ({case['id'] for case in holdout} & {case['id'] for case in v1_cases}), 'v2 holdouts must be freshly minted'
+assert not ({case['id'] for case in active} & {case['id'] for case in retired_attach_cases})
+assert all('attachLock.ts' not in case['input']['description'] for case in active)
+assert set(boundary_manifest['replacement_active_case_ids']) <= {case['id'] for case in active}
+assert boundary_manifest['sealed_holdout_sha256'] == digest(SPEC / 'golden' / 'holdout.jsonl')
+
+fixed_case = next(case for case in active if case['input']['task_id'] == 't-fix-03')
+fixed_rubric = next(check['rubric'] for check in fixed_case['checks'] if check.get('failure_mode') == 'already-fixed-state-missed')
+assert 'src/lib/observatory.ts' in fixed_rubric
+assert 'basename(dirname(path))' in fixed_rubric
+
+small_edit_case = next(case for case in active if case['input']['task_id'] == 't-docs-07')
+small_edit_rubric = next(check['rubric'] for check in small_edit_case['checks'] if check.get('failure_mode') == 'exact-small-edit-missing')
+assert 'src/middleware.ts' in small_edit_rubric
+assert 'PUBLIC_PATHS' in small_edit_rubric
 
 debug_case = next(case for case in active if case['id'] == 'gc-466822e89b2392f2')
 debug_rubric = next(check['rubric'] for check in debug_case['checks'] if check.get('failure_mode') == 'debugging-without-source-grounding')
@@ -151,6 +178,7 @@ assert snapshot_eval_files() == before, 'missing target mutated prompt-eval evid
 targeted_result = run_generator('--prompt-id', 'codex-task-prompt')
 assert targeted_result.returncode == 0, targeted_result.stderr
 assert 'Wrote: codex-task-prompt' in targeted_result.stdout
+assert 'sealed holdout untouched' in targeted_result.stdout
 assert snapshot_eval_files() == before, 'targeted regeneration was non-idempotent or crossed prompt boundaries'
 
 print('codex-task-prompt v2 contract, archive provenance, and generator safety tests passed')

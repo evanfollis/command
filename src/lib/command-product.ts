@@ -6,8 +6,8 @@ export interface CommandNavItem {
 
 export const COMMAND_IDENTITY = {
   name: 'Command',
-  title: 'Executive Surface',
-  description: 'Principal-facing executive front door for the Synaplex workspace.',
+  title: 'Owner Observatory',
+  description: 'Authenticated read-only health observatory for the Synaplex workspace.',
 } as const
 
 export const COMMAND_NAV: CommandNavItem[] = [] as const

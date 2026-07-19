@@ -17,8 +17,7 @@
     "deps": [
       "scripts/prompteval-adapters/adapter_llm.py",
       "scripts/render-prompt.ts",
-      "src/lib/promptTemplate.ts",
-      "src/lib/threadConversation.ts"
+      "src/lib/promptTemplate.ts"
     ],
     "timeout": 420
   },

@@ -1,0 +1,18 @@
+{
+  "status": "retired-active-cases",
+  "retired_at": "2026-07-19T19:08:00Z",
+  "reason": "Command removed the legacy attach runtime; active evaluation cases must follow current owner-observatory source rather than retain dead production code.",
+  "source": {
+    "path": "src/lib/attachLock.ts",
+    "commit": "db026ba4274ea9a47bde48105d549a1fc19a9be3",
+    "archived_path": "attachLock.ts",
+    "sha256": "49850946fa91d63e868bf4e58585565ac6281b32ffbee4cabc6ffa374f3895a2"
+  },
+  "retired_cases": {
+    "path": "retired-cases.jsonl",
+    "sha256": "47fc8a7bef5b818bb6a64139f80e7c032db2d87fec6425a5c8d73abe0913e8b4",
+    "ids": ["gc-23697c34d1e5e325", "gc-de25426047376a5a"]
+  },
+  "replacement_active_case_ids": ["gc-beeffc8ebf868689", "gc-03a8e553bc10ed72"],
+  "sealed_holdout_sha256": "e7ad1dd7c30f879bf2135be5252fadf2132aba165f06cbd18a5d57b570fb091b"
+}

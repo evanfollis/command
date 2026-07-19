@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/client-report']
+const PUBLIC_PATHS = ['/login', '/api/auth']
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  if (PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next()
   }
 

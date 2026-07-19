@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "tsx server.ts",
-    "check": "node --import tsx scripts/check-patterns.ts",
+    "check": "node --import tsx scripts/check-patterns.ts && npm run product-boundary:test",
     "build": "npm run check && next build && npx tsc -p tsconfig.server.json && git rev-parse HEAD > dist/.version",
     "start": "NODE_ENV=production node dist/server.js",
     "smoke": "tsx scripts/smoke.ts",
     "browser:setup": "bash scripts/browser-libs-setup.sh",
     "browser:smoke": "bash scripts/browser-smoke-wrapper.sh",
     "observatory:test": "node --import tsx scripts/observatory-test.ts",
+    "product-boundary:test": "node --import tsx scripts/product-boundary-test.ts",
     "eval-telemetry:test": "node --import tsx scripts/eval-telemetry-test.ts",
     "prompteval-config:test": "node --import tsx scripts/prompteval-config-test.ts",
     "golden-contract:test": "python3 scripts/golden-contract-test.py",
@@ -22,19 +23,14 @@
     "release:test": "bash scripts/release-invariants-test.sh"
   },
   "dependencies": {
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/addon-web-links": "^0.11.0",
-    "@xterm/xterm": "^5.5.0",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.2",
     "next": "15.5.18",
-    "node-pty": "^1.0.0",
     "react": "19.1.7",
     "react-dom": "19.1.7",
     "react-markdown": "^10.1.0",
     "rehype-slug": "^6.0.0",
-    "remark-gfm": "^4.0.1",
-    "ws": "8.21.0"
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
@@ -43,7 +39,6 @@
     "@types/node": "^20.14.0",
     "@types/react": "19.1.17",
     "@types/react-dom": "19.1.11",
-    "@types/ws": "^8.5.0",
     "autoprefixer": "^10.4.0",
     "esbuild": "0.28.1",
     "postcss": "8.5.10",

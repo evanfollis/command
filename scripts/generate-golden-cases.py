@@ -34,11 +34,13 @@ def parse_args():
                            help='generate only this prompt (repeatable)')
     selection.add_argument('--all', action='store_true',
                            help='explicitly regenerate every prompt set')
+    parser.add_argument('--rewrite-holdouts', action='store_true',
+                        help='explicitly rewrite generated holdouts (default: never open or write sealed holdouts)')
     args = parser.parse_args()
-    return set(PROMPT_IDS if args.all else args.prompt_id)
+    return set(PROMPT_IDS if args.all else args.prompt_id), args.rewrite_holdouts
 
 
-SELECTED_PROMPTS = parse_args()
+SELECTED_PROMPTS, REWRITE_HOLDOUTS = parse_args()
 
 
 def read_existing(*paths):
@@ -64,20 +66,24 @@ def write_cases(prompt_id, active_cases, holdout_cases):
     base = REPO / '.prompteval' / prompt_id / 'golden'
     cases_path = base / 'cases.jsonl'
     holdout_path = base / 'holdout.jsonl'
-    existing = read_existing(cases_path, holdout_path)
-    for case in [*active_cases, *holdout_cases]:
+    existing = read_existing(cases_path)
+    if REWRITE_HOLDOUTS:
+        existing.update(read_existing(holdout_path))
+    for case in [*active_cases, *(holdout_cases if REWRITE_HOLDOUTS else [])]:
         previous = existing.get(case['id'])
         if previous:
             case['created'] = previous['created']
             if semantic_case(case) == semantic_case(previous):
                 case['last_validated'] = previous['last_validated']
     cases_path.write_text('')
-    holdout_path.write_text('')
     for c in active_cases:
         append_jsonl(cases_path, c)
-    for c in holdout_cases:
-        append_jsonl(holdout_path, c)
-    print(f"  {prompt_id}: {len(active_cases)} active, {len(holdout_cases)} holdout")
+    if REWRITE_HOLDOUTS:
+        holdout_path.write_text('')
+        for c in holdout_cases:
+            append_jsonl(holdout_path, c)
+    holdout_action = f"rewrote {len(holdout_cases)} holdout" if REWRITE_HOLDOUTS else "sealed holdout untouched"
+    print(f"  {prompt_id}: {len(active_cases)} active, {holdout_action}")
 
 
 # ─────────────────────────────────────────────────────────
@@ -529,14 +535,16 @@ ctp_active = [
         {"task_id": "t-fix-03", "project_path": "/opt/workspace/projects/command",
          "intent": "bug-fix", "scope": "single-file", "risk": "medium",
          "model_posture": "sonnet / default", "target_project": "command",
-         "description": "Fix the race condition in attachLock.ts where a stale socket close can evict a newer reconnect's write lock."},
+         "description": "Fix recent-change project titles that render as '..' because collectRecentChanges derives the title from the CURRENT_STATE.md path."},
         [task_judge(
             "already-fixed-state-missed",
-            "FAIL if the response proposes re-adding a fix already present in attachLock.ts. PASS "
-            "if it inspects current code, identifies whether the socket-identity guard already "
-            "closes the stale-close race, and reports the evidence or a remaining concrete gap."
+            "FAIL if the response proposes re-adding a project-title fix already present in "
+            "src/lib/observatory.ts or accepts the '..' report without inspecting current source. "
+            "PASS if it verifies that collectRecentChanges currently uses basename(dirname(path)) "
+            "for CURRENT_STATE.md, explains why that avoids '..', and reports the evidence or a "
+            "remaining concrete title path that is still wrong."
         )],
-        "bug report x already-landed detection x no redundant patch"
+        "owner observatory x already-landed detection x no redundant patch"
     ),
     task_case(
         {"task_id": "t-smoke-04", "project_path": "/opt/workspace/projects/command",
@@ -583,14 +591,15 @@ ctp_active = [
         {"task_id": "t-docs-07", "project_path": "/opt/workspace/projects/command",
          "intent": "documentation", "scope": "single-file", "risk": "low",
          "model_posture": "haiku / default", "target_project": "command",
-         "description": "Add a one-line comment to attachLock.ts explaining why the instance check in unregisterClient is necessary."},
+         "description": "Add a one-line comment in src/middleware.ts explaining why public path matching uses exact equality instead of prefix matching."},
         [task_judge(
             "exact-small-edit-missing",
             "FAIL if the response only describes the comment or changes behavior. PASS if it "
-            "inspects attachLock.ts and supplies the exact one-line documentation diff at the "
-            "socket-instance guard."
+            "inspects src/middleware.ts and supplies the exact one-line documentation diff at "
+            "the PUBLIC_PATHS exact-match guard, explaining that prefix matching could make an "
+            "unrelated lookalike route public."
         )],
-        "small reversible edit x exact artifact"
+        "owner observatory boundary x small reversible edit x exact artifact"
     ),
     task_case(
         {"task_id": "t-review-08", "project_path": "/opt/workspace/projects/command",

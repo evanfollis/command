@@ -23,12 +23,6 @@
       "status": "governed"
     },
     {
-      "file": "src/lib/threadConversation.ts",
-      "id": null,
-      "status": "not-a-prompt",
-      "note": "prompt artifact extracted to src/prompts/thread-opening-frame.md, governed via thread-opening-frame spec"
-    },
-    {
       "file": "src/lib/review.ts",
       "id": null,
       "status": "not-a-prompt",
