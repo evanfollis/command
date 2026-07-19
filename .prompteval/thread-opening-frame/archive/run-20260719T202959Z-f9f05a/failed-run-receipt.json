@@ -1,0 +1,28 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260719T202959Z-f9f05a",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/thread-opening-frame/runs/run-20260719T202959Z-f9f05a.json",
+  "sha256": "c9c920502aa8a87356205cb9014b87130891cfff7225285e9d1360f0a486b5d9",
+  "release": true,
+  "cached_allowed": false,
+  "aggregate": 0.5625,
+  "gate_passed": false,
+  "golden_hash": "gh-42680864b11a27db",
+  "spec_hash": "sh-73718c3a07281b35",
+  "prompt_version": "pv-fabcfdb352865e43",
+  "judge_unknown_ratio": 0.0,
+  "required_active_cases_passed": true,
+  "advisory_failures_blocking": false,
+  "failed_sealed_case": {
+    "case_id": "gc-45128a2d178513a7",
+    "failure_mode": "irreversible-file-delete-treated-as-run-command",
+    "disposition": "burned_and_promoted_active",
+    "original_record_sha256": "5258c2b8769dd84b51095340b457820232f2e4909b28c8fcfa854112377b3080",
+    "input_checks_sha256": "59c9081fd4821f272be377b553e16b165fca7b342860024a69276e2ce4c2f47d"
+  },
+  "pre_transition_holdout_sha256": "708272166cc6af708f46be557be8b9186743a475d3d936f9281625814346ab09",
+  "preserved_surviving_record_sha256": "18dfc867ee052dca7800541223f173c53f6019d7142b179bbad209a77ff257ed",
+  "post_transition_active_sha256": "f25e99725cf8ccffd03b38afa5a971e4547b9abdd3ecaf255f806bef03d24376",
+  "new_holdout_sha256": "e089337a1c6d23f18b35b0d6922c04a674fa1079778b7aa99dfb13de978d29b8",
+  "new_holdout_count": 2
+}

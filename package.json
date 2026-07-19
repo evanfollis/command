@@ -15,6 +15,7 @@
     "eval-telemetry:test": "node --import tsx scripts/eval-telemetry-test.ts",
     "prompteval-config:test": "node --import tsx scripts/prompteval-config-test.ts",
     "golden-contract:test": "python3 scripts/golden-contract-test.py",
+    "thread-opening-contract:test": "python3 scripts/thread-opening-contract-test.py",
     "codex-task-builder:test": "node --import tsx scripts/codex-task-builder-test.ts",
     "offline-synthesis-contract:test": "python3 scripts/offline-synthesis-contract-test.py",
     "deploy": "bash scripts/release.sh",

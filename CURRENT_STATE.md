@@ -1,6 +1,6 @@
 # Command — Current State
 
-**Last updated:** 2026-07-19 — Codex-task release feedback corrected without inspecting or changing sealed holdouts. No external evaluation or deployment was run.
+**Last updated:** 2026-07-19 — failed thread-opening holdout burned into active regression, destructive-state policy corrected, and holdout resealed. No external evaluation or deployment was run.
 
 ## Current product boundary
 
@@ -27,11 +27,13 @@
 ## Prompt-eval state and protected evidence
 
 - `review-prompt`, `thread-opening-frame`, and `offline-synthesis-prompt` baseline files are preserved unchanged.
+- Fresh no-cache thread-opening release run `run-20260719T202959Z-f9f05a` failed closed after every required active case passed: sealed `gc-45128a2d178513a7` exposed that a dry-run was being treated as sufficient authority to delete unrecoverable runtime state. The immutable run receipt and exact burned record are archived under `.prompteval/thread-opening-frame/archive/run-20260719T202959Z-f9f05a/` without exposing sealed content.
+- The burned case is now an active production regression with its input/check contract preserved exactly. The frame now states that dry-run selection proof is not recoverability and requires a verified backup/restore path or explicit principal authority before destructive execution. One fresh holdout from a different behavior dimension replaced it; the other sealed record remains byte-identical.
 - Fresh no-cache release run `run-20260719T195258Z-eec522` failed closed at `0.8`. Active `gc-77322229d9ca8bd2` exposed a contradictory generic responsiveness rubric; active `gc-dacb6094a0651bd4` exposed comprehensive patch language despite unresolved coupled-store durability. One sealed case was judge-unknown because the judge output was unparseable; that is not behavioral failure evidence and no holdout content was inspected.
 - The immutable receipt, active cache hashes, and bounded failure dispositions are archived under `.prompteval/codex-task-prompt/archive/run-20260719T195258Z-eec522/`.
 - The generic active rubric now counts a truthful exact command/cwd handoff as direct progress when the probe cannot execute. The prompt now requires ordering, partial-failure recovery, idempotent replay/backfill, and producer ownership proof before a coupled-store proposal may be called exact or comprehensive.
 - Two active (not holdout) Codex-task cases that named retired `attachLock.ts` source were archived with the exact historical source under `.prompteval/codex-task-prompt/archive/v2-product-boundary-20260719/` and replaced with current owner-observatory cases of the same behavioral dimensions. The generator now leaves sealed holdouts unopened unless an explicit `--rewrite-holdouts` flag is supplied.
-- No prompt, accepted baseline, or sealed holdout was changed. Removing the retired thread runtime also removed a stale `threadConversation.ts` executor dependency from the thread-opening spec, so its preserved baseline is now correctly drifted rather than backed by a dead file. Root must run fresh no-cache release evaluations for both `codex-task-prompt` and `thread-opening-frame` from the committed product-boundary SHA.
+- Accepted baselines and all non-thread holdouts remain unchanged. The thread holdout changed only through the recorded burn/promotion/reseal transition above. Removing the retired thread runtime also removed a stale `threadConversation.ts` executor dependency from the thread-opening spec, so its preserved baseline is correctly drifted rather than backed by a dead file. Root must run fresh no-cache release evaluations for both `codex-task-prompt` and `thread-opening-frame` from the resulting committed SHA.
 - Current `prompteval check .` remains fail-closed for Codex-task prompt/golden drift and thread-opening executor-dependency drift; review also reports one unpromoted candidate warning.
 - Deployment remains blocked until root accepts fresh passing Codex-task and thread-opening baselines and the full gate passes.
 
@@ -42,6 +44,7 @@
 
 ## Verification completed
 
+- Thread-opening burn-promotion, immutable receipt, active-contract fingerprint, destructive-state policy, targeted generator isolation, reseal count/hash, and surviving-record byte-preservation checks pass. The new sealed holdout has 2 records at SHA-256 `e089337a1c6d23f18b35b0d6922c04a674fa1079778b7aa99dfb13de978d29b8`.
 - Codex-task targeted regeneration, failed-run provenance, generic-rubric exception, coupled-store durability prompt assertions, real-builder rendering, prompt timeout configuration, `npm check`, TypeScript, and the production build pass. The sealed Codex holdout remained byte-identical at `e7ad1dd7c30f879bf2135be5252fadf2132aba165f06cbd18a5d57b570fb091b` before and after generation.
 - Product-boundary, observatory, eval telemetry/config, golden-contract, Codex builder, offline-synthesis, immutable release/rollback, TypeScript, and production build gates pass.
 - Final authenticated HTTP smoke passed against an isolated candidate on port 3111: every retired page/API returned 404; Symphony `POST`/`PATCH` returned 405; retained read APIs and all authenticated shell assets returned 200.
