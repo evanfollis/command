@@ -1,6 +1,6 @@
 # Command — Current State
 
-**Last updated:** 2026-07-19T21:39Z — prompteval deploy-gate residual tick. Profiled codex-task adapter (no timeout change needed). Sandbox-block confirmed; eval runs routed to general via handoff. No prompt or golden changes; no deployment.
+**Last updated:** 2026-07-19T21:50Z — thread-opening production regression strengthened into an explicit stop-before-drafting condition after fresh run `d57d63`; no golden, baseline, holdout, external-eval, or deployment changes.
 
 ## Current product boundary
 
@@ -28,7 +28,7 @@
 
 - **offline-synthesis-prompt**: PASSING. Baseline `run-20260719T184416Z-615bee`, aggregate 1.0 (all 14 must-pass cases). Fixed in session `b88229d`. No action needed.
 - **review-prompt**: PASSING with 1 unpromoted candidate warning (7d old). Not deploy-blocking. Curate flywheel when bandwidth allows.
-- **thread-opening-frame**: Prompts fixed across commits `d413a2b` (burn/promotion of gc-45128a2d178513a7) and `201714b` (advisory generator stability). Current prompt `pv-491cc80c96f74487` correctly gates destructive/unrecoverable state before action-default; dry-run does NOT satisfy the recoverability gate. `prompteval check` fails because live prompt/golden/spec drifted from baseline `run-20260719T181436Z-17a5e0` (set before the fix). **Needs fresh no-cache release run from general — run request handoff sent 2026-07-19T21:39Z.**
+- **thread-opening-frame**: Fresh run `run-20260719T214919Z-d57d63` kept all six advisory failures non-blocking and passed both sealed holdouts with unknown ratio `0.0`; sole required failure was production regression `gc-45128a2d178513a7`. Recoverability-first explanation was insufficient because the response still drafted a runnable destructive command. The frame now starts with an explicit stop condition: absent verified restore evidence or principal authority, it must not draft or supply a runnable destructive command and may report only non-destructive inspection/dry-run evidence while requesting the missing proof. Bounded receipt: `.prompteval/thread-opening-frame/archive/run-20260719T214919Z-d57d63/`. **Needs a fresh no-cache release run from general.**
 - **codex-task-prompt**: No baseline. Cases replaced from retired `attachLock.ts` sources to current owner-observatory cases (archived under `v2-product-boundary-20260719`). Prompt strengthened (commits `b787525`, `db026ba`) to require ordering, partial-failure recovery, idempotent replay/backfill, and producer ownership proof before calling comprehensive. Adapter timeout profiled: 380s in `adapter_llm.run_prompt()` is adequate for v2 cases (runs 318ec6 and eec522 completed without timeout); spec timeout is 900s; no change needed. Original 2026-07-17 timeout was with the retired v1 golden set. **Needs fresh no-cache release run from general — run request handoff sent 2026-07-19T21:39Z.**
 - `prompteval check .` fails with 4 items (2 FAILs for thread-opening-frame, 1 FAIL for codex-task-prompt no-baseline, 1 WARN for review-prompt candidate). Command session is sandbox-blocked from subscription-CLI calls; runs route to general per pressure-queue protocol.
 - Deployment remains blocked until general completes both eval runs, both baselines are accepted, and `prompteval check .` passes clean.
@@ -40,6 +40,7 @@
 
 ## Verification completed
 
+- Thread-opening stop-condition ordering, required/advisory semantics, bounded run `d57d63` provenance, and unchanged sealed holdout hash are covered deterministically. The stop rule precedes both recoverability classification and the reversible-action default.
 - Thread-opening targeted regeneration now preserves the exact six-case advisory set, 9 required active cases, and corrected immutable-run required-aggregate semantics (`10/11`, `0.9091`). Both sealed records remain byte-identical as a whole at SHA-256 `e089337a1c6d23f18b35b0d6922c04a674fa1079778b7aa99dfb13de978d29b8`.
 - Thread-opening burn-promotion, immutable receipt, active-contract fingerprint, destructive-state policy, targeted generator isolation, reseal count/hash, and surviving-record byte-preservation checks pass. The new sealed holdout has 2 records at SHA-256 `e089337a1c6d23f18b35b0d6922c04a674fa1079778b7aa99dfb13de978d29b8`.
 - Codex-task targeted regeneration, failed-run provenance, generic-rubric exception, coupled-store durability prompt assertions, real-builder rendering, prompt timeout configuration, `npm check`, TypeScript, and the production build pass. The sealed Codex holdout remained byte-identical at `e7ad1dd7c30f879bf2135be5252fadf2132aba165f06cbd18a5d57b570fb091b` before and after generation.
