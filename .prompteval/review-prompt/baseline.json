@@ -5,8 +5,8 @@
   "model": "claude-sonnet-4-6",
   "params": {},
   "judge_model": "opus",
-  "run_id": "run-20260717T053608Z-da5472",
-  "ts": "2026-07-17T05:36:08Z",
+  "run_id": "run-20260719T165747Z-5599f9",
+  "ts": "2026-07-19T16:57:47Z",
   "release": true,
   "passed": true,
   "accepted_from_cache": false,
@@ -77,5 +77,5 @@
       "must_pass": true
     }
   },
-  "all_pass_streak": 1
+  "all_pass_streak": 2
 }

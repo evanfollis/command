@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-19T16:36Z — attended observatory dispatch. Owner observatory expansion committed as `91a3eb4` and isolated-browser verified. Prompteval remains 1 of 4: the environment denied the explicitly authorized subscription-CLI export before any new run/evidence was created. Deploy remains fail-closed; live production is still immutable release `20260712T202224Z-2a6d684`.
+**Last updated**: 2026-07-19T17:52Z — attended codex-task golden-contract correction. Invalid metadata-echo contract v1 retired with exact archive/run/cache provenance; behavioral contract v2 and help-safe targeted generator implemented and locally verified. No external eval or deploy was run. Prompteval remains fail-closed pending root's fresh v2 release run.
 
 ---
 
@@ -20,6 +20,15 @@
   - **Remaining narrow gap**: `/tmp/browser-libs` is ephemeral (reboot clears it). The `browser:setup` script re-downloads and re-extracts ~40MB of .deb files via apt. This requires network access to apt mirrors. If apt is unreachable post-reboot, browser smoke won't run until connectivity is restored. No impact on server-side smoke.
 
 
+
+## What just completed (2026-07-19T17:52Z, attended — codex-task golden contract v2)
+- Audited fresh release run `run-20260719T174001Z-41af82` and current cache receipts. The run was genuinely uncached release evidence but its 0.0714 result was evaluator contamination: 13 of 14 cases failed deterministic response-echo checks for `Task ID:`, `Working directory:`, and `Intent:` before behavioral judging. Cached responses instead showed source inspection, exact proposed diffs/diagnoses, truthful no-execution boundaries, ambiguity handling, and already-fixed detection.
+- Preserved the exact committed v1 active and holdout bytes under `.prompteval/codex-task-prompt/archive/v1/`, with SHA-256 digests and the failed run receipt/digest. The accidental post-run regeneration caused by `generate-golden-cases.py --help` is documented separately and is not represented as run input.
+- Replaced the active contract with v2: 12 audited active cases and three newly minted sealed holdouts. Every case is must-pass and grades nonempty bounded output, goal responsiveness, truthful read-only provenance, and a named case-specific behavioral failure mode. No check requires prompt metadata echo or execution the probe cannot perform.
+- Made golden generation explicit and target-scoped: `--prompt-id <id>` or deliberate `--all` is required; `--help` and missing-target invocations are read-only; unchanged cases retain timestamps; targeted Codex regeneration is byte-idempotent and cannot rewrite other prompts, baselines, archives, or sealed evidence.
+- Added `golden-contract:test`, which locks v1 hashes/receipt semantics, detects the original echo-check failure class, verifies fresh/disjoint v2 holdouts, and executes the help-safety/target-isolation/idempotence regressions.
+- Preserved root's accepted fresh `review-prompt/baseline.json` update unchanged. Restored the accidental thread-opening/review/offline golden rewrites exactly to committed `HEAD`.
+- Local non-LLM evidence passed: golden-contract regression, observatory regression, bounded eval telemetry, 900-second fallback envelope, cross-version release/rollback invariants, pattern checks, TypeScript, and the Next production build. `prompteval check .` remains expectedly red for the three prompts without accepted baselines. Per dispatch, no external evaluation and no deployment were attempted.
 
 ## What just completed (2026-07-19T16:27Z, attended — owner observatory closure surface)
 - Integrated the preserved eval-telemetry WIP into the authenticated owner dashboard. Telemetry and run discovery are bounded; the render path does not load full transcripts or per-case reports.

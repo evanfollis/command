@@ -1,0 +1,23 @@
+{
+  "schema_version": "command.prompteval-retired-contract.v1",
+  "contract_version": "v1",
+  "status": "retired",
+  "canonical_source_commit": "74c6ca8c7a7294ab507d1c1225f9d947cea6bfd7",
+  "active_sha256": "1137b119fa29a13cc22063132dee2fd1c3ef22db29987b5798681ff37eab7b1a",
+  "holdout_sha256": "a067053a0e0a67a355d891c13162697fbd764b332abdf945040f550cde68502b",
+  "failed_run": {
+    "run_id": "run-20260719T174001Z-41af82",
+    "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260719T174001Z-41af82.json",
+    "sha256": "4e9e820efb586def155d6dca887ac0315095d8fdc01f5343417f0a6cc42d874e",
+    "golden_hash": "gh-4c09f6571a629dc5",
+    "spec_hash": "sh-33de56c408b2aec7",
+    "prompt_version": "pv-6ce30f7ee75fbd87",
+    "release": true,
+    "cached_allowed": false,
+    "total_cases": 14,
+    "passed_cases": 1,
+    "failed_cases": 13,
+    "failed_must_pass_cases": 11
+  },
+  "retirement_reason": "Required response echoes of rendered dispatch metadata caused deterministic short-circuit failures before behavioral judging."
+}

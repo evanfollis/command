@@ -13,6 +13,7 @@
     "observatory:test": "node --import tsx scripts/observatory-test.ts",
     "eval-telemetry:test": "node --import tsx scripts/eval-telemetry-test.ts",
     "prompteval-config:test": "node --import tsx scripts/prompteval-config-test.ts",
+    "golden-contract:test": "python3 scripts/golden-contract-test.py",
     "deploy": "bash scripts/release.sh",
     "meta:scan": "tsx scripts/meta-scan.ts",
     "release:rollback": "bash scripts/rollback.sh",

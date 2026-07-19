@@ -1,6 +1,6 @@
 {
   "id": "codex-task-prompt",
-  "description": "Task dispatch prompt for Codex executive session. Assembles task metadata (id, path, intent, scope, risk, model posture) and description into a structured spec that the Codex session receives via tmux send-keys. KNOWN LIMITATION: the probe runs with tools disabled, so action-taking is observed as stated intent, not execution. The probe wrapper is deliberately behavior-neutral; judges grade substance (was the work done or handed back), not phrasing.",
+  "description": "Task dispatch prompt for Codex executive session. Assembles task metadata (id, path, intent, scope, risk, model posture) and description into a structured spec that the Codex session receives via tmux send-keys. Golden contract v2 evaluates behavioral comprehension and truthful closure under the deliberately read-only probe; dispatch metadata is input context, never required response vocabulary. The retired v1 contract and failed release receipt are preserved under archive/v1.",
   "owner": "command",
   "source": {
     "type": "whole_file",
