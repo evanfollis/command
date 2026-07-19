@@ -758,14 +758,21 @@ osp_active = [
     synth_case(
         [
             ("command", "mistake", 5, "Auth failures: cookie rejected with 401 after successful login",
-             ["iPhone CriOS reports 401 on /api/threads after login", "Pattern: mobile redirect bug class"]),
+             ["iPhone CriOS reports 401 on /api/threads after login",
+              "No request URL, forwarding headers, Set-Cookie trace, cookie-return trace, or submission-count trace was captured",
+              "Current middleware uses configured COMMAND_ORIGIN and redirect smoke reports no internal-host leak"]),
         ],
-        [("local-fix-recommendation",
-          "FAIL if the proposal addresses only command's auth. "
-          "PASS if it identifies that server-generated URLs behind a reverse proxy are the root class "
-          "and proposes a workspace-wide rule (never derive public URLs from req.headers)."),
+        [("unsupported-auth-causality",
+          "FAIL if the proposal declares reverse-proxy URL derivation, WebKit cookie behavior, "
+          "password-manager double submission, or another mechanism to be the root cause without "
+          "evidence that distinguishes it; also FAIL if it prescribes a mechanism-specific fix such "
+          "as UA-keyed dedup or origin rewriting on that unsupported basis. PASS if it separates the "
+          "observed post-login 401 from hypotheses, preserves the verified COMMAND_ORIGIN mechanism, "
+          "names the missing discriminating evidence, and proposes a bounded observation or "
+          "reproduction path that can distinguish cookie storage/return, API authentication, redirect "
+          "origin, and submission multiplicity before choosing repo-local versus workspace-wide work."),
          ],
-        "auth failure, proxy URL class"
+        "auth symptom, insufficient causal evidence, verified origin mechanism"
     ),
     synth_case(
         [

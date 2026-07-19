@@ -1,0 +1,23 @@
+{
+  "schema_version": "command.prompteval-active-contract-retirement.v1",
+  "case_id": "gc-3b64928414ae568a",
+  "status": "retired",
+  "archived_case_sha256": "92f536b04fb8da46cf4136bc323ee1ff8169136268c83481329b35c39b8b6e23",
+  "run": {
+    "run_id": "run-20260719T181501Z-caf280",
+    "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/offline-synthesis-prompt/runs/run-20260719T181501Z-caf280.json",
+    "sha256": "1761d5c9f80ea89da752163761ca23c76eadd4e47a34ee1be53787ee2096350e",
+    "release": true,
+    "cached_allowed": false,
+    "aggregate": 0.9286,
+    "golden_hash": "gh-80e22336b8b8ca1e",
+    "spec_hash": "sh-85244569411ef570",
+    "prompt_version": "pv-1f7cc1fc93b21773"
+  },
+  "cache": {
+    "key": "ck-07d0912cf2acee17",
+    "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/offline-synthesis-prompt/cache/ck-07d0912cf2acee17.json",
+    "sha256": "4509b3eb91e8e0e136cc10ad1f83df57d40e041d6639bee0371063cb0a8c9eae"
+  },
+  "retirement_reason": "Generic auth symptom evidence could not support the rubric's mandatory reverse-proxy root cause."
+}

@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-19T17:52Z — attended codex-task golden-contract correction. Invalid metadata-echo contract v1 retired with exact archive/run/cache provenance; behavioral contract v2 and help-safe targeted generator implemented and locally verified. No external eval or deploy was run. Prompteval remains fail-closed pending root's fresh v2 release run.
+**Last updated**: 2026-07-19T18:22Z — attended offline-synthesis active-contract correction. Unsound forced proxy-causality case retired with exact run/cache provenance; replacement evidence-bounded case and prompt guidance locally verified. Current review/thread baselines and every sealed holdout are preserved. No external eval or deploy was run; two baselines remain pending.
 
 ---
 
@@ -20,6 +20,13 @@
   - **Remaining narrow gap**: `/tmp/browser-libs` is ephemeral (reboot clears it). The `browser:setup` script re-downloads and re-extracts ~40MB of .deb files via apt. This requires network access to apt mirrors. If apt is unreachable post-reboot, browser smoke won't run until connectivity is restored. No impact on server-side smoke.
 
 
+
+## What just completed (2026-07-19T18:22Z, attended — offline-synthesis evidence contract)
+- Audited fresh uncached release run `run-20260719T181501Z-caf280`, its sole failed active case `gc-3b64928414ae568a`, cache `ck-07d0912cf2acee17`, the governed prompt, and current authentication/origin code. The case supplied only a generic CriOS post-login 401 symptom but required reverse-proxy-derived URLs as the root cause. Current middleware already uses configured `COMMAND_ORIGIN`, login responses are relative, and pattern/smoke checks protect against internal-origin leakage.
+- Retired and archived that exact active-case contract with SHA-256 run/cache/case receipts. Replaced it with a freshly minted active case whose evidence explicitly records absent discriminating traces and the verified origin mechanism. Its named judge now rejects unsupported proxy, WebKit, password-manager, and mechanism-specific-fix claims; it requires observation/hypothesis separation plus a bounded path that can distinguish cookie storage/return, API authentication, redirect origin, and submission multiplicity.
+- Critically rejected the cached alternative as an expected answer. Its WebKit reconciliation theory is unverified; a failed+successful pair has only one `Set-Cookie`; and its process-local success-only UA map cannot deduplicate that pair, conflates clients, resets with process topology, and can return success without issuing a token.
+- Conditioned the offline synthesis prompt's reverse-proxy guidance on supplied evidence and made its read-only probe description truthful. Added `offline-synthesis-contract:test` to lock provenance, detect the old forced-answer rubric, inspect the cached failure shape, protect baseline hashes, and prove targeted regeneration is byte-idempotent while leaving the sealed holdout unchanged.
+- Non-LLM gates passed: offline/codex contract regressions, observatory, eval telemetry, timeout envelope, release/rollback invariants, pattern checks, TypeScript, and production build. `prompteval check .` now reports only the expected missing `codex-task-prompt` and `offline-synthesis-prompt` baselines. No external evaluation or deployment was run.
 
 ## What just completed (2026-07-19T17:52Z, attended — codex-task golden contract v2)
 - Audited fresh release run `run-20260719T174001Z-41af82` and current cache receipts. The run was genuinely uncached release evidence but its 0.0714 result was evaluator contamination: 13 of 14 cases failed deterministic response-echo checks for `Task ID:`, `Working directory:`, and `Intent:` before behavioral judging. Cached responses instead showed source inspection, exact proposed diffs/diagnoses, truthful no-execution boundaries, ambiguity handling, and already-fixed detection.

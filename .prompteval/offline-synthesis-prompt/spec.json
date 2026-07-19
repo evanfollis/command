@@ -1,6 +1,6 @@
 {
   "id": "offline-synthesis-prompt",
-  "description": "Meta-learning offline synthesis. Given recurring observation patterns, produces architectural change proposals (not bandaids), identifies design pressure, differentiates server-wide rules from local fixes. Called by synthesizeMetaFindings(). KNOWN LIMITATION: the probe runs with tools disabled, so action-taking is observed as stated intent, not execution. The probe wrapper is deliberately behavior-neutral; judges grade substance (was the work done or handed back), not phrasing.",
+  "description": "Meta-learning offline synthesis. Given recurring observation patterns, produces evidence-bounded architectural change proposals (not bandaids), identifies design pressure, differentiates server-wide rules from local fixes, and preserves verified working mechanisms. Called by synthesizeMetaFindings(). The probe has real read tools but no write or execute tools; it may verify current code and must not claim mutation or execution.",
   "owner": "command",
   "source": {
     "type": "whole_file",
