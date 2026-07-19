@@ -1,0 +1,32 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260719T232005Z-65757a",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/offline-synthesis-prompt/runs/run-20260719T232005Z-65757a.json",
+  "sha256": "b5b51acab5ecd6e45d82001cf9fed2192a88a408b5207f2ae6d6f05949812d7c",
+  "release": true,
+  "cached_allowed": false,
+  "gate_passed": false,
+  "aggregate": 0.9286,
+  "required_aggregate": 0.9286,
+  "golden_hash": "gh-da35cd3fc2fcbe00",
+  "spec_hash": "sh-e600118ea1d4fa46",
+  "prompt_version": "pv-4746a29429b283df",
+  "judge_unknown_ratio": 0.0,
+  "sealed_holdouts": {
+    "count": 2,
+    "passed": 2,
+    "content_inspected": false
+  },
+  "sole_required_failure": {
+    "case_id": "gc-863e35027ce505e8",
+    "failure_mode": "preserve-success"
+  },
+  "active_cache": {
+    "file": "ck-19eb7841d2d89a9f.json",
+    "sha256": "38499475993bcb5ec0045b960ac54c5f352952c4778080dcdfb5b0d08af79ec8"
+  },
+  "retired_active_record_sha256": "60fa5e9860de0dcfa0302f607980580ab11c06f5ed607202a28e87ce95d3f692",
+  "replacement_active_case_id": "gc-04a60cb9b6eb809c",
+  "causal_defect": "stateful_synthetic_success_contradicted_current_workspace",
+  "disposition": "replace_with_verified_current_success_preserve_required_rubric"
+}

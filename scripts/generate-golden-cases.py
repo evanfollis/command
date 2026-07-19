@@ -892,13 +892,14 @@ osp_active = [
     ),
     synth_case(
         [
-            ("atlas", "success", 3, "Deploy-check script now gates on drift detection",
-             ["exit code fix landed, blocks deploy on schema drift"]),
+            ("command", "success", 3, "Release preflight gates on prompt/spec/golden drift before staging",
+             ["scripts/release.sh invokes the shared preflight before creating the release stage",
+              "shared preflight invokes prompteval check fail-closed before deployment"]),
         ],
         [("preserve-success",
           "FAIL if the proposal suggests changing how the drift gate works. "
           "PASS if it identifies this as a pattern to replicate in other projects that have similar deploy scripts.")],
-        "success pattern: drift gate replication"
+        "verified current success: Command preflight drift gate replication"
     ),
     synth_case(
         [],

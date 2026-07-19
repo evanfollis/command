@@ -1,6 +1,6 @@
 # Command — Current State
 
-**Last updated:** 2026-07-19T22:28Z — thread-opening executor contamination corrected after fresh run `2a578c`; prompt, golden, baseline, and holdout artifacts preserved unchanged. No external eval or deployment run here.
+**Last updated:** 2026-07-19T23:24Z — offline-synthesis stale active success evidence corrected after fresh run `65757a`; sealed holdouts and accepted baselines preserved. No external eval or deployment run here.
 
 ## Current product boundary
 
@@ -26,7 +26,7 @@
 
 ## Prompt-eval state and protected evidence
 
-- **offline-synthesis-prompt**: Preserved baseline `run-20260719T184416Z-615bee` passed at aggregate 1.0, but the shared adapter neutrality correction now creates executor drift. A fresh no-cache release baseline is required before deploy; the accepted baseline file was not rewritten.
+- **offline-synthesis-prompt**: Fresh no-cache run `run-20260719T232005Z-65757a` failed closed at required aggregate `0.9286`; both sealed holdouts passed with zero unknowns. Sole required active failure `gc-863e35027ce505e8` encoded an Atlas success contradicted by current source, and the read-capable probe correctly refused to preserve the stale claim. The case is retired and replaced at generator source by required active `gc-04a60cb9b6eb809c`, a verified current Command preflight-drift success with the exact same `preserve-success` rubric. Bounded receipt: `.prompteval/offline-synthesis-prompt/archive/run-20260719T232005Z-65757a/`. **Needs a fresh no-cache release rerun from root.**
 - **review-prompt**: Preserved baseline remains historically passing, with 1 unpromoted candidate warning (7d old), but the shared adapter neutrality correction creates executor drift. A fresh no-cache release baseline is required before deploy; the accepted baseline file was not rewritten.
 - **thread-opening-frame**: Fresh run `run-20260719T222652Z-2a578c` passed both sealed holdouts with unknown ratio `0.0` but failed required active `gc-8acedf6373be4e4a` and production `gc-45128a2d178513a7`. Root traced the structural cause through the real executor: shared `PROBE_PREFIX` directed models with unavailable mutation to show exact artifacts and commands rather than defer, contradicting the governed stop condition and contaminating both behaviors. The prefix now states capabilities and epistemic honesty only; it does not steer acting, deferring, asking, escalation, or artifact/command production. Prompt, active/golden, baseline, and sealed holdout files remain byte-identical. Bounded receipt: `.prompteval/thread-opening-frame/archive/run-20260719T222652Z-2a578c/`. **Needs a fresh no-cache release run from general.**
 - **codex-task-prompt**: No baseline. Cases replaced from retired `attachLock.ts` sources to current owner-observatory cases (archived under `v2-product-boundary-20260719`). Prompt strengthened (commits `b787525`, `db026ba`) to require ordering, partial-failure recovery, idempotent replay/backfill, and producer ownership proof before calling comprehensive. Adapter timeout profiled: 380s in `adapter_llm.run_prompt()` is adequate for v2 cases (runs 318ec6 and eec522 completed without timeout); spec timeout is 900s; no change needed. Original 2026-07-17 timeout was with the retired v1 golden set. **Needs fresh no-cache release run from general — run request handoff sent 2026-07-19T21:39Z.**
@@ -40,6 +40,7 @@
 
 ## Verification completed
 
+- Offline-synthesis run/cache provenance, stale-case retirement, live-source verification, unchanged required rubric, targeted regeneration idempotence, baseline preservation, and sealed-holdout preservation pass deterministically. Active cases now hash to `d54ef7a576e2583c2533c4c25bc8e8738431cf1d0b6bde356973539d755bb942`; sealed holdout remains `826d23bdbf231f326890b8e5a2f2f65ff7d76dc85ef4afb2ad9a5d5cda79e992`.
 - Adapter neutrality tests pin the capability-only prefix and prove both Claude-primary and Codex-primary system/message paths receive the governed prompt, user message, and neutral context without action/defer/escalation steering. Thread prompt, active cases, baseline, and sealed holdout hashes remain `a487a3e6…b7526`, `417b3651…421a`, `52275948…8bb7`, and `e089337a…d29b8` respectively.
 - Thread-opening stop-condition ordering, required/advisory semantics, bounded run `d57d63` provenance, and unchanged sealed holdout hash are covered deterministically. The stop rule precedes both recoverability classification and the reversible-action default.
 - Thread-opening targeted regeneration now preserves the exact six-case advisory set, 9 required active cases, and corrected immutable-run required-aggregate semantics (`10/11`, `0.9091`). Both sealed records remain byte-identical as a whole at SHA-256 `e089337a1c6d23f18b35b0d6922c04a674fa1079778b7aa99dfb13de978d29b8`.
