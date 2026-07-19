@@ -24,6 +24,12 @@ V2_FEEDBACK_CACHES = {
     'gc-0208a8225000a225': ('ck-29cfd28dc657227b.json', '0b0f6b038ce76d325faff481c735afe8a92dcafe8577f1d055e40110c414724f'),
     'gc-dacb6094a0651bd4': ('ck-934d8d108dbb9821.json', '09c96bc3a71ff64682a282ec4d65b309d350469b065c9516cf8a0c40dc22430c'),
 }
+EEC522_RUN = Path('/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260719T195258Z-eec522.json')
+EEC522_RUN_SHA = 'a48305c029c03b94dafea8d69a8fe69443050d16c0cf06a82bb671b3f0d4518d'
+EEC522_ACTIVE_CACHES = {
+    'gc-77322229d9ca8bd2': ('ck-71b4fae197945281.json', '3c447916d17688f0075b6973fed701ccfa48c1118aa0938af62b7b41423e1249'),
+    'gc-dacb6094a0651bd4': ('ck-a39f70b86e604dfd.json', '562a983470d7fe28aa8d0056a0b87197d023fcd18e6a73b586d88f5e951b932f'),
+}
 PRODUCT_BOUNDARY_ARCHIVE = SPEC / 'archive' / 'v2-product-boundary-20260719'
 RETIRED_ATTACH_SOURCE_SHA = '49850946fa91d63e868bf4e58585565ac6281b32ffbee4cabc6ffa374f3895a2'
 RETIRED_ATTACH_CASES_SHA = '47fc8a7bef5b818bb6a64139f80e7c032db2d87fec6425a5c8d73abe0913e8b4'
@@ -110,6 +116,21 @@ complex_output = json.loads((cache_root / V2_FEEDBACK_CACHES['gc-dacb6094a0651bd
 assert 'metadata: {' in complex_output and 'reviewArtifacts' in complex_output
 assert '<AuditTrail taskId={task.id} />' in complex_output
 
+eec522_receipt = json.loads((SPEC / 'archive' / 'run-20260719T195258Z-eec522' / 'failed-run-receipt.json').read_text())
+assert eec522_receipt['sha256'] == EEC522_RUN_SHA
+assert eec522_receipt['active_failed'] == {
+    'gc-77322229d9ca8bd2': 'goal-not-addressed',
+    'gc-dacb6094a0651bd4': 'cross-file-artifact-incoherent',
+}
+assert eec522_receipt['sealed_unknown']['classification'] == 'judge_unknown_unparseable'
+assert eec522_receipt['sealed_unknown']['behavioral_evidence'] is False
+if EEC522_RUN.exists():
+    assert digest(EEC522_RUN) == EEC522_RUN_SHA
+for case_id, (name, expected_sha) in EEC522_ACTIVE_CACHES.items():
+    path = cache_root / name
+    if path.exists():
+        assert digest(path) == expected_sha, f'eec522 active cache drifted: {case_id}'
+
 alignment = load_jsonl(SPEC / 'judge' / 'alignment.jsonl')
 source_alignment = [item for item in alignment if item['failure_mode'] == 'debugging-without-source-grounding']
 assert len(source_alignment) == 1
@@ -142,6 +163,17 @@ small_edit_case = next(case for case in active if case['input']['task_id'] == 't
 small_edit_rubric = next(check['rubric'] for check in small_edit_case['checks'] if check.get('failure_mode') == 'exact-small-edit-missing')
 assert 'src/middleware.ts' in small_edit_rubric
 assert 'PUBLIC_PATHS' in small_edit_rubric
+
+smoke_case = next(case for case in active if case['input']['task_id'] == 't-smoke-04')
+goal_rubric = next(check['rubric'] for check in smoke_case['checks'] if check.get('failure_mode') == 'goal-not-addressed')
+assert 'probe lacks execution authority' in goal_rubric
+assert 'exact command and working directory' in goal_rubric
+assert 'do not require execution that the probe contract forbids' in goal_rubric
+
+prompt_source = (ROOT / 'src' / 'prompts' / 'codex-task-prompt.md').read_text()
+for required in ('write ordering', 'partial-failure recovery', 'idempotent replay or backfill',
+                 'authoritative producer ownership', 'acknowledged atomicity gaps'):
+    assert required in prompt_source, f'missing coupled-store durability contract: {required}'
 
 debug_case = next(case for case in active if case['id'] == 'gc-466822e89b2392f2')
 debug_rubric = next(check['rubric'] for check in debug_case['checks'] if check.get('failure_mode') == 'debugging-without-source-grounding')

@@ -485,7 +485,10 @@ GOAL_RESPONSIVENESS = task_judge(
     "goal-not-addressed",
     "FAIL if the response merely repeats dispatch metadata, gives a generic plan, or discusses "
     "the task without producing the requested diagnosis, review, exact proposed artifact, or "
-    "bounded clarification. PASS if it directly advances the requested goal using the case facts."
+    "bounded clarification. PASS if it directly advances the requested goal using the case facts. "
+    "When the probe lacks execution authority, a truthful statement that no output was produced "
+    "plus the exact command and working directory (or an equivalently runnable bounded handoff) "
+    "counts as direct progress; do not require execution that the probe contract forbids."
 )
 
 

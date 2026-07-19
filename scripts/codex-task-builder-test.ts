@@ -50,6 +50,8 @@ const complex = render('Implement a multi-file producer, API, UI, cache, and tes
 })
 assert.match(complex, /account for every requested behavior and every affected producer, stored field, consumer, cache, and test/)
 assert.match(complex, /Preserve existing contract data unless the task explicitly changes it/)
+assert.match(complex, /establish write ordering, partial-failure recovery, idempotent replay or backfill, and authoritative producer ownership/)
+assert.match(complex, /never mix comprehensive claims with acknowledged atomicity gaps/)
 assert.match(complex, /Do not call a proposal exact, coherent, complete, implemented, or closed unless its coverage and verification support that claim/)
 assert.match(complex, /bound the artifact, name every known omission or uncertainty, and state the next proof needed/)
 assert.doesNotMatch(complex, /\{(?:task_id|project_path|intent|scope|risk|model_posture|target_project_line|description)\}/)

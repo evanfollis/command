@@ -1,0 +1,28 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260719T195258Z-eec522",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260719T195258Z-eec522.json",
+  "sha256": "a48305c029c03b94dafea8d69a8fe69443050d16c0cf06a82bb671b3f0d4518d",
+  "release": true,
+  "cached_allowed": false,
+  "aggregate": 0.8,
+  "gate_passed": false,
+  "golden_hash": "gh-6331fa33a0a0a68c",
+  "spec_hash": "sh-33de56c408b2aec7",
+  "prompt_version": "pv-54209cf85ead96c6",
+  "judge_unknown_ratio": 0.0222,
+  "active_failed": {
+    "gc-77322229d9ca8bd2": "goal-not-addressed",
+    "gc-dacb6094a0651bd4": "cross-file-artifact-incoherent"
+  },
+  "active_cache_receipts": {
+    "gc-77322229d9ca8bd2": "3c447916d17688f0075b6973fed701ccfa48c1118aa0938af62b7b41423e1249",
+    "gc-dacb6094a0651bd4": "562a983470d7fe28aa8d0056a0b87197d023fcd18e6a73b586d88f5e951b932f"
+  },
+  "sealed_unknown": {
+    "case_id": "gc-38b3e75ad2a0ab4d",
+    "classification": "judge_unknown_unparseable",
+    "behavioral_evidence": false
+  },
+  "sealed_holdout_sha256": "e7ad1dd7c30f879bf2135be5252fadf2132aba165f06cbd18a5d57b570fb091b"
+}
