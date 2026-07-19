@@ -96,11 +96,15 @@ async function main() {
     check('/ renders owner observatory heading', await page.getByRole('heading', { name: /What changed, what is stuck/i }).count() === 1)
     check('/ renders decision queue', await page.getByRole('heading', { name: /Owner decision queue/i }).count() === 1)
     check('/ renders projection coherence', await page.getByRole('heading', { name: /Public versus private state/i }).count() === 1)
+    check('/ renders closure conversion surface', await page.getByRole('heading', { name: /Is diagnosis becoming execution/i }).count() === 1)
+    check('/ renders current cycles and owners', await page.getByRole('heading', { name: /Current work and accountable owners/i }).count() === 1)
+    check('/ renders deployment and remote identity', await page.getByRole('heading', { name: /Deployment and remote identity/i }).count() === 1)
+    check('/ renders prompt eval reliability', await page.getByRole('heading', { name: /Prompt, eval, fallback, and reliability/i }).count() === 1)
     const emptyProjection = await page.getByText('No versioned public projection has been emitted yet.').count() === 1
-    const typedProjection = await page.getByText('1.0.0', { exact: true }).count() >= 1 && await page.getByText(/^sha256:[a-f0-9]{64}$/).count() >= 1
+    const typedProjection = await page.getByText(/^1\.[01]\.0$/, { exact: true }).count() >= 1 && await page.getByText(/^sha256:[a-f0-9]{64}$/).count() >= 1
     check('/ reports a truthful typed-v1 or empty projection state', emptyProjection || typedProjection, `empty=${emptyProjection} typedV1=${typedProjection}`)
     if (typedProjection) {
-      check('/ exposes typed blocked research state', await page.getByText(/\d+ of \d+ typed research records are blocked \([a-z0-9, -]+\)\./).count() === 1)
+      check('/ exposes typed blocked research state', await page.getByText(/\d+ of \d+ typed research records are blocked \([a-z0-9, -]+\)\./).count() >= 1)
       const posture = page.getByText('Overall posture', { exact: true }).locator('..')
       check('/ derives overall blocked posture', await posture.getByText('blocked', { exact: true }).count() === 1)
     }
@@ -158,6 +162,12 @@ async function main() {
     const sourceLabels = await page.getByText(/Research|Cross-cutting/i).count()
     check('/artifacts shows source labels', sourceLabels > 0, `count=${sourceLabels}`)
     await page.screenshot({ path: path.join(ARTIFACT_DIR, '06-artifacts.png') })
+
+    // 8. /lineage — progressive disclosure without loading raw telemetry.
+    await page.goto(`${BASE}/lineage`, { waitUntil: 'networkidle' })
+    check('/lineage renders evidence lineage heading', await page.getByRole('heading', { name: /Evidence and transcript lineage/i }).count() === 1)
+    check('/lineage links eval and transcript sources', await page.getByRole('link', { name: /Eval run index/i }).count() === 1 && await page.getByRole('link', { name: /Live executive transcript/i }).count() === 1)
+    await page.screenshot({ path: path.join(ARTIFACT_DIR, '07-lineage.png'), fullPage: true })
 
     // F2 final: check for accumulated page errors
     check('no unhandled browser JS errors', pageErrors === 0, `errors=${pageErrors}`)

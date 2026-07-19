@@ -1,0 +1,33 @@
+{
+  "projection_version": "1.1.0",
+  "generated_at": "2026-07-19T16:15:00Z",
+  "counts": { "research": 1, "findings": 0, "mechanisms": 1, "engineering_cases": 1, "sources": 2, "conjectures": 1 },
+  "research": [{
+    "id": "claim-1", "slug": "fixture", "title": "Fixture research", "summary": "Typed fixture.",
+    "status": "active", "validity": "pending", "registered_at": "2026-07-12T18:00:00Z",
+    "updated_at": "2026-07-19T16:15:00Z", "superseded_by": null,
+    "public_artifact": "/artifacts/fixture/",
+    "provenance": { "claim_id": "claim-1", "decision_id": null, "evidence_ids": [] }
+  }],
+  "findings": [],
+  "mechanisms": [{ "id": "mechanism:fixture", "title": "Fixture mechanism", "summary": "Typed fixture.", "status": "operational", "public_artifact": "/method/#fixture" }],
+  "engineering_cases": [{
+    "id": "case:fixture", "slug": "fixture", "title": "Fixture case", "summary": "Operational lesson.",
+    "label": "engineering case study", "status": "operational", "learned": "Typed boundaries prevent relabeling.",
+    "limits": "This is not research Evidence.", "source_links": ["https://github.com/example/project/blob/main/test.ts"]
+  }],
+  "sources": [
+    { "id": "src:1111111111111111", "title": "Source one", "url": "https://example.com/one", "retrieved_at": "2026-07-19T16:10:00Z", "source_class": "primary", "domain": "systems", "author_publisher": "Example", "content_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "access_license": "Public", "quality": 0.9 },
+    { "id": "src:2222222222222222", "title": "Source two", "url": "https://example.org/two", "retrieved_at": "2026-07-19T16:11:00Z", "source_class": "primary", "domain": "science", "author_publisher": "Example Org", "content_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222", "access_license": "Public", "quality": 0.8 }
+  ],
+  "conjectures": [{
+    "id": "conj:fixture", "title": "Typed sources may improve criticism", "source_ids": ["src:1111111111111111", "src:2222222222222222"],
+    "source_mechanism": "Two domains expose different failure modes.", "target_mechanism": "Cross-domain criticism may reveal hidden assumptions.",
+    "analogy_map": ["source diversity to criticism diversity"], "disanalogies": ["domains may not transfer"],
+    "competing_explanations": ["quality rather than diversity explains the result"], "falsifiers": ["diversity adds no predictive value"],
+    "preconditions": ["frozen source set"], "expected_information_gain": "Medium",
+    "observation_route": "Any Evidence requires a preregistered Claim and frozen gate.",
+    "diversity_score": 0.9, "novelty_score": 0.8, "redundancy_score": 0.1, "source_quality_score": 0.85
+  }],
+  "digest": "sha256:c467574bc37ad14c8a20a54cd1635564ca8904376ee1435b7636c9a08b9a3612"
+}

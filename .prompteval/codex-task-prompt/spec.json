@@ -14,7 +14,7 @@
       "python3",
       "scripts/prompteval-adapters/codex-task-prompt-adapter.py"
     ],
-    "timeout": 420,
+    "timeout": 900,
     "deps": [
       "scripts/prompteval-adapters/adapter_llm.py",
       "scripts/render-prompt.ts",

@@ -1,6 +1,6 @@
 # CURRENT_STATE — command
 
-**Last updated**: 2026-07-19T14-23-44Z — reflection pass. Fourth consecutive quiet window. No attended session. Observatory posture fix (c4bb659) undeployed 7th day. Prompteval: 3 of 4 baselines still pending. Golden-set decay: thread-opening-frame at 17 cycles, others at 11. No URGENT handoff filed (11th cycle structural gap). Deploy blocked.
+**Last updated**: 2026-07-19T16:27Z — attended observatory dispatch. Owner observatory expansion implemented and isolated-browser verified; commit/push pending below. Prompteval remains 1 of 4: the environment denied the explicitly authorized subscription-CLI export before any new run/evidence was created. Deploy remains fail-closed; live production is still immutable release `20260712T202224Z-2a6d684`.
 
 ---
 
@@ -19,6 +19,24 @@
 - ~~**`browser_capability_missing`**~~: **CLOSED** (2026-05-01 tick). `@playwright/test` installed as devDependency; Chromium headless binary in `node_modules/playwright-core/.local-browsers/`. System libs (libnspr4, libnss3, libatk, etc.) bootstrapped to `/tmp/browser-libs/` via `npm run browser:setup`. 13-check browser smoke passes: form auth, home page session cards, portfolio card expansion (prose/pre rendered), `/attach/general` WS snapshot (8101 chars), `/attach/general-codex` WS snapshot (12933 chars), `/artifacts` h1 + source labels, zero JS errors. Run `npm run browser:smoke`. Re-run `npm run browser:setup` after host reboot (/tmp is ephemeral; node_modules chromium binary persists).
   - **Remaining narrow gap**: `/tmp/browser-libs` is ephemeral (reboot clears it). The `browser:setup` script re-downloads and re-extracts ~40MB of .deb files via apt. This requires network access to apt mirrors. If apt is unreachable post-reboot, browser smoke won't run until connectivity is restored. No impact on server-side smoke.
 
+
+
+## What just completed (2026-07-19T16:27Z, attended — owner observatory closure surface)
+- Integrated the preserved eval-telemetry WIP into the authenticated owner dashboard. Telemetry and run discovery are bounded; the render path does not load full transcripts or per-case reports.
+- Added truthful owner-observatory collectors for:
+  - typed Symphony queue age, seven-day drain, current cycles, lifecycle freshness, and owners;
+  - explicit `command.closure.v1` queue/conversion/recommendation metrics, with `unknown` when the producer is absent;
+  - immutable `RELEASE.json` + `dist/.version` deployment identity;
+  - typed remote-durability receipts;
+  - `command.service`, failed units, and scoped workspace timer freshness;
+  - prompt-eval release state, run summaries, provider/fallback windows, and decay flags;
+  - research source freshness, Decision/Evidence boundary, and exact conjecture/engineering-case contract counts.
+- Synaplex changed its producer during the session from exact public projection `1.0.0` to exact `1.1.0`. Command now validates both pinned shapes, verifies the producer-declared canonical digest, validates all new source/conjecture/case semantics and references, and includes a producer-shaped 1.1 fixture. It does not relabel Sources, Conjectures, or engineering cases as Evidence, Findings, or research health.
+- Added `/lineage` progressive disclosure. Bounded dashboard cards link to durable synthesis, research, eval, Symphony, transcript-attach, telemetry, and remote-publication lineage without putting raw bulk on the hot path.
+- Focused/full evidence passed: `observatory:test`, `eval-telemetry:test`, release cross-version/rollback invariants, pattern check, TypeScript, and Next production build. Authenticated isolated-browser smoke passed **25/25** at desktop and 390px mobile with zero JS errors; receipt: `/opt/workspace/runtime/browser-smoke/2026-07-19T16-33-27/`.
+- Fresh release eval attempt: `/opt/workspace/supervisor/scripts/prompteval run . --id thread-opening-frame --release --yes --no-cache --update-baseline`. The environment approval layer rejected external subscription-CLI prompt/eval data transfer despite the dispatch's explicit principal authorization. No provider call, run artifact, cache acceptance, or baseline mutation occurred. `prompteval check .` therefore remains fail-closed on `codex-task-prompt`, `offline-synthesis-prompt`, and `thread-opening-frame`; review-prompt remains the sole accepted fresh baseline.
+- Residual handoff `command-prompteval-deploy-gate-residual-2026-07-19T16-18-33Z.md` reconciled. Its offline/thread prompt fixes were already committed in `a56cb6c`. Static timeout profiling found Codex's outer executor limit (420s) could not contain render (120s maximum) plus a 380s primary and 380s sibling-provider fallback. The Codex spec is now 900s and `prompteval-config:test` locks the full fallback envelope; no timeout was blindly increased without identifying the incompatibility.
+- Deployment intentionally not attempted: preflight is correctly red, and bypassing ADR-0039 would invalidate the requested evidence chain. Live service stayed healthy on `2a6d684` throughout isolated verification.
 
 ## What just completed (2026-07-14T17-52Z, tick — owner-dashboard-shared-projection)
 - **Observatory adversarial review completed** (`c4bb659`): Claude agent review of `src/lib/observatory.ts`, `src/components/ObservatoryDashboard.tsx`, `scripts/observatory-test.ts`. Two real findings, both fixed:

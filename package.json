@@ -11,6 +11,8 @@
     "browser:setup": "bash scripts/browser-libs-setup.sh",
     "browser:smoke": "bash scripts/browser-smoke-wrapper.sh",
     "observatory:test": "node --import tsx scripts/observatory-test.ts",
+    "eval-telemetry:test": "node --import tsx scripts/eval-telemetry-test.ts",
+    "prompteval-config:test": "node --import tsx scripts/prompteval-config-test.ts",
     "deploy": "bash scripts/release.sh",
     "meta:scan": "tsx scripts/meta-scan.ts",
     "release:rollback": "bash scripts/rollback.sh",
