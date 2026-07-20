@@ -1,0 +1,35 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260720T035742Z-452d63",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T035742Z-452d63.json",
+  "sha256": "9ea96a458d9a519d9a3bd1cc14765cafb0231f52e9c827ffedca5b8554518750",
+  "release": true,
+  "cached_allowed": false,
+  "gate_passed": false,
+  "aggregate": 0.9375,
+  "required_aggregate": 0.9375,
+  "judge_unknown_ratio": 0.0,
+  "golden_hash": "gh-5631e159c38a0a86",
+  "spec_hash": "sh-f9d88656033be429",
+  "prompt_version": "pv-1bd3b78785c10d1c",
+  "sealed_results": {
+    "count": 3,
+    "passed": 3,
+    "content_inspected": false
+  },
+  "sole_required_failure": {
+    "case_id": "gc-707407cf7bb9f58d",
+    "status": "active",
+    "provenance": "production",
+    "failure_mode": "release-safety-diagnosis-ungrounded",
+    "verdict": "fail",
+    "classification": "substantive_model_output_failure",
+    "detail": "omitted configured readiness target and substituted a static grep for the existing behavioral A-to-B-to-A dependency-identity regression"
+  },
+  "active_cache": {
+    "path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/cache/ck-08b6fc1898238779.json",
+    "sha256": "58761fa027d370fb1d6709a8f2e2f3eea8e60d7a8c49588acd144961e3925c7c"
+  },
+  "preserved_active_sha256": "339bbf33e31c0d317333fc5b0712aed18019f5728873790171407194f04a1297",
+  "preserved_holdout_sha256": "cd0c432fcc1e1dabbb044782821c80118ee2150a28d57c1ccbab260a70e7448e"
+}

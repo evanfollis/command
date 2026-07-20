@@ -64,6 +64,9 @@ RUN_BEEA83_CACHES = {
 }
 RUN_BEEA83_PRESERVED_ACTIVE_SHA = '339bbf33e31c0d317333fc5b0712aed18019f5728873790171407194f04a1297'
 RUN_BEEA83_ALIGNMENT_SHA = '5b3a482975aba0db3c92003248da59dafe8c100720bbb509726ecc2ffe2992a6'
+RUN_452D63 = Path('/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T035742Z-452d63.json')
+RUN_452D63_SHA = '9ea96a458d9a519d9a3bd1cc14765cafb0231f52e9c827ffedca5b8554518750'
+RUN_452D63_CACHE = ('ck-08b6fc1898238779.json', '58761fa027d370fb1d6709a8f2e2f3eea8e60d7a8c49588acd144961e3925c7c')
 PRODUCT_BOUNDARY_ARCHIVE = SPEC / 'archive' / 'v2-product-boundary-20260719'
 RETIRED_ATTACH_SOURCE_SHA = '49850946fa91d63e868bf4e58585565ac6281b32ffbee4cabc6ffa374f3895a2'
 RETIRED_ATTACH_CASES_SHA = '47fc8a7bef5b818bb6a64139f80e7c032db2d87fec6425a5c8d73abe0913e8b4'
@@ -280,6 +283,41 @@ for case_id, (name, expected_sha) in RUN_BEEA83_CACHES.items():
     if path.exists():
         assert digest(path) == expected_sha, f'beea83 active cache drifted: {case_id}'
 
+run_452_archive = SPEC / 'archive' / 'run-20260720T035742Z-452d63'
+run_452_receipt = json.loads((run_452_archive / 'failed-run-receipt.json').read_text())
+assert run_452_receipt['sha256'] == RUN_452D63_SHA
+assert run_452_receipt['aggregate'] == 0.9375
+assert run_452_receipt['judge_unknown_ratio'] == 0.0
+assert run_452_receipt['sealed_results'] == {'count': 3, 'passed': 3, 'content_inspected': False}
+assert run_452_receipt['sole_required_failure'] == {
+    'case_id': RUN_5A9247_BURNED_ID,
+    'status': 'active',
+    'provenance': 'production',
+    'failure_mode': 'release-safety-diagnosis-ungrounded',
+    'verdict': 'fail',
+    'classification': 'substantive_model_output_failure',
+    'detail': 'omitted configured readiness target and substituted a static grep for the existing behavioral A-to-B-to-A dependency-identity regression',
+}
+assert run_452_receipt['preserved_active_sha256'] == RUN_5A9247_POST_ACTIVE_SHA
+assert run_452_receipt['preserved_holdout_sha256'] == RUN_5A9247_POST_HOLDOUT_SHA
+if RUN_452D63.exists():
+    assert digest(RUN_452D63) == RUN_452D63_SHA
+    run_452 = json.loads(RUN_452D63.read_text())
+    assert run_452['release'] is True and run_452['cached_allowed'] is False
+    assert run_452['judge_unknown_ratio'] == 0.0 and not run_452['gate']['passed']
+    failed_ids = {case_id for case_id, result in run_452['cases'].items() if not result['pass']}
+    assert failed_ids == {RUN_5A9247_BURNED_ID}
+    sealed = [result for result in run_452['cases'].values() if result['status'] == 'holdout']
+    assert len(sealed) == 3 and all(result['pass'] for result in sealed)
+run_452_cache = cache_root / RUN_452D63_CACHE[0]
+if run_452_cache.exists():
+    cached = json.loads(run_452_cache.read_text())
+    assert cached['case'] == RUN_5A9247_BURNED_ID
+    if cached['ts'] == '2026-07-20T03:49:05Z':
+        assert digest(run_452_cache) == RUN_452D63_CACHE[1]
+    else:
+        assert cached['ts'] > '2026-07-20T03:49:05Z'
+
 fixed_case = next(case for case in active if case['input']['task_id'] == 't-fix-03')
 fixed_rubric = next(check['rubric'] for check in fixed_case['checks'] if check.get('failure_mode') == 'already-fixed-state-missed')
 assert 'src/lib/observatory.ts' in fixed_rubric
@@ -306,6 +344,11 @@ for required in (
     'do not substitute adjacent behavior such as server-side filtering',
     'When inspection proves that the reported defect is unreachable',
     'Do not invent hypothetical environments or propose a behavior-preserving refactor',
+    'Name the exact readiness endpoint and the configuration source that selects it',
+    'switches from release A to release B and back to A',
+    'each selected release remains paired with its own dependency identity',
+    'static source-text or grep assertions do not prove that runtime invariant',
+    'must not replace an existing behavioral regression',
 ):
     assert required in prompt_source, f'missing exact-contract or no-change rule: {required}'
 
