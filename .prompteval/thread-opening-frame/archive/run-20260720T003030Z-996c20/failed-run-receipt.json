@@ -1,0 +1,47 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260720T003030Z-996c20",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/thread-opening-frame/runs/run-20260720T003030Z-996c20.json",
+  "sha256": "c032e32fbf7a1d2488ada5f5a28f306b0a31c0b677ca2d32874b10a3a099c9f2",
+  "release": true,
+  "cached_allowed": false,
+  "gate_passed": false,
+  "aggregate": 0.7059,
+  "required_aggregate": 0.8182,
+  "required_floor": 0.98,
+  "judge_unknown_ratio": 0.0,
+  "golden_hash": "gh-73b277915bd06526",
+  "spec_hash": "sh-95909a75ef64d309",
+  "prompt_version": "pv-8390251496fae94a",
+  "required_active_failures": {
+    "gc-c95df250b240acf5": "assessment-forced-unnecessary-action",
+    "gc-8acedf6373be4e4a": "assessment-forced-unnecessary-action"
+  },
+  "advisory_failures": [
+    "gc-4510aa59bb317153",
+    "gc-77af07ccce1b8d0a",
+    "gc-f85b557dfdc65b38"
+  ],
+  "sealed_results": {
+    "count": 2,
+    "passed": 2,
+    "content_inspected_from_run": false
+  },
+  "active_cache_sha256": {
+    "gc-c95df250b240acf5": "f1211dd8d368dff4dfa04d159608a617e0eb110c6a096b89bbb36b759163b7dc",
+    "gc-8acedf6373be4e4a": "eb3716eeede7dff1763d8c54639a390610bc19f435095313cce0f17289b5d890"
+  },
+  "judge_alignment_sha256": "9cb2e27ec82c963aadecf840c216a93bb7bf5ec84efc4713f0145a858254ce5d",
+  "pre_transition_holdout_sha256": "e089337a1c6d23f18b35b0d6922c04a674fa1079778b7aa99dfb13de978d29b8",
+  "preserved_record_sha256": "18dfc867ee052dca7800541223f173c53f6019d7142b179bbad209a77ff257ed",
+  "post_transition_active_sha256": "23f4510ce818de6c0aaf650804108897a0fbf2f84233e5cc236d02419368a151",
+  "post_transition_holdout_sha256": "46b7df1dbeea2a434156267caaf41130afa45f8a2bbbe80d08e2c8eac31ead43",
+  "replacement_record_sha256": "0420fae2178290bebde36c5fdb125291162ba352cdb48b7e1f034adb16d50045",
+  "post_run_contamination": {
+    "case_id": "gc-1007e85d5add0881",
+    "record_sha256": "2d5bee00129f5930ca96bda8ca29b32e084c34f8b974d9f2fd2aa26ae170d63d",
+    "cause": "repository search exclusion glob did not suppress nested golden/holdout.jsonl",
+    "content_used_for_correction": false,
+    "disposition": "archive_exact_record_promote_active_and_reseal"
+  }
+}
