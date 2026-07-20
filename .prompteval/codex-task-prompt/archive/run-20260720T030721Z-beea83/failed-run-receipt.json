@@ -1,0 +1,62 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260720T030721Z-beea83",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T030721Z-beea83.json",
+  "sha256": "eb782a6bde9f77003e409b43408af35d35e3a3fc171a260e30c8bb21a9759133",
+  "release": true,
+  "cached_allowed": false,
+  "gate_passed": false,
+  "aggregate": 0.8125,
+  "required_aggregate": 0.8125,
+  "judge_unknown_ratio": 0.0417,
+  "golden_hash": "gh-5631e159c38a0a86",
+  "spec_hash": "sh-f9d88656033be429",
+  "prompt_version": "pv-87860c9513180150",
+  "sealed_results": {
+    "count": 3,
+    "passed": 3,
+    "content_inspected": false
+  },
+  "promoted_production_result": {
+    "case_id": "gc-707407cf7bb9f58d",
+    "passed": true
+  },
+  "required_active_failures": {
+    "gc-466822e89b2392f2": {
+      "classification": "strict_parser_or_judge_output",
+      "check": "debugging-without-source-grounding",
+      "verdict": "unknown",
+      "detail": "judge reply had no parseable verdict",
+      "human_output_assessment": "pass"
+    },
+    "gc-19391fb63459606e": {
+      "classification": "strict_parser_plus_model_contract_error",
+      "check": "api-change-not-implementable",
+      "verdict": "unknown",
+      "detail": "judge reply had no parseable verdict",
+      "human_output_assessment": "fail_exact_project_key_not_added"
+    },
+    "gc-beeffc8ebf868689": {
+      "classification": "model_output_failure",
+      "check": "already-fixed-state-missed",
+      "verdict": "fail",
+      "human_output_assessment": "fail_invented_unreachable_scenarios_and_redundant_refactor"
+    }
+  },
+  "active_cache_sha256": {
+    "gc-466822e89b2392f2": "5d387fdc47ddd2610e0f6216127168616d5d2237f3cb6072b3eb1efb263ada86",
+    "gc-19391fb63459606e": "4dd4417dcffb941c9d1c3ac4b58df00aa9182ec7d7f4a858f58f36a54d513ad4",
+    "gc-beeffc8ebf868689": "01257144d72f2496539e312a65b85cca135986d41d9186f475d85a56314a8ec8"
+  },
+  "strict_parser_evidence": {
+    "source": "/opt/workspace/supervisor/scripts/lib/prompteval/grading.py",
+    "defect": "legacy no-nested-braces verdict-object regex",
+    "affected_checks": 2,
+    "model_outputs_empty": false,
+    "fixed_upstream_commit": "496444b43b9f28a970f50a3c7d4d72ca51c8b9c7",
+    "upstream_fix": "JSONDecoder.raw_decode from every object start; prefer last complete verdict object"
+  },
+  "preserved_active_sha256": "339bbf33e31c0d317333fc5b0712aed18019f5728873790171407194f04a1297",
+  "preserved_holdout_sha256": "cd0c432fcc1e1dabbb044782821c80118ee2150a28d57c1ccbab260a70e7448e",
+  "judge_alignment_sha256": "5b3a482975aba0db3c92003248da59dafe8c100720bbb509726ecc2ffe2992a6"
+}

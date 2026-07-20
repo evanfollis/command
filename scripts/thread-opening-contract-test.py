@@ -40,10 +40,12 @@ DIAGNOSTIC_CACHES = {
     'gc-c95df250b240acf5': (
         'ck-f6c38d38f8a2da17.json',
         'f1211dd8d368dff4dfa04d159608a617e0eb110c6a096b89bbb36b759163b7dc',
+        '2026-07-20T00:20:56Z',
     ),
     'gc-8acedf6373be4e4a': (
         'ck-6c1e154579ec81a9.json',
         'eb3716eeede7dff1763d8c54639a390610bc19f435095313cce0f17289b5d890',
+        '2026-07-20T00:26:55Z',
     ),
 }
 CONTAMINATED_ID = 'gc-1007e85d5add0881'
@@ -243,10 +245,15 @@ if DIAGNOSTIC_RUN_PATH.exists():
     }
     assert failed_required_ids == DIAGNOSTIC_FAILURES
 cache_root = DIAGNOSTIC_RUN_PATH.parent.parent / 'cache'
-for case_id, (name, expected_sha) in DIAGNOSTIC_CACHES.items():
+for case_id, (name, expected_sha, original_ts) in DIAGNOSTIC_CACHES.items():
     cache_path = cache_root / name
     if cache_path.exists():
-        assert digest(cache_path) == expected_sha, f'diagnostic active cache drifted: {case_id}'
+        cache = json.loads(cache_path.read_text())
+        assert cache['case'] == case_id and cache['version'] == 'pv-8390251496fae94a'
+        if cache['ts'] == original_ts:
+            assert digest(cache_path) == expected_sha, f'diagnostic active cache drifted: {case_id}'
+        else:
+            assert cache['ts'] > original_ts, f'diagnostic cache was replaced by older evidence: {case_id}'
 alignment_path = SPEC / 'judge' / 'alignment.jsonl'
 assert digest(alignment_path) == DIAGNOSTIC_ALIGNMENT_SHA
 alignment = load_jsonl(alignment_path)

@@ -41,6 +41,7 @@ RUN_5A9247_BURNED_ID = 'gc-707407cf7bb9f58d'
 RUN_5A9247_BURNED_SHA = '1f5286f94fe279ded7347067c86d52719e4ba618a80b82a8037660f57020647b'
 RUN_5A9247_BURNED_CONTRACT_SHA = 'f42a1dd70d8818ce0b3cab87fe0974830ab920b18fb8e34736db0ad14d9d05f0'
 RUN_5A9247_PRE_HOLDOUT_SHA = 'e7ad1dd7c30f879bf2135be5252fadf2132aba165f06cbd18a5d57b570fb091b'
+RUN_5A9247_POST_ACTIVE_SHA = '339bbf33e31c0d317333fc5b0712aed18019f5728873790171407194f04a1297'
 RUN_5A9247_POST_HOLDOUT_SHA = 'cd0c432fcc1e1dabbb044782821c80118ee2150a28d57c1ccbab260a70e7448e'
 RUN_5A9247_PRESERVED_RECORD_SHAS = {
     'a45eec707e38d78604103ca5fc5be07c8b40cef45694917d7e346d080217d6a0',
@@ -53,6 +54,16 @@ RUN_5A9247_CACHES = {
     'gc-0208a8225000a225': ('ck-4d7dbea3ea7e8531.json', '53cf83b3ca22ddf89343b9afb281990027965647fb973a396beec85c5cf593db'),
     RUN_5A9247_BURNED_ID: ('ck-bde1eb693824ee96.json', '0e0690f67d27d557e2e436d83993e7ca7abdd163645202d7c6d749daabc5efd9'),
 }
+RUN_BEEA83 = Path('/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T030721Z-beea83.json')
+RUN_BEEA83_SHA = 'eb782a6bde9f77003e409b43408af35d35e3a3fc171a260e30c8bb21a9759133'
+RUN_BEEA83_FAILURES = {'gc-466822e89b2392f2', 'gc-19391fb63459606e', 'gc-beeffc8ebf868689'}
+RUN_BEEA83_CACHES = {
+    'gc-466822e89b2392f2': ('ck-080b3aad95dc4f00.json', '5d387fdc47ddd2610e0f6216127168616d5d2237f3cb6072b3eb1efb263ada86'),
+    'gc-19391fb63459606e': ('ck-0090494db55795dc.json', '4dd4417dcffb941c9d1c3ac4b58df00aa9182ec7d7f4a858f58f36a54d513ad4'),
+    'gc-beeffc8ebf868689': ('ck-363881f8939be229.json', '01257144d72f2496539e312a65b85cca135986d41d9186f475d85a56314a8ec8'),
+}
+RUN_BEEA83_PRESERVED_ACTIVE_SHA = '339bbf33e31c0d317333fc5b0712aed18019f5728873790171407194f04a1297'
+RUN_BEEA83_ALIGNMENT_SHA = '5b3a482975aba0db3c92003248da59dafe8c100720bbb509726ecc2ffe2992a6'
 PRODUCT_BOUNDARY_ARCHIVE = SPEC / 'archive' / 'v2-product-boundary-20260719'
 RETIRED_ATTACH_SOURCE_SHA = '49850946fa91d63e868bf4e58585565ac6281b32ffbee4cabc6ffa374f3895a2'
 RETIRED_ATTACH_CASES_SHA = '47fc8a7bef5b818bb6a64139f80e7c032db2d87fec6425a5c8d73abe0913e8b4'
@@ -165,9 +176,14 @@ for case_id, (name, expected_sha) in EEC522_ACTIVE_CACHES.items():
 
 alignment = load_jsonl(SPEC / 'judge' / 'alignment.jsonl')
 source_alignment = [item for item in alignment if item['failure_mode'] == 'debugging-without-source-grounding']
-assert len(source_alignment) == 1
-assert source_alignment[0]['human_verdict'] == 'pass'
-assert 'genuine empty array' in source_alignment[0]['output']
+assert len(source_alignment) == 2
+assert all(item['human_verdict'] == 'pass' for item in source_alignment)
+assert all('genuine empty' in item['output'] and 'array' in item['output'] for item in source_alignment)
+api_alignment = [item for item in alignment if item['failure_mode'] == 'api-change-not-implementable']
+assert len(api_alignment) == 1 and api_alignment[0]['human_verdict'] == 'fail'
+assert '`targetProject` is already in every API response' in api_alignment[0]['output']
+assert 'query-param filter' in api_alignment[0]['output']
+assert digest(SPEC / 'judge' / 'alignment.jsonl') == RUN_BEEA83_ALIGNMENT_SHA
 
 v1_cases = load_jsonl(v1_active_path) + load_jsonl(v1_holdout_path)
 assert len(v1_cases) == 14
@@ -197,7 +213,7 @@ assert burn_receipt['failed_sealed_case']['case_id'] == RUN_5A9247_BURNED_ID
 assert burn_receipt['failed_sealed_case']['record_sha256'] == RUN_5A9247_BURNED_SHA
 assert burn_receipt['failed_sealed_case']['input_checks_sha256'] == RUN_5A9247_BURNED_CONTRACT_SHA
 assert burn_receipt['pre_transition_holdout_sha256'] == RUN_5A9247_PRE_HOLDOUT_SHA
-assert burn_receipt['post_transition_active_sha256'] == digest(SPEC / 'golden' / 'cases.jsonl')
+assert burn_receipt['post_transition_active_sha256'] == RUN_5A9247_POST_ACTIVE_SHA
 assert burn_receipt['post_transition_holdout_sha256'] == RUN_5A9247_POST_HOLDOUT_SHA
 assert burn_receipt['replacement_record_sha256'] == RUN_5A9247_REPLACEMENT_SHA
 assert burn_receipt['sealed_content_inspected_before_promotion'] is False
@@ -229,6 +245,41 @@ for case_id, (name, expected_sha) in RUN_5A9247_CACHES.items():
     if path.exists():
         assert digest(path) == expected_sha, f'5a9247 active cache drifted: {case_id}'
 
+beea_archive = SPEC / 'archive' / 'run-20260720T030721Z-beea83'
+beea_receipt = json.loads((beea_archive / 'failed-run-receipt.json').read_text())
+assert beea_receipt['sha256'] == RUN_BEEA83_SHA
+assert set(beea_receipt['required_active_failures']) == RUN_BEEA83_FAILURES
+assert beea_receipt['judge_unknown_ratio'] == 0.0417
+assert beea_receipt['sealed_results'] == {'count': 3, 'passed': 3, 'content_inspected': False}
+assert beea_receipt['promoted_production_result'] == {
+    'case_id': RUN_5A9247_BURNED_ID,
+    'passed': True,
+}
+assert beea_receipt['required_active_failures']['gc-466822e89b2392f2']['classification'] == 'strict_parser_or_judge_output'
+assert beea_receipt['required_active_failures']['gc-466822e89b2392f2']['human_output_assessment'] == 'pass'
+assert beea_receipt['required_active_failures']['gc-19391fb63459606e']['classification'] == 'strict_parser_plus_model_contract_error'
+assert beea_receipt['required_active_failures']['gc-beeffc8ebf868689']['classification'] == 'model_output_failure'
+assert beea_receipt['strict_parser_evidence']['affected_checks'] == 2
+assert beea_receipt['strict_parser_evidence']['fixed_upstream_commit'] == '496444b43b9f28a970f50a3c7d4d72ca51c8b9c7'
+assert 'JSONDecoder.raw_decode' in beea_receipt['strict_parser_evidence']['upstream_fix']
+assert beea_receipt['preserved_active_sha256'] == RUN_BEEA83_PRESERVED_ACTIVE_SHA
+assert beea_receipt['preserved_holdout_sha256'] == RUN_5A9247_POST_HOLDOUT_SHA
+assert beea_receipt['judge_alignment_sha256'] == RUN_BEEA83_ALIGNMENT_SHA
+if RUN_BEEA83.exists():
+    assert digest(RUN_BEEA83) == RUN_BEEA83_SHA
+    beea_run = json.loads(RUN_BEEA83.read_text())
+    assert beea_run['release'] is True and beea_run['cached_allowed'] is False
+    assert beea_run['judge_unknown_ratio'] == 0.0417 and not beea_run['gate']['passed']
+    failed_ids = {case_id for case_id, result in beea_run['cases'].items() if not result['pass']}
+    assert failed_ids == RUN_BEEA83_FAILURES
+    assert beea_run['cases'][RUN_5A9247_BURNED_ID]['pass'] is True
+    sealed = [result for result in beea_run['cases'].values() if result['status'] == 'holdout']
+    assert len(sealed) == 3 and all(result['pass'] for result in sealed)
+for case_id, (name, expected_sha) in RUN_BEEA83_CACHES.items():
+    path = cache_root / name
+    if path.exists():
+        assert digest(path) == expected_sha, f'beea83 active cache drifted: {case_id}'
+
 fixed_case = next(case for case in active if case['input']['task_id'] == 't-fix-03')
 fixed_rubric = next(check['rubric'] for check in fixed_case['checks'] if check.get('failure_mode') == 'already-fixed-state-missed')
 assert 'src/lib/observatory.ts' in fixed_rubric
@@ -249,6 +300,14 @@ prompt_source = (ROOT / 'src' / 'prompts' / 'codex-task-prompt.md').read_text()
 for required in ('write ordering', 'partial-failure recovery', 'idempotent replay or backfill',
                  'authoritative producer ownership', 'acknowledged atomicity gaps'):
     assert required in prompt_source, f'missing coupled-store durability contract: {required}'
+for required in (
+    'Treat explicitly named interface elements',
+    'A differently named value with similar meaning does not satisfy the requested contract',
+    'do not substitute adjacent behavior such as server-side filtering',
+    'When inspection proves that the reported defect is unreachable',
+    'Do not invent hypothetical environments or propose a behavior-preserving refactor',
+):
+    assert required in prompt_source, f'missing exact-contract or no-change rule: {required}'
 
 debug_case = next(case for case in active if case['id'] == 'gc-466822e89b2392f2')
 debug_rubric = next(check['rubric'] for check in debug_case['checks'] if check.get('failure_mode') == 'debugging-without-source-grounding')
