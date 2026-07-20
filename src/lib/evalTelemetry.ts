@@ -11,6 +11,7 @@ const WINDOWS = {
 type WindowKey = keyof typeof WINDOWS
 const MAX_TELEMETRY_BYTES = 768_000
 const MAX_REPORT_BYTES = 2_000_000
+export const MAX_EVAL_REPORT_CANDIDATES_PER_PROMPT = 8
 
 interface RawEvent {
   timestamp?: number
@@ -151,7 +152,7 @@ function readJson(path: string): Record<string, any> | null {
   }
 }
 
-export function listLatestEvalRuns(): EvalRunSummary[] {
+export function listLatestEvalRuns(readReport: (path: string) => Record<string, any> | null = readJson): EvalRunSummary[] {
   const root = join(WORKSPACE_PATHS.runtimeRoot, 'prompteval')
   if (!existsSync(root)) return []
   const rows: EvalRunSummary[] = []
@@ -161,11 +162,28 @@ export function listLatestEvalRuns(): EvalRunSummary[] {
     for (const promptId of readdirSync(projectPath).slice(0, 100)) {
       const runsDir = join(projectPath, promptId, 'runs')
       if (!existsSync(runsDir)) continue
-      const reports = readdirSync(runsDir)
+      const candidates = readdirSync(runsDir)
         .filter((name) => name.endsWith('.json'))
-        .map((name) => join(runsDir, name))
-        .map((path) => ({ path, data: readJson(path) }))
-        .filter((entry): entry is { path: string; data: Record<string, any> } => Boolean(entry.data))
+        .flatMap((name) => {
+          const path = join(runsDir, name)
+          try {
+            const stat = statSync(path)
+            const match = name.match(/run-(\d{8}T\d{6}Z)/)
+            const runTime = match ? Date.parse(match[1].replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, '$1-$2-$3T$4:$5:$6Z')) : NaN
+            return stat.isFile() ? [{ name, path, recencyMs: Number.isNaN(runTime) ? stat.mtimeMs : runTime }] : []
+          } catch {
+            return []
+          }
+        })
+        // Run ids embed a UTC timestamp, preserving chronology across copies;
+        // mtime supplies recency for report names outside that convention.
+        .sort((a, b) => b.recencyMs - a.recencyMs || b.name.localeCompare(a.name))
+        .slice(0, MAX_EVAL_REPORT_CANDIDATES_PER_PROMPT)
+      const reports = candidates
+        .flatMap(({ path }) => {
+          const data = readReport(path)
+          return data ? [{ path, data }] : []
+        })
         .sort((a, b) => String(b.data.ts || '').localeCompare(String(a.data.ts || '')))
       const latest = reports[0]
       if (!latest) continue

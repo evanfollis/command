@@ -422,6 +422,60 @@ function collectRemoteDurability(): ObservatorySignal[] {
   return [signal({ id: 'remote-durability', title: 'Remote durability', state, observedAt: iso(newest), sourceRef: `${path}#tail-${MAX_TAIL_BYTES}`, reason: unsynced.length ? `${unsynced.length} of ${rows.length} repositories are not reported synced.` : stale ? `All ${rows.length} latest repository receipts are synced, but the newest receipt is older than one hour.` : `All ${rows.length} latest repository receipts are synced and fresh.`, details: { repositories: rows.length, unsynced: unsynced.map((event) => String(event.project ?? event.repository)).join(', ') || 'none', dirtyWorktrees: rows.filter((event) => Number(event.dirtyPaths) > 0).length } })]
 }
 
+interface AcceptedBaselineEvidence {
+  advisoryTotal: number
+  advisoryFailed: number
+}
+
+export function validateAcceptedBaselineEvidence(parsed: Record<string, unknown>): AcceptedBaselineEvidence | null {
+  const gatePolicy = parsed.gate_policy as Record<string, unknown> | undefined
+  const required = parsed.required_cases as Record<string, unknown> | undefined
+  const advisory = parsed.advisory_cases as Record<string, unknown> | undefined
+  const gate = parsed.gate as Record<string, unknown> | undefined
+  const provenance = parsed.provider_provenance as Record<string, unknown> | undefined
+  const cases = parsed.cases as Record<string, Record<string, unknown>> | undefined
+  const runId = parsed.run_id
+  const countsAreValid = (summary: Record<string, unknown> | undefined) => summary
+    && Number.isInteger(summary.total) && Number(summary.total) >= 0
+    && Number.isInteger(summary.passed) && Number(summary.passed) >= 0
+    && Number.isInteger(summary.failed) && Number(summary.failed) >= 0
+    && Number(summary.passed) + Number(summary.failed) === Number(summary.total)
+  const routes = Array.isArray(provenance?.routes) ? provenance.routes : []
+  const hasSuccessRoute = routes.some((route) => {
+    if (!route || typeof route !== 'object') return false
+    const value = route as Record<string, unknown>
+    return value.status === 'success' && typeof value.provider === 'string' && value.provider.length > 0
+      && typeof value.model === 'string' && value.model.length > 0
+      && Number.isInteger(value.calls) && Number(value.calls) > 0
+  })
+  const providers = provenance?.providers
+  const judgeUnknownRatio = parsed.judge_unknown_ratio
+  const caseRows = cases && typeof cases === 'object' ? Object.values(cases) : []
+  const requiredRows = caseRows.filter((value) => value?.must_pass === true)
+  const advisoryRows = caseRows.filter((value) => value?.must_pass === false)
+  const matchesCases = (summary: Record<string, unknown> | undefined, rows: Record<string, unknown>[]) =>
+    Number(summary?.total) === rows.length
+    && Number(summary?.passed) === rows.filter((value) => value.pass === true).length
+    && Number(summary?.failed) === rows.filter((value) => value.pass !== true).length
+  const expectedAggregate = caseRows.length
+    ? Number((caseRows.filter((value) => value.pass === true).length / caseRows.length).toFixed(4))
+    : 1
+  if (parsed.passed !== true || parsed.release !== true || parsed.accepted_from_cache !== false
+    || gatePolicy?.basis !== 'must_pass_cases' || gatePolicy.advisory_cases_gate !== false
+    || !countsAreValid(required) || Number(required?.failed) !== 0
+    || parsed.required_aggregate !== 1.0 || gate?.passed !== true
+    || typeof judgeUnknownRatio !== 'number' || !Number.isFinite(judgeUnknownRatio) || judgeUnknownRatio < 0 || judgeUnknownRatio > 1
+    || typeof runId !== 'string' || runId.length === 0
+    || provenance?.schema_version !== 'prompteval.provider-provenance.v1' || provenance.run_id !== runId
+    || !Array.isArray(providers) || providers.length === 0 || !providers.every((provider) => typeof provider === 'string' && provider.length > 0)
+    || !Number.isInteger(provenance.successful_calls) || Number(provenance.successful_calls) <= 0 || !hasSuccessRoute
+    || !countsAreValid(advisory) || caseRows.length === 0
+    || !matchesCases(required, requiredRows) || !matchesCases(advisory, advisoryRows)
+    || parsed.aggregate !== expectedAggregate
+    || parsed.all_cases_passed !== (Number(advisory?.failed) === 0)) return null
+  return { advisoryTotal: Number(advisory?.total), advisoryFailed: Number(advisory?.failed) }
+}
+
 function collectEvalState(): ObservatorySignal[] {
   const root = join(WORKSPACE_PATHS.commandRoot, '.prompteval')
   const inventoryPath = join(root, 'inventory.json')
@@ -433,7 +487,8 @@ function collectEvalState(): ObservatorySignal[] {
     const path = join(root, id, 'baseline.json')
     if (!existsSync(path)) return []
     const parsed = JSON.parse(readBounded(path, 1_000_000)) as Record<string, unknown>
-    return parsed.passed === true && parsed.release === true && parsed.accepted_from_cache === false ? [parsed] : []
+    const evidence = validateAcceptedBaselineEvidence(parsed)
+    return evidence ? [evidence] : []
   })
   const statusRoot = join(WORKSPACE_PATHS.runtimeRoot, 'prompteval')
   const commandStatus = existsSync(statusRoot) ? readdirSync(statusRoot).find((name) => name.startsWith('command-') && existsSync(join(statusRoot, name, 'status.json'))) : undefined
@@ -441,7 +496,10 @@ function collectEvalState(): ObservatorySignal[] {
   const status = statusPath ? JSON.parse(readBounded(statusPath, 1_000_000)) as { prompts?: Record<string, { flags?: unknown[]; flag_streak?: number }> } : null
   const flagged = Object.entries(status?.prompts ?? {}).filter(([, value]) => Array.isArray(value.flags) && value.flags.length).map(([id, value]) => `${id}:${value.flags?.join('+')}(${value.flag_streak ?? 0})`)
   const complete = ids.length > 0 && baselines.length === ids.length && inventory.enforce
-  return [signal({ id: 'eval-governance', title: 'Prompt eval release gate', state: complete ? 'healthy' : 'blocked', observedAt: statusPath ? statSync(statusPath).mtime.toISOString() : undefined, sourceRef: statusPath ?? inventoryPath, artifactHref: '/lineage', reason: complete ? `${baselines.length}/${ids.length} governed prompts have fresh uncached release baselines and enforcement is enabled.` : `${baselines.length}/${ids.length} governed prompts have accepted uncached release baselines; inventory enforcement is ${inventory.enforce ? 'enabled' : 'disabled'}.`, details: { governed: ids.length, acceptedFreshBaselines: baselines.length, enforce: inventory.enforce, decayFlags: flagged.join(', ') || 'none' } })]
+  const advisoryCases = baselines.reduce((sum, baseline) => sum + baseline.advisoryTotal, 0)
+  const advisoryFailures = baselines.reduce((sum, baseline) => sum + baseline.advisoryFailed, 0)
+  const advisoryReason = `${advisoryFailures}/${advisoryCases} advisory cases failed (non-blocking).`
+  return [signal({ id: 'eval-governance', title: 'Prompt eval release gate', state: complete ? 'healthy' : 'blocked', observedAt: statusPath ? statSync(statusPath).mtime.toISOString() : undefined, sourceRef: statusPath ?? inventoryPath, artifactHref: '/lineage', reason: complete ? `${baselines.length}/${ids.length} governed prompts have structurally valid uncached release baselines and enforcement is enabled; ${advisoryReason}` : `${baselines.length}/${ids.length} governed prompts have structurally valid uncached release baselines; inventory enforcement is ${inventory.enforce ? 'enabled' : 'disabled'}; ${advisoryReason}`, details: { governed: ids.length, acceptedFreshBaselines: baselines.length, advisoryCases, advisoryFailures, enforce: inventory.enforce, decayFlags: flagged.join(', ') || 'none' } })]
 }
 
 function collectDeployment(): ObservatorySignal[] {

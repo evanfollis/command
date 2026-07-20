@@ -4,7 +4,7 @@ import { createHash } from 'crypto'
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { containsPrivateProjectionField, derivePosture, getObservatorySnapshot, readTail, type ObservatorySignal } from '../src/lib/observatory'
+import { containsPrivateProjectionField, derivePosture, getObservatorySnapshot, readTail, validateAcceptedBaselineEvidence, type ObservatorySignal } from '../src/lib/observatory'
 
 const base: ObservatorySignal = { id: 'x', title: 'x', state: 'healthy', observedAt: new Date().toISOString(), expiresAt: new Date().toISOString(), sourceRef: 'test', reason: 'test' }
 const canonical = (value: unknown): string => Array.isArray(value) ? `[${value.map(canonical).join(',')}]` : value && typeof value === 'object' ? `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}` : JSON.stringify(value)
@@ -12,6 +12,27 @@ const resign = (projection: Record<string, unknown>) => { const payload = { ...p
 assert.equal(derivePosture([{ ...base, state: 'healthy' }, { ...base, state: 'unknown' }]).posture, 'unknown')
 assert.equal(derivePosture([{ ...base, state: 'degraded' }, { ...base, state: 'blocked' }]).posture, 'blocked')
 assert.equal(derivePosture([{ ...base, state: 'healthy' }]).posture, 'healthy')
+
+const acceptedBaseline = {
+  passed: true, release: true, accepted_from_cache: false, run_id: 'run-1',
+  gate_policy: { basis: 'must_pass_cases', advisory_cases_gate: false },
+  required_cases: { total: 2, passed: 2, failed: 0 }, required_aggregate: 1.0,
+  advisory_cases: { total: 2, passed: 1, failed: 1 }, aggregate: 0.75,
+  cases: { required_1: { pass: true, must_pass: true }, required_2: { pass: true, must_pass: true }, advisory_1: { pass: true, must_pass: false }, advisory_2: { pass: false, must_pass: false } },
+  all_cases_passed: false,
+  gate: { passed: true }, judge_unknown_ratio: 0,
+  provider_provenance: { schema_version: 'prompteval.provider-provenance.v1', run_id: 'run-1', providers: ['claude'], successful_calls: 4, routes: [{ provider: 'claude', model: 'sonnet', status: 'success', calls: 4 }] },
+}
+assert.deepEqual(validateAcceptedBaselineEvidence(acceptedBaseline), { advisoryTotal: 2, advisoryFailed: 1 }, 'advisory failures and aggregate below one remain acceptable when required cases pass')
+for (const invalid of [
+  { ...acceptedBaseline, required_aggregate: 0.5 },
+  { ...acceptedBaseline, required_cases: { total: 2, passed: 1, failed: 1 } },
+  { ...acceptedBaseline, gate_policy: { basis: 'all_cases', advisory_cases_gate: true } },
+  { ...acceptedBaseline, judge_unknown_ratio: undefined },
+  { ...acceptedBaseline, accepted_from_cache: true },
+  { ...acceptedBaseline, cases: { ...acceptedBaseline.cases, advisory_2: { pass: true, must_pass: false } } },
+  { ...acceptedBaseline, provider_provenance: { ...(acceptedBaseline.provider_provenance as Record<string, unknown>), run_id: 'other' } },
+]) assert.equal(validateAcceptedBaselineEvidence(invalid), null)
 
 assert.equal(containsPrivateProjectionField({ records: { claims: [] } }), false)
 for (const key of ['transcript', 'password', 'token', 'rawTelemetry', 'localPath']) assert.equal(containsPrivateProjectionField({ records: [{ [key]: 'nope' }] }), true)
