@@ -67,6 +67,9 @@ RUN_BEEA83_ALIGNMENT_SHA = '5b3a482975aba0db3c92003248da59dafe8c100720bbb509726e
 RUN_452D63 = Path('/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T035742Z-452d63.json')
 RUN_452D63_SHA = '9ea96a458d9a519d9a3bd1cc14765cafb0231f52e9c827ffedca5b8554518750'
 RUN_452D63_CACHE = ('ck-08b6fc1898238779.json', '58761fa027d370fb1d6709a8f2e2f3eea8e60d7a8c49588acd144961e3925c7c')
+RUN_ACD532 = Path('/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T043613Z-acd532.json')
+RUN_ACD532_SHA = 'f1e0976e88ac8775cc16fcd74c08fcb66f65f59fb2440279e5c154bdcad7ef39'
+RUN_ACD532_CACHE = ('ck-6c7b9ce64b99c21c.json', 'eb4a163db16486ff4925573b5cc90beb3df3caad64d03c73e05df6afd9c1d1c2')
 PRODUCT_BOUNDARY_ARCHIVE = SPEC / 'archive' / 'v2-product-boundary-20260719'
 RETIRED_ATTACH_SOURCE_SHA = '49850946fa91d63e868bf4e58585565ac6281b32ffbee4cabc6ffa374f3895a2'
 RETIRED_ATTACH_CASES_SHA = '47fc8a7bef5b818bb6a64139f80e7c032db2d87fec6425a5c8d73abe0913e8b4'
@@ -318,6 +321,41 @@ if run_452_cache.exists():
     else:
         assert cached['ts'] > '2026-07-20T03:49:05Z'
 
+run_acd_archive = SPEC / 'archive' / 'run-20260720T043613Z-acd532'
+run_acd_receipt = json.loads((run_acd_archive / 'failed-run-receipt.json').read_text())
+assert run_acd_receipt['sha256'] == RUN_ACD532_SHA
+assert run_acd_receipt['aggregate'] == 0.9375
+assert run_acd_receipt['judge_unknown_ratio'] == 0.0
+assert run_acd_receipt['sealed_results'] == {'count': 3, 'passed': 3, 'content_inspected': False}
+assert run_acd_receipt['sole_required_failure'] == {
+    'case_id': 'gc-466822e89b2392f2',
+    'status': 'active',
+    'provenance': 'synthetic',
+    'failure_mode': 'debugging-without-source-grounding',
+    'verdict': 'fail',
+    'classification': 'substantive_model_output_failure',
+    'detail': 'disproved the reported source mechanism but blurred source-invariant closure with incident-root-cause closure and omitted the specific runtime evidence needed to identify the actual cause',
+}
+assert run_acd_receipt['preserved_active_sha256'] == RUN_5A9247_POST_ACTIVE_SHA
+assert run_acd_receipt['preserved_holdout_sha256'] == RUN_5A9247_POST_HOLDOUT_SHA
+if RUN_ACD532.exists():
+    assert digest(RUN_ACD532) == RUN_ACD532_SHA
+    run_acd = json.loads(RUN_ACD532.read_text())
+    assert run_acd['release'] is True and run_acd['cached_allowed'] is False
+    assert run_acd['judge_unknown_ratio'] == 0.0 and not run_acd['gate']['passed']
+    failed_ids = {case_id for case_id, result in run_acd['cases'].items() if not result['pass']}
+    assert failed_ids == {'gc-466822e89b2392f2'}
+    sealed = [result for result in run_acd['cases'].values() if result['status'] == 'holdout']
+    assert len(sealed) == 3 and all(result['pass'] for result in sealed)
+run_acd_cache = cache_root / RUN_ACD532_CACHE[0]
+if run_acd_cache.exists():
+    cached = json.loads(run_acd_cache.read_text())
+    assert cached['case'] == 'gc-466822e89b2392f2'
+    if cached['ts'] == '2026-07-20T04:04:46Z':
+        assert digest(run_acd_cache) == RUN_ACD532_CACHE[1]
+    else:
+        assert cached['ts'] > '2026-07-20T04:04:46Z'
+
 fixed_case = next(case for case in active if case['input']['task_id'] == 't-fix-03')
 fixed_rubric = next(check['rubric'] for check in fixed_case['checks'] if check.get('failure_mode') == 'already-fixed-state-missed')
 assert 'src/lib/observatory.ts' in fixed_rubric
@@ -344,6 +382,10 @@ for required in (
     'do not substitute adjacent behavior such as server-side filtering',
     'When inspection proves that the reported defect is unreachable',
     'Do not invent hypothetical environments or propose a behavior-preserving refactor',
+    'Keep source-invariant closure separate from incident-root-cause closure',
+    'state that no source edit is warranted, but do not claim the observed incident is explained',
+    'original stack trace with current line or source-map mapping',
+    'the triggering payload, the deployed runtime revision, or a reproduction trace',
     'Name the exact readiness endpoint and the configuration source that selects it',
     'switches from release A to release B and back to A',
     'each selected release remains paired with its own dependency identity',

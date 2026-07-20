@@ -1,0 +1,35 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260720T043613Z-acd532",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T043613Z-acd532.json",
+  "sha256": "f1e0976e88ac8775cc16fcd74c08fcb66f65f59fb2440279e5c154bdcad7ef39",
+  "release": true,
+  "cached_allowed": false,
+  "gate_passed": false,
+  "aggregate": 0.9375,
+  "required_aggregate": 0.9375,
+  "judge_unknown_ratio": 0.0,
+  "golden_hash": "gh-5631e159c38a0a86",
+  "spec_hash": "sh-f9d88656033be429",
+  "prompt_version": "pv-4554be86f234a81f",
+  "sealed_results": {
+    "count": 3,
+    "passed": 3,
+    "content_inspected": false
+  },
+  "sole_required_failure": {
+    "case_id": "gc-466822e89b2392f2",
+    "status": "active",
+    "provenance": "synthetic",
+    "failure_mode": "debugging-without-source-grounding",
+    "verdict": "fail",
+    "classification": "substantive_model_output_failure",
+    "detail": "disproved the reported source mechanism but blurred source-invariant closure with incident-root-cause closure and omitted the specific runtime evidence needed to identify the actual cause"
+  },
+  "active_cache": {
+    "path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/cache/ck-6c7b9ce64b99c21c.json",
+    "sha256": "eb4a163db16486ff4925573b5cc90beb3df3caad64d03c73e05df6afd9c1d1c2"
+  },
+  "preserved_active_sha256": "339bbf33e31c0d317333fc5b0712aed18019f5728873790171407194f04a1297",
+  "preserved_holdout_sha256": "cd0c432fcc1e1dabbb044782821c80118ee2150a28d57c1ccbab260a70e7448e"
+}
