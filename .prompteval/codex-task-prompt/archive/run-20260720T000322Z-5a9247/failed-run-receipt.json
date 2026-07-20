@@ -1,0 +1,35 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260720T000322Z-5a9247",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T000322Z-5a9247.json",
+  "sha256": "ea14d03aab2e7700a041717555ebb902b119db3c609be2a878d6c374a053c151",
+  "release": true,
+  "cached_allowed": false,
+  "gate_passed": false,
+  "aggregate": 0.7333,
+  "required_aggregate": 0.7333,
+  "golden_hash": "gh-183492fda7766ead",
+  "spec_hash": "sh-3afdea9b3f28cf81",
+  "prompt_version": "pv-9ba3b0551ac407c9",
+  "judge_unknown_ratio": 0.0,
+  "required_active_failures": [
+    "gc-19391fb63459606e",
+    "gc-77322229d9ca8bd2",
+    "gc-0208a8225000a225"
+  ],
+  "failed_sealed_case": {
+    "case_id": "gc-707407cf7bb9f58d",
+    "record_sha256": "1f5286f94fe279ded7347067c86d52719e4ba618a80b82a8037660f57020647b",
+    "input_checks_sha256": "f42a1dd70d8818ce0b3cab87fe0974830ab920b18fb8e34736db0ad14d9d05f0",
+    "disposition": "burned_and_promoted_active"
+  },
+  "preserved_passing_record_sha256": [
+    "a45eec707e38d78604103ca5fc5be07c8b40cef45694917d7e346d080217d6a0",
+    "c063271fb07943fd65df878811accfd209baa6d3d339076b28f23999a2668ba6"
+  ],
+  "pre_transition_holdout_sha256": "e7ad1dd7c30f879bf2135be5252fadf2132aba165f06cbd18a5d57b570fb091b",
+  "post_transition_active_sha256": "339bbf33e31c0d317333fc5b0712aed18019f5728873790171407194f04a1297",
+  "post_transition_holdout_sha256": "cd0c432fcc1e1dabbb044782821c80118ee2150a28d57c1ccbab260a70e7448e",
+  "replacement_record_sha256": "943aacda181e423713894fe9762785f2a4644720cc33f38da62dfc23cec75e69",
+  "sealed_content_inspected_before_promotion": false
+}

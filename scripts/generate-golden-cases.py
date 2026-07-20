@@ -796,6 +796,66 @@ ctp_holdout = [
     ),
 ]
 
+CODEX_BURNED_HOLDOUT_ID = 'gc-707407cf7bb9f58d'
+CODEX_BURNED_ARCHIVE = (
+    REPO / '.prompteval' / 'codex-task-prompt' / 'archive'
+    / 'run-20260720T000322Z-5a9247' / 'burned-case.jsonl'
+)
+
+
+def load_or_archive_burned_codex_case():
+    archived = read_existing(CODEX_BURNED_ARCHIVE)
+    if CODEX_BURNED_HOLDOUT_ID in archived:
+        return archived[CODEX_BURNED_HOLDOUT_ID]
+    if not REWRITE_HOLDOUTS:
+        raise RuntimeError('initial Codex burned holdout transition requires --rewrite-holdouts')
+    holdout_path = REPO / '.prompteval' / 'codex-task-prompt' / 'golden' / 'holdout.jsonl'
+    for line in holdout_path.read_text().splitlines(keepends=True):
+        case = json.loads(line)
+        if case['id'] == CODEX_BURNED_HOLDOUT_ID:
+            CODEX_BURNED_ARCHIVE.write_text(line if line.endswith('\n') else line + '\n')
+            return case
+    raise RuntimeError('burned Codex holdout is absent from both sealed and archived evidence')
+
+
+codex_replacement_holdout = task_case(
+    {"task_id": "t-holdout-v3-release", "project_path": "/opt/workspace/projects/command",
+     "intent": "diagnosis", "scope": "cross-file", "risk": "high",
+     "model_posture": "opus / high", "target_project": "command",
+     "description": "A prior immutable release started with dependencies from another lockfile. Inspect scripts/release.sh and scripts/release-invariants-test.sh, determine whether current source still permits that mismatch, and return either the exact current-compatible correction or evidence that no change is warranted."},
+    [task_judge(
+        "release-dependency-state-misread",
+        "FAIL if the response assumes the historical dependency mismatch still exists without "
+        "inspecting the staged lock hash, dependency cache, release node_modules ownership, and "
+        "cross-version rollback regression. PASS if it verifies the current implementation and "
+        "either reports source-grounded evidence that the class is already closed or supplies an "
+        "exact current-compatible correction without claiming unperformed execution."
+    )],
+    "sealed v3 x release dependency isolation x historical-premise verification",
+    status="holdout",
+)
+
+if 'codex-task-prompt' in SELECTED_PROMPTS:
+    burned_codex_case = load_or_archive_burned_codex_case()
+    burned_codex_case['status'] = 'active'
+    burned_codex_case['provenance'] = 'production'
+    burned_codex_case['source'] = (
+        'failed release run run-20260720T000322Z-5a9247; mechanically promoted sealed regression'
+    )
+    burned_codex_case['notes'] = (
+        'burned holdout regression; exact input and checks preserved before diagnosis'
+    )
+    ctp_active.append(burned_codex_case)
+    if REWRITE_HOLDOUTS:
+        current_codex_holdout = read_existing(
+            REPO / '.prompteval' / 'codex-task-prompt' / 'golden' / 'holdout.jsonl'
+        )
+        ctp_holdout = [
+            case for case_id, case in current_codex_holdout.items()
+            if case_id not in {CODEX_BURNED_HOLDOUT_ID, codex_replacement_holdout['id']}
+        ]
+        ctp_holdout.append(codex_replacement_holdout)
+
 write_cases('codex-task-prompt', ctp_active, ctp_holdout)
 
 

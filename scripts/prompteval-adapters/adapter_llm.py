@@ -32,13 +32,27 @@ from prompteval.llm import (  # noqa: E402
 # That is the behavior under test. What it MAY do is describe the environment truthfully, so
 # the model is not punished for a limitation of the harness (see PROBE_TOOLS below).
 PROBE_PREFIX = (
-    "Prompt-evaluation probe rooted at /opt/workspace. Capability context only: real read "
-    "tools (Read, Grep, Glob) are available for workspace inspection. Write and "
-    "command-execution tools are unavailable. Distinguish truthfully between workspace state "
+    "Prompt-evaluation probe rooted at /opt/workspace. Capability context only. Distinguish "
+    "truthfully between workspace state "
     "you inspected, changes described as proposals, and operations actually performed. Never "
     "claim that the probe wrote, changed, or executed something it did not. Output only the "
-    "user-facing reply.\n\n"
+    "user-facing reply. "
 )
+
+CLAUDE_CAPABILITY_CONTEXT = (
+    "Claude probe capabilities: Read, Grep, and Glob are available for workspace inspection; "
+    "Write, Edit, and Bash are unavailable.\n\n"
+)
+
+CODEX_CAPABILITY_CONTEXT = (
+    "Codex probe capabilities: read-only shell inspection commands such as rg, sed, and git "
+    "show are available; workspace writes and project command or test execution are unavailable.\n\n"
+)
+
+
+def _probe_prefix(provider: str) -> str:
+    context = CODEX_CAPABILITY_CONTEXT if provider == "codex" else CLAUDE_CAPABILITY_CONTEXT
+    return PROBE_PREFIX + context
 
 
 def _codex_cmd(model: str) -> list[str]:
@@ -100,26 +114,29 @@ def _calls_for_prompt(
     system_prompt: str | None = None,
     message: str | None = None,
 ) -> list[CliCall]:
-    probe_prompt = PROBE_PREFIX + prompt
     primary = provider_for_model(model, default="claude")
     codex_model = model if primary == "codex" else fallback_model("codex")
     claude_model = model if primary == "claude" else fallback_model("claude")
+    claude_prefix = _probe_prefix("claude")
+    codex_prefix = _probe_prefix("codex")
+    codex_prompt = codex_prefix + prompt
     if system_prompt is not None:
-        probe_system_prompt = PROBE_PREFIX + system_prompt
+        probe_system_prompt = claude_prefix + system_prompt
         claude_cmd = _claude_text_cmd(
             claude_model, "--append-system-prompt", probe_system_prompt, message or ""
         )
         claude_input = f"{probe_system_prompt}\n{message or ''}"
     else:
-        claude_cmd = _claude_text_cmd(claude_model, probe_prompt)
-        claude_input = probe_prompt
+        claude_prompt = claude_prefix + prompt
+        claude_cmd = _claude_text_cmd(claude_model, claude_prompt)
+        claude_input = claude_prompt
 
     codex_call = CliCall(
         "codex",
         codex_model,
         _codex_cmd(codex_model),
-        stdin_text=probe_prompt,
-        input_text=probe_prompt,
+        stdin_text=codex_prompt,
+        input_text=codex_prompt,
         fallback_from="claude" if primary == "claude" else "",
         cwd=PROBE_CWD,
     )
