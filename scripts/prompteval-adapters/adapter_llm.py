@@ -105,6 +105,7 @@ def _telemetry(payload: dict, prompt_id: str) -> dict:
         "prompt_id": telemetry.get("prompt_id", prompt_id),
         "case_id": telemetry.get("case_id", ""),
         "trial": telemetry.get("trial"),
+        "run_id": telemetry.get("run_id", ""),
     }
 
 
