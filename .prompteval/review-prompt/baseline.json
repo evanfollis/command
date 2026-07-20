@@ -1,16 +1,17 @@
 {
   "prompt_version": "pv-0c9d25a78080edc9",
-  "spec_hash": "sh-55317d86dba4f99f",
+  "spec_hash": "sh-f8d8a0c5f8710d96",
   "golden_hash": "gh-17454b4c14eeb226",
   "model": "claude-sonnet-4-6",
   "params": {},
   "judge_model": "opus",
-  "run_id": "run-20260719T165747Z-5599f9",
-  "ts": "2026-07-19T16:57:47Z",
+  "run_id": "run-20260720T013619Z-541af5",
+  "ts": "2026-07-20T01:36:19Z",
   "release": true,
   "passed": true,
   "accepted_from_cache": false,
   "aggregate": 1.0,
+  "required_aggregate": 1.0,
   "cases": {
     "gc-c004a7da25d26b8c": {
       "pass": true,
@@ -77,5 +78,5 @@
       "must_pass": true
     }
   },
-  "all_pass_streak": 2
+  "all_pass_streak": 4
 }

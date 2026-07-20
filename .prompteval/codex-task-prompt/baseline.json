@@ -1,74 +1,82 @@
 {
-  "prompt_version": "pv-4746a29429b283df",
-  "spec_hash": "sh-70f12d2b75490ffd",
-  "golden_hash": "gh-962ef3e74c497e41",
+  "prompt_version": "pv-64b91b261c7c317c",
+  "spec_hash": "sh-f9d88656033be429",
+  "golden_hash": "gh-5631e159c38a0a86",
   "model": "claude-sonnet-4-6",
   "params": {},
   "judge_model": "opus",
-  "run_id": "run-20260720T020106Z-e3efc0",
-  "ts": "2026-07-20T02:01:06Z",
+  "run_id": "run-20260720T051601Z-8e532d",
+  "ts": "2026-07-20T05:16:01Z",
   "release": true,
   "passed": true,
   "accepted_from_cache": false,
   "aggregate": 1.0,
   "required_aggregate": 1.0,
   "cases": {
-    "gc-7910a9ad831cac21": {
+    "gc-466822e89b2392f2": {
       "pass": true,
       "must_pass": true
     },
-    "gc-aa4f4c1f16eb0b30": {
+    "gc-19391fb63459606e": {
       "pass": true,
       "must_pass": true
     },
-    "gc-41e85fb29ca53a3b": {
+    "gc-beeffc8ebf868689": {
       "pass": true,
       "must_pass": true
     },
-    "gc-ad7e4f33fa7fd147": {
+    "gc-77322229d9ca8bd2": {
       "pass": true,
       "must_pass": true
     },
-    "gc-04a60cb9b6eb809c": {
+    "gc-0208a8225000a225": {
       "pass": true,
       "must_pass": true
     },
-    "gc-4e1ceed614dbe0b1": {
+    "gc-20ce076fb4925045": {
       "pass": true,
       "must_pass": true
     },
-    "gc-ce8d685cd368f8d7": {
+    "gc-03a8e553bc10ed72": {
       "pass": true,
       "must_pass": true
     },
-    "gc-9a03ff9a8a580371": {
+    "gc-cb721b1a677003af": {
       "pass": true,
       "must_pass": true
     },
-    "gc-de0e0d14e83d16e9": {
+    "gc-a6157a63ee867be7": {
       "pass": true,
       "must_pass": true
     },
-    "gc-4776ea3b72a57bc9": {
+    "gc-8350809ac32c69d5": {
       "pass": true,
       "must_pass": true
     },
-    "gc-8e83aa41b44567af": {
+    "gc-84c6a84716b64147": {
       "pass": true,
       "must_pass": true
     },
-    "gc-8692edd285b456d7": {
+    "gc-dacb6094a0651bd4": {
       "pass": true,
       "must_pass": true
     },
-    "gc-07b0a7035037ec0e": {
+    "gc-707407cf7bb9f58d": {
       "pass": true,
       "must_pass": true
     },
-    "gc-9b8d3ba7ff28f0fa": {
+    "gc-466526ab26adb85b": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-38b3e75ad2a0ab4d": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-c0ce7b888fbf96be": {
       "pass": true,
       "must_pass": true
     }
   },
-  "all_pass_streak": 2
+  "all_pass_streak": 1
 }

@@ -1,6 +1,6 @@
 {
-  "enforce": false,
-  "note": "Baselines pending \u2014 enforce disabled until all 4 pass (ADR-0039). Prior tick wrote enforce:true with false certification before baselines completed. See CURRENT_STATE.md.",
+  "enforce": true,
+  "note": "All four governed prompts have fresh accepted release baselines as of 2026-07-20; new ungoverned prompts fail closed (ADR-0039).",
   "prompts": [
     {
       "file": "src/prompts/thread-opening-frame.md",
