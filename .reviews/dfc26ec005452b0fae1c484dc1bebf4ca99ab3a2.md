@@ -1,6 +1,6 @@
 # Review: Narrow Edge JWT verification import
 
-- Commit: `dfc26ec3521ea47be312571b6101d68ef389a084`
+- Commit: `dfc26ec005452b0fae1c484dc1bebf4ca99ab3a2`
 - Reviewer: Codex GPT-5.6, session `019f7ed5-d374-7ac0-b596-d8e8ffc01936`
 - Scope: Edge-runtime module resolution, JWT verification compatibility, bundle behavior, and regression coverage.
 
