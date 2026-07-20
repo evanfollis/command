@@ -85,6 +85,20 @@ RUN_452D63_CACHE = ('ck-08b6fc1898238779.json', '58761fa027d370fb1d6709a8f2e2f3e
 RUN_ACD532 = Path('/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T043613Z-acd532.json')
 RUN_ACD532_SHA = 'f1e0976e88ac8775cc16fcd74c08fcb66f65f59fb2440279e5c154bdcad7ef39'
 RUN_ACD532_CACHE = ('ck-6c7b9ce64b99c21c.json', 'eb4a163db16486ff4925573b5cc90beb3df3caad64d03c73e05df6afd9c1d1c2')
+RUN_3D168B = 'run-20260720T071114Z-3d168b'
+RUN_3D168B_SHA = '9e8177d79b7fa1b8f10989fe6afe2f33019d93e8686a4adf690d8135d7ec5939'
+CONTAMINATED_HOLDOUT_SHA = 'b864c016e14b54cabf8c26bc44060d360fb50ee08e4aff872e501a4e731ac678'
+CONTAMINATED_HOLDOUT_RECORDS = {
+    'gc-466526ab26adb85b': 'c063271fb07943fd65df878811accfd209baa6d3d339076b28f23999a2668ba6',
+    'gc-38b3e75ad2a0ab4d': 'a45eec707e38d78604103ca5fc5be07c8b40cef45694917d7e346d080217d6a0',
+    'gc-94de61c46b321c2d': '61f4340999ce22799369deb950212468b9b14547797cef75586d8d16b7b21b41',
+}
+REPLACEMENT_HOLDOUT_SHA = 'cb3b48ab53aca4d9532ccd973fc8f594fa905561fdf94405093815f3d048ac6b'
+REPLACEMENT_HOLDOUT_RECORDS = {
+    'gc-51913b36c1570860': '6cf1bd39dcf07dbf5ce4ecf28dc60602a5f6632e6e09434790a280e443c48453',
+    'gc-15d1a422f6b33458': '5bb52e7561c3b32d73650c5aa33ab03f24ee0f906391310b3d20da26aff003ff',
+    'gc-6e4d655c2e0f8997': '72dbb40fbd1e686c5224f9c5ffb8260e325999943590a0d3c4dbe5acade40ca7',
+}
 PRODUCT_BOUNDARY_ARCHIVE = SPEC / 'archive' / 'v2-product-boundary-20260719'
 RETIRED_ATTACH_SOURCE_SHA = '49850946fa91d63e868bf4e58585565ac6281b32ffbee4cabc6ffa374f3895a2'
 RETIRED_ATTACH_CASES_SHA = '47fc8a7bef5b818bb6a64139f80e7c032db2d87fec6425a5c8d73abe0913e8b4'
@@ -215,7 +229,35 @@ for case in v1_cases:
 active = load_jsonl(SPEC / 'golden' / 'cases.jsonl')
 holdout = load_jsonl(SPEC / 'golden' / 'holdout.jsonl')
 assert len(active) == 13
-assert 2 <= len(holdout) <= 4
+assert len(holdout) == 3
+assert digest(SPEC / 'golden' / 'holdout.jsonl') == REPLACEMENT_HOLDOUT_SHA
+replacement_record_hashes = {
+    json.loads(line)['id']: hashlib.sha256(line.encode()).hexdigest()
+    for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines(keepends=True)
+}
+assert replacement_record_hashes == REPLACEMENT_HOLDOUT_RECORDS
+rotation_archive = SPEC / 'archive' / RUN_3D168B
+assert digest(rotation_archive / 'contaminated-holdout.jsonl') == CONTAMINATED_HOLDOUT_SHA
+contaminated_record_hashes = {
+    json.loads(line)['id']: hashlib.sha256(line.encode()).hexdigest()
+    for line in (rotation_archive / 'contaminated-holdout.jsonl').read_text().splitlines(keepends=True)
+}
+assert contaminated_record_hashes == CONTAMINATED_HOLDOUT_RECORDS
+rotation_receipt = json.loads((rotation_archive / 'contamination-receipt.json').read_text())
+assert rotation_receipt['status'] == 'contaminated'
+assert rotation_receipt['failed_run'] == {
+    'id': RUN_3D168B,
+    'sha256': RUN_3D168B_SHA,
+    'aggregate': 0.75,
+    'required_aggregate': 0.75,
+    'status': 'failed',
+}
+assert rotation_receipt['contaminated_holdout']['sha256'] == CONTAMINATED_HOLDOUT_SHA
+assert rotation_receipt['contaminated_holdout']['count'] == 3
+assert {
+    record['id']: record['sha256']
+    for record in rotation_receipt['contaminated_holdout']['records']
+} == CONTAMINATED_HOLDOUT_RECORDS
 assert not ({case['id'] for case in active} & {case['id'] for case in holdout})
 assert not ({case['id'] for case in holdout} & {case['id'] for case in v1_cases}), 'v2 holdouts must be freshly minted'
 assert not ({case['id'] for case in active} & {case['id'] for case in retired_attach_cases})
@@ -247,10 +289,10 @@ assert contract_digest(promoted[0]) == RUN_5A9247_BURNED_CONTRACT_SHA
 assert promoted[0]['status'] == 'active' and promoted[0]['provenance'] == 'production'
 assert 'run-20260720T000322Z-5a9247' in promoted[0]['source']
 assert RUN_5A9247_BURNED_ID not in {case['id'] for case in holdout}
-assert digest(SPEC / 'golden' / 'holdout.jsonl') == RUN_0FDDA5_POST_HOLDOUT_SHA
+assert digest(SPEC / 'archive' / RUN_3D168B / 'contaminated-holdout.jsonl') == RUN_0FDDA5_POST_HOLDOUT_SHA
 sealed_line_shas = {
     hashlib.sha256((line + '\n').encode()).hexdigest()
-    for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines()
+    for line in (SPEC / 'archive' / RUN_3D168B / 'contaminated-holdout.jsonl').read_text().splitlines()
     if line.strip()
 }
 assert sealed_line_shas == RUN_5A9247_PRESERVED_RECORD_SHAS | {RUN_0FDDA5_FINAL_REPLACEMENT_SHA}
@@ -287,10 +329,10 @@ assert run_0f_receipt['final_replacement']['judge_failure_mode_count'] >= 3
 holdout_ids = {case['id'] for case in holdout}
 assert RUN_0FDDA5_BURNED_ID not in holdout_ids
 assert RUN_0FDDA5_REPLACEMENT_ID not in holdout_ids
-assert RUN_0FDDA5_FINAL_REPLACEMENT_ID in holdout_ids
-assert digest(SPEC / 'golden' / 'holdout.jsonl') == RUN_0FDDA5_POST_HOLDOUT_SHA
+assert RUN_0FDDA5_FINAL_REPLACEMENT_ID not in holdout_ids
+assert digest(SPEC / 'archive' / RUN_3D168B / 'contaminated-holdout.jsonl') == RUN_0FDDA5_POST_HOLDOUT_SHA
 replacement_lines = [
-    line for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines(keepends=True)
+    line for line in (SPEC / 'archive' / RUN_3D168B / 'contaminated-holdout.jsonl').read_text().splitlines(keepends=True)
     if json.loads(line)['id'] == RUN_0FDDA5_FINAL_REPLACEMENT_ID
 ]
 assert len(replacement_lines) == 1
@@ -500,15 +542,16 @@ assert snapshot_eval_files() == before, 'missing target mutated prompt-eval evid
 
 # Targeted generation must be byte-idempotent and must not touch any other
 # prompt, baseline, archive, or sealed evidence.
+holdout_before = (SPEC / 'golden' / 'holdout.jsonl').read_bytes()
 targeted_result = run_generator('--prompt-id', 'codex-task-prompt')
 assert targeted_result.returncode == 0, targeted_result.stderr
-assert 'Wrote: codex-task-prompt' in targeted_result.stdout
-assert 'sealed holdout untouched' in targeted_result.stdout
+assert 'codex-task-prompt: 13 active' in targeted_result.stdout
+assert (SPEC / 'golden' / 'holdout.jsonl').read_bytes() == holdout_before, 'sealed holdout bytes changed'
 assert snapshot_eval_files() == before, 'targeted regeneration was non-idempotent or crossed prompt boundaries'
 
 rewrite_result = run_generator('--prompt-id', 'codex-task-prompt', '--rewrite-holdouts')
-assert rewrite_result.returncode == 0, rewrite_result.stderr
-assert 'rewrote 3 holdout' in rewrite_result.stdout
-assert snapshot_eval_files() == before, 'canonical holdout regeneration drifted or crossed prompt boundaries'
+assert rewrite_result.returncode != 0
+assert (SPEC / 'golden' / 'holdout.jsonl').read_bytes() == holdout_before, 'rejected option changed sealed holdout bytes'
+assert snapshot_eval_files() == before, 'rejected sealed option crossed prompt boundaries'
 
 print('codex-task-prompt v2 contract, archive provenance, and generator safety tests passed')

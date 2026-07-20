@@ -1,0 +1,21 @@
+{
+  "status": "contaminated",
+  "reason": "deterministic test exposed the complete sealed holdout diff to the main agent",
+  "failed_run": {
+    "id": "run-20260720T071114Z-3d168b",
+    "sha256": "9e8177d79b7fa1b8f10989fe6afe2f33019d93e8686a4adf690d8135d7ec5939",
+    "aggregate": 0.75,
+    "required_aggregate": 0.75,
+    "status": "failed"
+  },
+  "contaminated_holdout": {
+    "filename": "contaminated-holdout.jsonl",
+    "sha256": "b864c016e14b54cabf8c26bc44060d360fb50ee08e4aff872e501a4e731ac678",
+    "count": 3,
+    "records": [
+      {"id": "gc-466526ab26adb85b", "sha256": "c063271fb07943fd65df878811accfd209baa6d3d339076b28f23999a2668ba6"},
+      {"id": "gc-38b3e75ad2a0ab4d", "sha256": "a45eec707e38d78604103ca5fc5be07c8b40cef45694917d7e346d080217d6a0"},
+      {"id": "gc-94de61c46b321c2d", "sha256": "61f4340999ce22799369deb950212468b9b14547797cef75586d8d16b7b21b41"}
+    ]
+  }
+}
