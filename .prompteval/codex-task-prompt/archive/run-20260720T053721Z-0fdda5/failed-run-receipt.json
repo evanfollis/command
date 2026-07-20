@@ -43,12 +43,22 @@
     "disposition": "retired_and_replaced"
   },
   "pre_transition_holdout_sha256": "cd0c432fcc1e1dabbb044782821c80118ee2150a28d57c1ccbab260a70e7448e",
-  "post_transition_holdout_sha256": "46b762ff59f60b26edf6de5345f0833d7d3c1bf95d8ba6a3f8eed04038afbf5d",
+  "post_transition_holdout_sha256": "b864c016e14b54cabf8c26bc44060d360fb50ee08e4aff872e501a4e731ac678",
   "replacement": {
     "case_id": "gc-bec2868c2f4daf0c",
     "record_sha256": "421637eac6fe0f984a9d5c6f4d4f9c468573b2858b63b99b329669df269ce963",
     "must_pass": true,
     "judge_failure_mode_count": 3,
+    "canonical_generator": "scripts/generate-golden-cases.py",
+    "disposition": "retired_after_parent_review_contamination",
+    "contamination_source_commit": "6c15d8e",
+    "archive_file": "contaminated-replacement.jsonl"
+  },
+  "final_replacement": {
+    "case_id": "gc-94de61c46b321c2d",
+    "record_sha256": "61f4340999ce22799369deb950212468b9b14547797cef75586d8d16b7b21b41",
+    "must_pass": true,
+    "judge_failure_mode_count": 5,
     "canonical_generator": "scripts/generate-golden-cases.py"
   }
 }

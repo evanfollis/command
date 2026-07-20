@@ -24,3 +24,11 @@ so it is burned. Its exact original JSONL line is preserved as
 `burned-case.jsonl`; the current sealed set replaces it with a freshly minted
 case in the same broad release-dependency-state epistemic dimension, using
 materially different facts and wording. Gates and rubrics remain strict.
+
+The parent review context then saw the full definition of replacement holdout
+`gc-bec2868c2f4daf0c` in commit `6c15d8e`, so that replacement is contaminated
+and retired. Its exact JSONL line is preserved as
+`contaminated-replacement.jsonl`. A final canonical replacement remains in the
+broad artifact-grounding/release-evidence dimension while using materially
+different facts from both retired records. Existing gates and rubrics were not
+weakened.

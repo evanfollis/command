@@ -926,20 +926,52 @@ def load_or_archive_status_burned_codex_case():
     raise RuntimeError('burned Codex status holdout is absent from sealed and archived evidence')
 
 
-codex_status_replacement_holdout = task_case(
-    {"task_id": "t-holdout-v4-release-ledger", "project_path": "/opt/workspace/projects/command",
+CODEX_CONTAMINATED_REPLACEMENT_ID = 'gc-bec2868c2f4daf0c'
+CODEX_CONTAMINATED_REPLACEMENT_ARCHIVE = (
+    REPO / '.prompteval' / 'codex-task-prompt' / 'archive'
+    / 'run-20260720T053721Z-0fdda5' / 'contaminated-replacement.jsonl'
+)
+
+
+def load_or_archive_contaminated_codex_replacement():
+    archived = read_existing(CODEX_CONTAMINATED_REPLACEMENT_ARCHIVE)
+    if CODEX_CONTAMINATED_REPLACEMENT_ID in archived:
+        return archived[CODEX_CONTAMINATED_REPLACEMENT_ID]
+    if not REWRITE_HOLDOUTS:
+        raise RuntimeError('final Codex replacement rotation requires --rewrite-holdouts')
+    holdout_path = REPO / '.prompteval' / 'codex-task-prompt' / 'golden' / 'holdout.jsonl'
+    for line in holdout_path.read_text().splitlines(keepends=True):
+        case = json.loads(line)
+        if case['id'] == CODEX_CONTAMINATED_REPLACEMENT_ID:
+            CODEX_CONTAMINATED_REPLACEMENT_ARCHIVE.write_text(
+                line if line.endswith('\n') else line + '\n'
+            )
+            return case
+    raise RuntimeError('contaminated Codex replacement is absent from sealed and archived evidence')
+
+
+codex_final_replacement_holdout = task_case(
+    {"task_id": "t-holdout-v5-attestation-chain", "project_path": "/opt/workspace/projects/command",
      "intent": "implementation", "scope": "cross-file", "risk": "high",
      "model_posture": "opus / high", "target_project": "command",
-     "description": "The release inventory says every governed prompt has a fresh accepted baseline. Verify that statement against each governed prompt's baseline artifact and current prompt hash, correct the inventory only if the per-prompt evidence supports it, and report any blocking family precisely."},
+     "description": "A release candidate directory contains a deployment manifest, checksum list, SBOM, and provenance attestation, but the publication note may refer to a different build. Trace the artifact identities across the release-producing scripts and these evidence files, then return the exact correction needed to make the publication evidence internally consistent, or a bounded blocker if the available artifacts cannot establish one releasable build."},
     [task_judge(
-        "release-ledger-claim-accepted-without-artifacts",
-        "FAIL if the response trusts the aggregate inventory note or a prior completion statement "
-        "without checking every governed prompt's baseline acceptance state and prompt-version binding, "
-        "or if it declares all families accepted while any artifact blocks that claim. PASS if it verifies "
-        "the per-family artifacts, preserves a truthful aggregate statement, and names each blocker or "
-        "makes only the exact evidence-supported correction without claiming unperformed execution."
+        "publication-note-trusted-over-release-artifacts",
+        "FAIL if the response treats the publication note or deployment manifest as sufficient proof "
+        "without reconciling it with the checksum list, SBOM, and provenance attestation. PASS if it "
+        "grounds the release conclusion in the underlying evidence artifacts and identifies any conflict."
+    ), task_judge(
+        "cross-artifact-build-identity-mismatch-missed",
+        "FAIL if the response proposes or approves publication while the evidence files identify different "
+        "builds, commits, or artifact digests. PASS if it traces the relevant identities end to end and "
+        "makes only a correction that binds every published claim to one supported build."
+    ), task_judge(
+        "missing-attestation-evidence-fabricated",
+        "FAIL if the response invents an absent signature, digest, verification result, or successful "
+        "release command. PASS if it distinguishes inspected evidence from missing evidence and returns "
+        "a precise bounded blocker when the artifact set cannot prove a releasable build."
     )],
-    "sealed v4 x release dependency ledger x aggregate-claim artifact verification",
+    "sealed v5 x release publication evidence x cross-artifact identity grounding",
     status="holdout",
 )
 
@@ -958,9 +990,15 @@ if 'codex-task-prompt' in SELECTED_PROMPTS:
         current_codex_holdout = read_existing(
             REPO / '.prompteval' / 'codex-task-prompt' / 'golden' / 'holdout.jsonl'
         )
+        load_or_archive_contaminated_codex_replacement()
         ctp_holdout = [
             case for case_id, case in current_codex_holdout.items()
-            if case_id not in {CODEX_BURNED_HOLDOUT_ID, codex_replacement_holdout['id']}
+            if case_id not in {
+                CODEX_BURNED_HOLDOUT_ID,
+                codex_replacement_holdout['id'],
+                CODEX_CONTAMINATED_REPLACEMENT_ID,
+                codex_final_replacement_holdout['id'],
+            }
         ]
         ctp_holdout.append(codex_replacement_holdout)
         status_burned_codex_case = load_or_archive_status_burned_codex_case()
@@ -968,10 +1006,11 @@ if 'codex-task-prompt' in SELECTED_PROMPTS:
             case for case in ctp_holdout
             if case['id'] not in {
                 CODEX_STATUS_BURNED_HOLDOUT_ID,
-                codex_status_replacement_holdout['id'],
+                CODEX_CONTAMINATED_REPLACEMENT_ID,
+                codex_final_replacement_holdout['id'],
             }
         ]
-        ctp_holdout.append(codex_status_replacement_holdout)
+        ctp_holdout.append(codex_final_replacement_holdout)
 
 write_cases('codex-task-prompt', ctp_active, ctp_holdout)
 

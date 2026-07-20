@@ -54,7 +54,9 @@ RUN_0FDDA5_BURNED_ID = 'gc-c0ce7b888fbf96be'
 RUN_0FDDA5_BURNED_SHA = '943aacda181e423713894fe9762785f2a4644720cc33f38da62dfc23cec75e69'
 RUN_0FDDA5_REPLACEMENT_ID = 'gc-bec2868c2f4daf0c'
 RUN_0FDDA5_REPLACEMENT_SHA = '421637eac6fe0f984a9d5c6f4d4f9c468573b2858b63b99b329669df269ce963'
-RUN_0FDDA5_POST_HOLDOUT_SHA = '46b762ff59f60b26edf6de5345f0833d7d3c1bf95d8ba6a3f8eed04038afbf5d'
+RUN_0FDDA5_FINAL_REPLACEMENT_ID = 'gc-94de61c46b321c2d'
+RUN_0FDDA5_FINAL_REPLACEMENT_SHA = '61f4340999ce22799369deb950212468b9b14547797cef75586d8d16b7b21b41'
+RUN_0FDDA5_POST_HOLDOUT_SHA = 'b864c016e14b54cabf8c26bc44060d360fb50ee08e4aff872e501a4e731ac678'
 RUN_0FDDA5_FORMAT_FAILURES = {
     'gc-19391fb63459606e',
     'gc-cb721b1a677003af',
@@ -251,7 +253,7 @@ sealed_line_shas = {
     for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines()
     if line.strip()
 }
-assert sealed_line_shas == RUN_5A9247_PRESERVED_RECORD_SHAS | {RUN_0FDDA5_REPLACEMENT_SHA}
+assert sealed_line_shas == RUN_5A9247_PRESERVED_RECORD_SHAS | {RUN_0FDDA5_FINAL_REPLACEMENT_SHA}
 
 # Root review exposed one sealed case after run 0fdda5. Its original record is
 # archived exactly, absent from the current holdout, and replaced canonically.
@@ -268,22 +270,31 @@ assert run_0f_receipt['provider_provenance']['private_transcript_content_copied'
 assert run_0f_receipt['burned_sealed_case']['case_id'] == RUN_0FDDA5_BURNED_ID
 assert run_0f_receipt['burned_sealed_case']['record_sha256'] == RUN_0FDDA5_BURNED_SHA
 assert digest(run_0f_archive / 'burned-case.jsonl') == RUN_0FDDA5_BURNED_SHA
+assert digest(run_0f_archive / 'contaminated-replacement.jsonl') == RUN_0FDDA5_REPLACEMENT_SHA
 assert run_0f_receipt['pre_transition_holdout_sha256'] == RUN_5A9247_POST_HOLDOUT_SHA
 assert run_0f_receipt['post_transition_holdout_sha256'] == RUN_0FDDA5_POST_HOLDOUT_SHA
 assert run_0f_receipt['replacement']['case_id'] == RUN_0FDDA5_REPLACEMENT_ID
 assert run_0f_receipt['replacement']['record_sha256'] == RUN_0FDDA5_REPLACEMENT_SHA
 assert run_0f_receipt['replacement']['must_pass'] is True
 assert run_0f_receipt['replacement']['judge_failure_mode_count'] >= 3
+assert run_0f_receipt['replacement']['disposition'] == 'retired_after_parent_review_contamination'
+assert run_0f_receipt['replacement']['contamination_source_commit'] == '6c15d8e'
+assert run_0f_receipt['replacement']['archive_file'] == 'contaminated-replacement.jsonl'
+assert run_0f_receipt['final_replacement']['case_id'] == RUN_0FDDA5_FINAL_REPLACEMENT_ID
+assert run_0f_receipt['final_replacement']['record_sha256'] == RUN_0FDDA5_FINAL_REPLACEMENT_SHA
+assert run_0f_receipt['final_replacement']['must_pass'] is True
+assert run_0f_receipt['final_replacement']['judge_failure_mode_count'] >= 3
 holdout_ids = {case['id'] for case in holdout}
 assert RUN_0FDDA5_BURNED_ID not in holdout_ids
-assert RUN_0FDDA5_REPLACEMENT_ID in holdout_ids
+assert RUN_0FDDA5_REPLACEMENT_ID not in holdout_ids
+assert RUN_0FDDA5_FINAL_REPLACEMENT_ID in holdout_ids
 assert digest(SPEC / 'golden' / 'holdout.jsonl') == RUN_0FDDA5_POST_HOLDOUT_SHA
 replacement_lines = [
     line for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines(keepends=True)
-    if json.loads(line)['id'] == RUN_0FDDA5_REPLACEMENT_ID
+    if json.loads(line)['id'] == RUN_0FDDA5_FINAL_REPLACEMENT_ID
 ]
 assert len(replacement_lines) == 1
-assert hashlib.sha256(replacement_lines[0].encode()).hexdigest() == RUN_0FDDA5_REPLACEMENT_SHA
+assert hashlib.sha256(replacement_lines[0].encode()).hexdigest() == RUN_0FDDA5_FINAL_REPLACEMENT_SHA
 if RUN_0FDDA5.exists():
     assert digest(RUN_0FDDA5) == RUN_0FDDA5_SHA
     run_0f = json.loads(RUN_0FDDA5.read_text())
