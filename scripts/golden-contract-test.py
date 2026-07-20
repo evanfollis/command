@@ -48,6 +48,19 @@ RUN_5A9247_PRESERVED_RECORD_SHAS = {
     'c063271fb07943fd65df878811accfd209baa6d3d339076b28f23999a2668ba6',
 }
 RUN_5A9247_REPLACEMENT_SHA = '943aacda181e423713894fe9762785f2a4644720cc33f38da62dfc23cec75e69'
+RUN_0FDDA5 = Path('/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T053721Z-0fdda5.json')
+RUN_0FDDA5_SHA = 'ce4189915f244b7d18d1882dde6e2cc3a918fa2196db17c2bb8f36a9db71a013'
+RUN_0FDDA5_BURNED_ID = 'gc-c0ce7b888fbf96be'
+RUN_0FDDA5_BURNED_SHA = '943aacda181e423713894fe9762785f2a4644720cc33f38da62dfc23cec75e69'
+RUN_0FDDA5_REPLACEMENT_ID = 'gc-bec2868c2f4daf0c'
+RUN_0FDDA5_REPLACEMENT_SHA = '421637eac6fe0f984a9d5c6f4d4f9c468573b2858b63b99b329669df269ce963'
+RUN_0FDDA5_POST_HOLDOUT_SHA = '46b762ff59f60b26edf6de5345f0833d7d3c1bf95d8ba6a3f8eed04038afbf5d'
+RUN_0FDDA5_FORMAT_FAILURES = {
+    'gc-19391fb63459606e',
+    'gc-cb721b1a677003af',
+    'gc-707407cf7bb9f58d',
+    RUN_0FDDA5_BURNED_ID,
+}
 RUN_5A9247_CACHES = {
     'gc-19391fb63459606e': ('ck-0b24c58618008842.json', 'ef0edee55c987e21aa807629b0948d60257751a11746e9426ac8df9800fdcd6a'),
     'gc-77322229d9ca8bd2': ('ck-90c81ae4e6e32a13.json', '1bc254abfb4a556334c3d161b808d31810ac5468ca0badeb4424af43e50bc9ed'),
@@ -232,13 +245,52 @@ assert contract_digest(promoted[0]) == RUN_5A9247_BURNED_CONTRACT_SHA
 assert promoted[0]['status'] == 'active' and promoted[0]['provenance'] == 'production'
 assert 'run-20260720T000322Z-5a9247' in promoted[0]['source']
 assert RUN_5A9247_BURNED_ID not in {case['id'] for case in holdout}
-assert digest(SPEC / 'golden' / 'holdout.jsonl') == RUN_5A9247_POST_HOLDOUT_SHA
+assert digest(SPEC / 'golden' / 'holdout.jsonl') == RUN_0FDDA5_POST_HOLDOUT_SHA
 sealed_line_shas = {
     hashlib.sha256((line + '\n').encode()).hexdigest()
     for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines()
     if line.strip()
 }
-assert sealed_line_shas == RUN_5A9247_PRESERVED_RECORD_SHAS | {RUN_5A9247_REPLACEMENT_SHA}
+assert sealed_line_shas == RUN_5A9247_PRESERVED_RECORD_SHAS | {RUN_0FDDA5_REPLACEMENT_SHA}
+
+# Root review exposed one sealed case after run 0fdda5. Its original record is
+# archived exactly, absent from the current holdout, and replaced canonically.
+run_0f_archive = SPEC / 'archive' / 'run-20260720T053721Z-0fdda5'
+run_0f_receipt = json.loads((run_0f_archive / 'failed-run-receipt.json').read_text())
+assert run_0f_receipt['runtime_path'] == str(RUN_0FDDA5)
+assert run_0f_receipt['sha256'] == RUN_0FDDA5_SHA
+assert run_0f_receipt['gate_passed'] is False
+assert run_0f_receipt['sole_substantive_failure']['case_id'] == 'gc-0208a8225000a225'
+assert run_0f_receipt['sole_substantive_failure']['classification'] == 'substantive_model_output_failure'
+assert set(run_0f_receipt['evaluator_format_failures']) == RUN_0FDDA5_FORMAT_FAILURES
+assert run_0f_receipt['shared_evaluator_correction_commit'] == 'd1005d4'
+assert run_0f_receipt['provider_provenance']['private_transcript_content_copied'] is False
+assert run_0f_receipt['burned_sealed_case']['case_id'] == RUN_0FDDA5_BURNED_ID
+assert run_0f_receipt['burned_sealed_case']['record_sha256'] == RUN_0FDDA5_BURNED_SHA
+assert digest(run_0f_archive / 'burned-case.jsonl') == RUN_0FDDA5_BURNED_SHA
+assert run_0f_receipt['pre_transition_holdout_sha256'] == RUN_5A9247_POST_HOLDOUT_SHA
+assert run_0f_receipt['post_transition_holdout_sha256'] == RUN_0FDDA5_POST_HOLDOUT_SHA
+assert run_0f_receipt['replacement']['case_id'] == RUN_0FDDA5_REPLACEMENT_ID
+assert run_0f_receipt['replacement']['record_sha256'] == RUN_0FDDA5_REPLACEMENT_SHA
+assert run_0f_receipt['replacement']['must_pass'] is True
+assert run_0f_receipt['replacement']['judge_failure_mode_count'] >= 3
+holdout_ids = {case['id'] for case in holdout}
+assert RUN_0FDDA5_BURNED_ID not in holdout_ids
+assert RUN_0FDDA5_REPLACEMENT_ID in holdout_ids
+assert digest(SPEC / 'golden' / 'holdout.jsonl') == RUN_0FDDA5_POST_HOLDOUT_SHA
+replacement_lines = [
+    line for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines(keepends=True)
+    if json.loads(line)['id'] == RUN_0FDDA5_REPLACEMENT_ID
+]
+assert len(replacement_lines) == 1
+assert hashlib.sha256(replacement_lines[0].encode()).hexdigest() == RUN_0FDDA5_REPLACEMENT_SHA
+if RUN_0FDDA5.exists():
+    assert digest(RUN_0FDDA5) == RUN_0FDDA5_SHA
+    run_0f = json.loads(RUN_0FDDA5.read_text())
+    assert run_0f['release'] is True and run_0f['cached_allowed'] is False
+    assert run_0f['gate']['passed'] is False and run_0f['judge_unknown_ratio'] == 0.0833
+    failed_ids = {case_id for case_id, result in run_0f['cases'].items() if not result['pass']}
+    assert failed_ids == RUN_0FDDA5_FORMAT_FAILURES | {'gc-0208a8225000a225'}
 if RUN_5A9247.exists():
     assert digest(RUN_5A9247) == RUN_5A9247_SHA
     run_5a9247 = json.loads(RUN_5A9247.read_text())
@@ -378,6 +430,8 @@ for required in ('write ordering', 'partial-failure recovery', 'idempotent repla
     assert required in prompt_source, f'missing coupled-store durability contract: {required}'
 for required in (
     'Treat explicitly named interface elements',
+    'status prose, inventory labels, and prior completion statements as assertions to verify',
+    'Inspect the underlying per-item artifacts and their current acceptance fields',
     'A differently named value with similar meaning does not satisfy the requested contract',
     'do not substitute adjacent behavior such as server-side filtering',
     'When inspection proves that the reported defect is unreachable',
@@ -431,5 +485,10 @@ assert targeted_result.returncode == 0, targeted_result.stderr
 assert 'Wrote: codex-task-prompt' in targeted_result.stdout
 assert 'sealed holdout untouched' in targeted_result.stdout
 assert snapshot_eval_files() == before, 'targeted regeneration was non-idempotent or crossed prompt boundaries'
+
+rewrite_result = run_generator('--prompt-id', 'codex-task-prompt', '--rewrite-holdouts')
+assert rewrite_result.returncode == 0, rewrite_result.stderr
+assert 'rewrote 3 holdout' in rewrite_result.stdout
+assert snapshot_eval_files() == before, 'canonical holdout regeneration drifted or crossed prompt boundaries'
 
 print('codex-task-prompt v2 contract, archive provenance, and generator safety tests passed')

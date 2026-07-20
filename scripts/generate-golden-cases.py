@@ -902,6 +902,47 @@ codex_replacement_holdout = task_case(
     status="holdout",
 )
 
+CODEX_STATUS_BURNED_HOLDOUT_ID = 'gc-c0ce7b888fbf96be'
+CODEX_STATUS_BURNED_ARCHIVE = (
+    REPO / '.prompteval' / 'codex-task-prompt' / 'archive'
+    / 'run-20260720T053721Z-0fdda5' / 'burned-case.jsonl'
+)
+
+
+def load_or_archive_status_burned_codex_case():
+    archived = read_existing(CODEX_STATUS_BURNED_ARCHIVE)
+    if CODEX_STATUS_BURNED_HOLDOUT_ID in archived:
+        return archived[CODEX_STATUS_BURNED_HOLDOUT_ID]
+    if not REWRITE_HOLDOUTS:
+        raise RuntimeError('initial Codex status burn transition requires --rewrite-holdouts')
+    holdout_path = REPO / '.prompteval' / 'codex-task-prompt' / 'golden' / 'holdout.jsonl'
+    for line in holdout_path.read_text().splitlines(keepends=True):
+        case = json.loads(line)
+        if case['id'] == CODEX_STATUS_BURNED_HOLDOUT_ID:
+            CODEX_STATUS_BURNED_ARCHIVE.write_text(
+                line if line.endswith('\n') else line + '\n'
+            )
+            return case
+    raise RuntimeError('burned Codex status holdout is absent from sealed and archived evidence')
+
+
+codex_status_replacement_holdout = task_case(
+    {"task_id": "t-holdout-v4-release-ledger", "project_path": "/opt/workspace/projects/command",
+     "intent": "implementation", "scope": "cross-file", "risk": "high",
+     "model_posture": "opus / high", "target_project": "command",
+     "description": "The release inventory says every governed prompt has a fresh accepted baseline. Verify that statement against each governed prompt's baseline artifact and current prompt hash, correct the inventory only if the per-prompt evidence supports it, and report any blocking family precisely."},
+    [task_judge(
+        "release-ledger-claim-accepted-without-artifacts",
+        "FAIL if the response trusts the aggregate inventory note or a prior completion statement "
+        "without checking every governed prompt's baseline acceptance state and prompt-version binding, "
+        "or if it declares all families accepted while any artifact blocks that claim. PASS if it verifies "
+        "the per-family artifacts, preserves a truthful aggregate statement, and names each blocker or "
+        "makes only the exact evidence-supported correction without claiming unperformed execution."
+    )],
+    "sealed v4 x release dependency ledger x aggregate-claim artifact verification",
+    status="holdout",
+)
+
 if 'codex-task-prompt' in SELECTED_PROMPTS:
     burned_codex_case = load_or_archive_burned_codex_case()
     burned_codex_case['status'] = 'active'
@@ -922,6 +963,15 @@ if 'codex-task-prompt' in SELECTED_PROMPTS:
             if case_id not in {CODEX_BURNED_HOLDOUT_ID, codex_replacement_holdout['id']}
         ]
         ctp_holdout.append(codex_replacement_holdout)
+        status_burned_codex_case = load_or_archive_status_burned_codex_case()
+        ctp_holdout = [
+            case for case in ctp_holdout
+            if case['id'] not in {
+                CODEX_STATUS_BURNED_HOLDOUT_ID,
+                codex_status_replacement_holdout['id'],
+            }
+        ]
+        ctp_holdout.append(codex_status_replacement_holdout)
 
 write_cases('codex-task-prompt', ctp_active, ctp_holdout)
 

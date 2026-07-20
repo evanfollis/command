@@ -1,0 +1,54 @@
+{
+  "schema_version": "command.prompteval-feedback-run.v1",
+  "run_id": "run-20260720T053721Z-0fdda5",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/codex-task-prompt/runs/run-20260720T053721Z-0fdda5.json",
+  "sha256": "ce4189915f244b7d18d1882dde6e2cc3a918fa2196db17c2bb8f36a9db71a013",
+  "release": true,
+  "cached_allowed": false,
+  "gate_passed": false,
+  "aggregate": 0.6875,
+  "required_aggregate": 0.6875,
+  "golden_hash": "gh-5631e159c38a0a86",
+  "spec_hash": "sh-ccd9c610fc3488c2",
+  "prompt_version": "pv-64b91b261c7c317c",
+  "judge_unknown_ratio": 0.0833,
+  "sole_substantive_failure": {
+    "case_id": "gc-0208a8225000a225",
+    "failure_mode": "false-premise-documentation",
+    "classification": "substantive_model_output_failure",
+    "detail": "trusted status prose and inventory without validating underlying baseline artifacts"
+  },
+  "evaluator_format_failures": [
+    "gc-19391fb63459606e",
+    "gc-cb721b1a677003af",
+    "gc-707407cf7bb9f58d",
+    "gc-c0ce7b888fbf96be"
+  ],
+  "evaluator_format_classification": "successful judge calls returned no parseable verdict",
+  "shared_evaluator_correction_commit": "d1005d4",
+  "provider_provenance": {
+    "requested_executor_model": "claude-sonnet-4-6",
+    "requested_judge_model": "opus",
+    "providers": ["claude", "codex"],
+    "successful_calls": 160,
+    "fallback_successes": 16,
+    "unavailable_executor_calls": 1,
+    "private_transcript_content_copied": false
+  },
+  "burned_sealed_case": {
+    "case_id": "gc-c0ce7b888fbf96be",
+    "reason": "root review context inspected sealed holdout after failure",
+    "record_sha256": "943aacda181e423713894fe9762785f2a4644720cc33f38da62dfc23cec75e69",
+    "archive_file": "burned-case.jsonl",
+    "disposition": "retired_and_replaced"
+  },
+  "pre_transition_holdout_sha256": "cd0c432fcc1e1dabbb044782821c80118ee2150a28d57c1ccbab260a70e7448e",
+  "post_transition_holdout_sha256": "46b762ff59f60b26edf6de5345f0833d7d3c1bf95d8ba6a3f8eed04038afbf5d",
+  "replacement": {
+    "case_id": "gc-bec2868c2f4daf0c",
+    "record_sha256": "421637eac6fe0f984a9d5c6f4d4f9c468573b2858b63b99b329669df269ce963",
+    "must_pass": true,
+    "judge_failure_mode_count": 3,
+    "canonical_generator": "scripts/generate-golden-cases.py"
+  }
+}
