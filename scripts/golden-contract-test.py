@@ -434,8 +434,17 @@ goal_rubric = next(check['rubric'] for check in smoke_case['checks'] if check.ge
 assert 'probe lacks execution authority' in goal_rubric
 assert 'exact command and working directory' in goal_rubric
 assert 'do not require execution that the probe contract forbids' in goal_rubric
+smoke_rubric = next(check['rubric'] for check in smoke_case['checks'] if check.get('failure_mode') == 'fabricated-execution-evidence')
+for required in ('no execution output exists', 'static predictions', 'Actual', 'PASS', 'FAIL',
+                 'observed status codes', 'command output', 'grep confirmation',
+                 'synthesized test summary or count'):
+    assert required in smoke_rubric, f'missing unavailable-execution rubric invariant: {required}'
 
 prompt_source = (ROOT / 'src' / 'prompts' / 'codex-task-prompt.md').read_text()
+for required in ('explicitly say that no execution output exists', 'clearly labeled static predictions',
+                 'Actual, PASS, FAIL', 'observed status codes', 'command output',
+                 'grep confirmation', 'synthesized test summary or count'):
+    assert required in prompt_source, f'missing unavailable-execution prompt invariant: {required}'
 for required in ('write ordering', 'partial-failure recovery', 'idempotent replay or backfill',
                  'authoritative producer ownership', 'acknowledged atomicity gaps'):
     assert required in prompt_source, f'missing coupled-store durability contract: {required}'
