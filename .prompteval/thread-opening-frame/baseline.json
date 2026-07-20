@@ -1,17 +1,26 @@
 {
   "prompt_version": "pv-8390251496fae94a",
-  "spec_hash": "sh-95909a75ef64d309",
+  "spec_hash": "sh-22244ae53965c074",
   "golden_hash": "gh-b88283e5b16813fe",
   "model": "claude-sonnet-4-6",
   "params": {},
   "judge_model": "opus",
-  "run_id": "run-20260720T011620Z-98c9b2",
-  "ts": "2026-07-20T01:16:20Z",
+  "run_id": "run-20260720T053437Z-53294d",
+  "ts": "2026-07-20T06:03:14Z",
   "release": true,
   "passed": true,
   "accepted_from_cache": false,
-  "aggregate": 0.6667,
+  "gate_policy": {
+    "basis": "must_pass_cases",
+    "advisory_cases_gate": false
+  },
+  "aggregate": 0.7222,
   "required_aggregate": 1.0,
+  "judge_unknown_ratio": 0.0,
+  "gate": {
+    "passed": true,
+    "reasons": []
+  },
   "cases": {
     "gc-53664273f3744b7e": {
       "pass": true,
@@ -30,7 +39,7 @@
       "must_pass": false
     },
     "gc-74bee223fe1499e5": {
-      "pass": false,
+      "pass": true,
       "must_pass": false
     },
     "gc-d463ae0c3773684d": {
@@ -86,5 +95,80 @@
       "must_pass": true
     }
   },
-  "all_pass_streak": 0
+  "all_pass_streak": 0,
+  "all_cases_passed": false,
+  "required_cases": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "advisory_cases": {
+    "total": 6,
+    "passed": 1,
+    "failed": 5
+  },
+  "provider_provenance": {
+    "schema_version": "prompteval.provider-provenance.v1",
+    "run_id": "run-20260720T053437Z-53294d",
+    "requested_executor_model": "claude-sonnet-4-6",
+    "requested_judge_model": "opus",
+    "providers": [
+      "claude",
+      "codex"
+    ],
+    "successful_calls": 87,
+    "fallback_successes": 29,
+    "routes": [
+      {
+        "role": "executor-adapter",
+        "provider": "claude",
+        "model": "claude-sonnet-4-6",
+        "status": "success",
+        "fallback_from": "",
+        "calls": 12
+      },
+      {
+        "role": "executor-adapter",
+        "provider": "claude",
+        "model": "claude-sonnet-4-6",
+        "status": "throttled",
+        "fallback_from": "",
+        "calls": 2
+      },
+      {
+        "role": "executor-adapter",
+        "provider": "codex",
+        "model": "default",
+        "status": "success",
+        "fallback_from": "claude",
+        "calls": 6
+      },
+      {
+        "role": "judge",
+        "provider": "claude",
+        "model": "opus",
+        "status": "success",
+        "fallback_from": "",
+        "calls": 46
+      },
+      {
+        "role": "judge",
+        "provider": "claude",
+        "model": "opus",
+        "status": "throttled",
+        "fallback_from": "",
+        "calls": 1
+      },
+      {
+        "role": "judge",
+        "provider": "codex",
+        "model": "default",
+        "status": "success",
+        "fallback_from": "claude",
+        "calls": 23
+      }
+    ],
+    "telemetry_ref": "/opt/workspace/runtime/.telemetry/events.jsonl#runId=run-20260720T053437Z-53294d",
+    "attempt_log": "/opt/workspace/runtime/prompteval/.provenance/run-20260720T053437Z-53294d.jsonl"
+  }
 }

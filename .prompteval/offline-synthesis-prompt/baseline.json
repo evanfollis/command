@@ -1,17 +1,26 @@
 {
   "prompt_version": "pv-4746a29429b283df",
-  "spec_hash": "sh-70f12d2b75490ffd",
+  "spec_hash": "sh-8acf336620b2d065",
   "golden_hash": "gh-962ef3e74c497e41",
   "model": "claude-sonnet-4-6",
   "params": {},
   "judge_model": "opus",
-  "run_id": "run-20260720T020106Z-e3efc0",
-  "ts": "2026-07-20T02:01:06Z",
+  "run_id": "run-20260720T053721Z-a77b42",
+  "ts": "2026-07-20T05:57:06Z",
   "release": true,
   "passed": true,
   "accepted_from_cache": false,
+  "gate_policy": {
+    "basis": "must_pass_cases",
+    "advisory_cases_gate": false
+  },
   "aggregate": 1.0,
   "required_aggregate": 1.0,
+  "judge_unknown_ratio": 0.0,
+  "gate": {
+    "passed": true,
+    "reasons": []
+  },
   "cases": {
     "gc-7910a9ad831cac21": {
       "pass": true,
@@ -70,5 +79,64 @@
       "must_pass": true
     }
   },
-  "all_pass_streak": 2
+  "all_pass_streak": 3,
+  "all_cases_passed": true,
+  "required_cases": {
+    "total": 14,
+    "passed": 14,
+    "failed": 0
+  },
+  "advisory_cases": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "provider_provenance": {
+    "schema_version": "prompteval.provider-provenance.v1",
+    "run_id": "run-20260720T053721Z-a77b42",
+    "requested_executor_model": "claude-sonnet-4-6",
+    "requested_judge_model": "opus",
+    "providers": [
+      "claude",
+      "codex"
+    ],
+    "successful_calls": 56,
+    "fallback_successes": 13,
+    "routes": [
+      {
+        "role": "executor-adapter",
+        "provider": "claude",
+        "model": "claude-sonnet-4-6",
+        "status": "success",
+        "fallback_from": "",
+        "calls": 10
+      },
+      {
+        "role": "executor-adapter",
+        "provider": "codex",
+        "model": "default",
+        "status": "success",
+        "fallback_from": "claude",
+        "calls": 4
+      },
+      {
+        "role": "judge",
+        "provider": "claude",
+        "model": "opus",
+        "status": "success",
+        "fallback_from": "",
+        "calls": 33
+      },
+      {
+        "role": "judge",
+        "provider": "codex",
+        "model": "default",
+        "status": "success",
+        "fallback_from": "claude",
+        "calls": 9
+      }
+    ],
+    "telemetry_ref": "/opt/workspace/runtime/.telemetry/events.jsonl#runId=run-20260720T053721Z-a77b42",
+    "attempt_log": "/opt/workspace/runtime/prompteval/.provenance/run-20260720T053721Z-a77b42.jsonl"
+  }
 }
