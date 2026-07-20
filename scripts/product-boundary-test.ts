@@ -113,6 +113,10 @@ const authSource = readFileSync(join(ROOT, 'src/app/api/auth/route.ts'), 'utf8')
 const authMethods = [...authSource.matchAll(/export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE)\b/g)].map((match) => match[1]).sort()
 if (authMethods.join(',') !== 'DELETE,POST') errors.push(`auth route may export only POST and DELETE (found: ${authMethods.join(', ')})`)
 
+const middlewareSource = readFileSync(join(ROOT, 'src/middleware.ts'), 'utf8')
+if (!/from ['"]jose\/jwt\/verify['"]/.test(middlewareSource)) errors.push('middleware must import the narrow JWT verifier export')
+if (/from ['"]jose['"]/.test(middlewareSource)) errors.push('middleware must not trace the full jose JWE bundle into Edge')
+
 const packageJson = readFileSync(join(ROOT, 'package.json'), 'utf8')
 for (const dependency of ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links', 'node-pty', 'ws', '@types/ws']) {
   if (packageJson.includes(`"${dependency}"`)) errors.push(`legacy runtime dependency remains: ${dependency}`)
