@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose/jwt/verify'
 
-import { resolveJwtSecret } from '@/lib/jwtSecret'
+import { resolveJwtSecret } from '@/lib/authKey'
 
 const PUBLIC_PATHS = ['/login', '/api/auth']
 

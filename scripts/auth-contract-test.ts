@@ -4,7 +4,7 @@ import { readFileSync } from 'fs'
 import { sign } from 'jsonwebtoken'
 
 import { checkPassword, createToken, verifyToken } from '../src/lib/auth'
-import { resolveJwtSecret } from '../src/lib/jwtSecret'
+import { resolveJwtSecret } from '../src/lib/authKey'
 
 const originalSecret = process.env.JWT_SECRET
 const originalPassword = process.env.COMMAND_PASSWORD
@@ -54,7 +54,7 @@ try {
     /JWT_SECRET\s*:/,
     'next.config.js must not expose JWT_SECRET through the build-time env map',
   )
-  for (const path of ['src/lib/auth.ts', 'src/lib/jwt.ts', 'src/lib/jwtSecret.ts', 'src/proxy.ts']) {
+  for (const path of ['src/lib/auth.ts', 'src/lib/jwt.ts', 'src/lib/authKey.ts', 'src/proxy.ts']) {
     assert.doesNotMatch(
       readFileSync(path, 'utf8'),
       /command-jwt-secret-change-in-production/,
@@ -72,7 +72,7 @@ try {
     'the login route must return a bounded client error for malformed request bodies',
   )
   const packageJson = readFileSync('package.json', 'utf8')
-  const boundaryScan = readFileSync('scripts/assert-build-secret-boundary.sh', 'utf8')
+  const boundaryScan = readFileSync('scripts/assert-build-credential-boundary.sh', 'utf8')
   assert.ok(packageJson.includes('rm -f .next/trace'), 'build-only trace output must not ship in releases')
   assert.ok(packageJson.includes('rm -rf .next/cache'), 'build cache output must not ship in releases')
   assert.doesNotMatch(

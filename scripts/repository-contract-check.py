@@ -9,7 +9,7 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REQUIRED = ("README.md", "repo.toml", "Makefile", "AGENTS.md", "CLAUDE.md", "docs/architecture.md")
+REQUIRED = ("README.md", "repo.toml", "Makefile", "AGENTS.md", "CLAUDE.md", ".ignore", "docs/architecture.md")
 ALLOWED = {
     "shape": {"service", "application", "library", "monorepo", "contract", "context", "control-plane", "profile"},
     "lifecycle": {"active", "maintained", "case-study", "archived"},
@@ -37,6 +37,30 @@ for key, allowed in ALLOWED.items():
         errors.append(f"repo.toml {key} must be one of {sorted(allowed)}")
 if declaration.get("canonical_repository") != "https://github.com/evanfollis/command":
     errors.append("canonical_repository does not match the public repository")
+
+sealed_search_rule = ".prompteval/**/golden/holdout.jsonl"
+try:
+    ignore_lines = {
+        line.strip()
+        for line in (ROOT / ".ignore").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+except OSError as error:
+    errors.append(f".ignore could not be read: {error}")
+    ignore_lines = set()
+if sealed_search_rule not in ignore_lines:
+    errors.append(".ignore must exclude sealed holdout definitions from broad repository search")
+else:
+    search = subprocess.run(
+        ["rg", "--files", "--hidden", str(ROOT)],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if search.returncode not in (0, 1):
+        errors.append(f"ripgrep sealed-search regression failed with exit {search.returncode}")
+    elif any(path.endswith("/golden/holdout.jsonl") for path in search.stdout.splitlines()):
+        errors.append("default broad repository search exposes a sealed holdout path")
 
 for role in ("generated", "runtime"):
     for relative in declaration.get("artifacts", {}).get(role, []):

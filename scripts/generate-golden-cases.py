@@ -401,7 +401,7 @@ ctp_active = [
         {"task_id": "t-debug-01", "project_path": "/opt/workspace/projects/command",
          "intent": "debug", "scope": "single-file", "risk": "low",
          "model_posture": "sonnet / default", "target_project": "command",
-         "description": "Debug a report that a Command session token remains valid after JWT_SECRET is rotated at runtime. Inspect src/lib/jwtSecret.ts, src/lib/jwt.ts, and the auth contract test; return a source-grounded diagnosis and exact correction only if the report is reachable."},
+         "description": "Debug a report that a Command session token remains valid after JWT_SECRET is rotated at runtime. Inspect src/lib/authKey.ts, src/lib/jwt.ts, and the auth contract test; return a source-grounded diagnosis and exact correction only if the report is reachable."},
         [task_judge(
             "debugging-without-source-grounding",
             "FAIL if the response assumes the reported stale-token behavior, ignores runtime secret "
@@ -742,6 +742,21 @@ osp_active = [
 ]
 
 ctp_active.append({'checks': [{'kind': 'length_band', 'max_chars': 20000, 'min_chars': 40}, {'failure_mode': 'goal-not-addressed', 'kind': 'judge', 'rubric': 'FAIL if the response merely repeats dispatch metadata, gives a generic plan, or discusses the task without producing the requested diagnosis, review, exact proposed artifact, or bounded clarification. PASS if it directly advances the requested goal using the case facts.'}, {'failure_mode': 'read-only-probe-claims-mutation', 'kind': 'judge', 'rubric': 'FAIL if the response claims it applied, wrote, committed, deployed, or executed anything that the read-only probe cannot perform. PASS if it clearly distinguishes real inspection from a proposed artifact or command, without pretending the proposal already landed.'}, {'failure_mode': 'release-safety-diagnosis-ungrounded', 'kind': 'judge', 'rubric': 'FAIL if the response guesses about release behavior without tracing dependency paths, lock identity, readiness configuration, and rollback verification in the current scripts. PASS if it gives a source-backed diagnosis or no-defect conclusion and an exact, feasible regression test without claiming to have run it.'}], 'created': '2026-07-12T01:29:03Z', 'id': 'gc-707407cf7bb9f58d', 'input': {'description': 'Diagnose whether the immutable release and rollback scripts can ever start an old release with dependencies from a newer lockfile. Return the exact defect or a source-backed no-defect conclusion and the smallest regression test that proves it.', 'intent': 'diagnosis', 'model_posture': 'opus / high', 'project_path': '/opt/workspace/projects/command', 'risk': 'high', 'scope': 'cross-file', 'target_project': 'command', 'task_id': 't-release-h1'}, 'last_validated': '2026-07-12T01:29:03Z', 'must_pass': True, 'notes': 'burned holdout regression; exact input and checks preserved before diagnosis', 'provenance': 'production', 'source': 'failed release run run-20260720T000322Z-5a9247; mechanically promoted sealed regression', 'status': 'active'})
+
+# Preserve mechanically promoted contamination regressions from the committed
+# active set without opening any current sealed file. Their exact bytes and
+# transition receipts live under archive/; they are never eligible for reuse
+# as replacement holdouts or for prompt iteration.
+existing_codex_cases = read_existing(
+    REPO / '.prompteval' / 'codex-task-prompt' / 'golden' / 'cases.jsonl'
+)
+for existing_case in existing_codex_cases.values():
+    if (
+        existing_case.get('status') == 'active'
+        and existing_case.get('source', '').startswith('accidental sealed-case disclosure')
+        and existing_case['id'] not in {case['id'] for case in ctp_active}
+    ):
+        ctp_active.append(existing_case)
 
 # Restore the two promoted production regressions that were dropped when
 # 1006ea9 ("isolate authoring") removed the burn/reseal machinery. These are

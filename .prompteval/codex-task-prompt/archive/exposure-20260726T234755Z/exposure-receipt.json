@@ -1,0 +1,25 @@
+{
+  "schema_version": "prompteval.holdout-contamination.v1",
+  "status": "contaminated_and_promoted",
+  "recorded_at": "2026-07-26T23:47:55Z",
+  "reason": "A broad repository reference search unexpectedly printed one sealed case while locating stale filenames after a security-file rename.",
+  "content_used_for_prompt_iteration": false,
+  "outputs_inspected_after_exposure": false,
+  "contaminated_case_id": "gc-f4a583ea1d73f274",
+  "pre_transition_holdout_sha256": "4fc87e7e2a846ce0041d3e656aaa09be4c8b5dbe6acd233711c38c95f9f673bb",
+  "original_record_sha256": "bd35acc49fde519f802b4d9e4c19f31fc630351529a89479eb263ca52d5efd39",
+  "post_transition_active_sha256": "6ac970cbb4e6c5f2436b7c43f08283e4c5455a781d9c06cb5e58c2b6c0a3cf7c",
+  "post_transition_holdout_sha256": "76b852aff6868407a46ad0d9ff5df021b123c34e25041b29d02b61db7e05c99d",
+  "accepted_baseline_before_exposure": {
+    "version": "pv-0b6adfd6d31abcaa",
+    "run_id": "run-20260726T214018Z-46c0d8",
+    "baseline_sha256": "407548fb8e8e4c2855a40c16c2b92e2486e12465e88a2e38ccd3770c554eb0bf",
+    "run_sha256": "466268f30834607305e3ca40c07fc681fd9483412e962780de3057ce5176030e",
+    "transcript_sha256": "3390301f0cb9e7a37bd5cf176ed03a6a372dcf1dffc4e92c1c2846392723d220",
+    "provenance_sha256": "0409cfcee5a6816ef20f0e1da2a46d4b536df451dccc5062eac9694cce8caa11",
+    "accepted_as_release_evidence_after_exposure": false
+  },
+  "replacement_case_id": null,
+  "replacement_source": "pending independent clean-room authoring after Anthropic quota reset",
+  "required_next_gate": "full uncached codex-task-prompt release run with all active cases and two sealed cases"
+}

@@ -1,6 +1,6 @@
 import { verify } from 'jsonwebtoken'
 
-import { resolveJwtSecret } from './jwtSecret'
+import { resolveJwtSecret } from './authKey'
 
 const COOKIE_NAME = 'command_token'
 

@@ -3,7 +3,7 @@ import { sign } from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 
 import { verifyToken } from './jwt'
-import { resolveJwtSecret } from './jwtSecret'
+import { resolveJwtSecret } from './authKey'
 
 const COOKIE_NAME = 'command_token'
 
