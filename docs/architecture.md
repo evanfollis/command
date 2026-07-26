@@ -72,6 +72,8 @@ server verification, and Next proxy verification use the same resolver.
 `next.config.js` does not expose the secret through the build-time environment
 map. Every production build scans `.next` and `dist` for configured auth values
 and the retired fallback without printing secret values.
+The systemd environment file is root-owned and has no group/other access; the
+service installer refuses to proceed when that ownership boundary is weaker.
 
 The cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, and path-scoped to `/`.
 Proxy redirects are relative or use the pinned public origin.
