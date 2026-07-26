@@ -116,6 +116,7 @@ cat > "$RELEASE/RELEASE.json" <<EOF
 {"releaseId":"$RELEASE_ID","sha":"$SHA","dirty":$DIRTY,"builtAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 EOF
 chmod -R a-w "$RELEASE/.next" "$RELEASE/dist"
+chmod a-w "$RELEASE/package.json" "$RELEASE/next.config.js" "$RELEASE/RELEASE.json" "$RELEASE"
 
 PREV=""
 [ -L "$RELEASES/current" ] && PREV=$(readlink -f "$RELEASES/current")
