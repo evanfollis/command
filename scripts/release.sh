@@ -134,20 +134,32 @@ wait_for_service() {
   return 1
 }
 
-if wait_for_service && ( cd "$REPO" && npm run smoke ); then
+if wait_for_service && ( cd "$REPO" && SMOKE_BASE="http://127.0.0.1:${SERVICE_PORT}" npm run smoke ); then
   echo "==> release $RELEASE_ID live and smoked"
 else
   echo "!! new release failed service/login health or smoke" >&2
   echo "!! smoke FAILED — rolling back to $(basename "${PREV:-none}")" >&2
+  FAILURE_RECEIPTS="$RELEASES/.failures"
+  mkdir -p "$FAILURE_RECEIPTS"
+  printf '{"releaseId":"%s","sha":"%s","failedAt":"%s","reason":"authenticated release smoke failed"}\n' \
+    "$RELEASE_ID" "$SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    > "$FAILURE_RECEIPTS/$RELEASE_ID.json"
+  chmod a-w "$FAILURE_RECEIPTS/$RELEASE_ID.json"
   if [ -n "$PREV" ]; then
     ln -sfn "$PREV" "$RELEASES/current.tmp"; mv -Tf "$RELEASES/current.tmp" "$RELEASES/current"
     systemctl restart "$SERVICE"
-    if wait_for_service; then
-      echo "!! rolled back and verified service active with /login=200." >&2
+    if wait_for_service \
+      && ( cd "$REPO" && SMOKE_BASE="http://127.0.0.1:${SERVICE_PORT}" npm run smoke ); then
+      echo "!! rolled back and verified recovered authenticated health." >&2
     else
       echo "!! ROLLBACK TARGET UNHEALTHY: $(basename "$PREV")" >&2
       exit 2
     fi
+  else
+    systemctl stop "$SERVICE" >/dev/null 2>&1 || true
+    [ "$(readlink -f "$RELEASES/current")" != "$RELEASE" ] || rm -f "$RELEASES/current"
+    echo '!! NO ROLLBACK TARGET: failed release retained with failure receipt; service stopped.' >&2
+    exit 2
   fi
   exit 1
 fi

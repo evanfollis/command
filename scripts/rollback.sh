@@ -17,8 +17,11 @@ ln -sfn "$CUR"  "$RELEASES/previous.tmp"; mv -Tf "$RELEASES/previous.tmp" "$RELE
 systemctl restart command
 for _ in $(seq 1 15); do
   if systemctl is-active --quiet command && [ "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${SERVICE_PORT}/login" 2>/dev/null || true)" = "200" ]; then
-    echo "rolled back to $(basename "$PREV"); service active and /login=200"
-    exit 0
+    if SMOKE_BASE="http://127.0.0.1:${SERVICE_PORT}" npm --prefix "$REPO" run smoke; then
+      echo "rolled back to $(basename "$PREV"); recovered authenticated health verified"
+      exit 0
+    fi
+    break
   fi
   sleep 1
 done
