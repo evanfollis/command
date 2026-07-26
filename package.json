@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "tsx server.ts",
-    "check": "node --import tsx scripts/check-patterns.ts && npm run product-boundary:test",
+    "check": "node --import tsx scripts/check-patterns.ts && npm run product-boundary:test && npm run typecheck && npm run test:contracts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
+    "test:contracts": "npm run observatory:test && npm run eval-telemetry:test && npm run prompteval-config:test && npm run adapter-llm-contract:test && npm run golden-contract:test && npm run thread-opening-contract:test && npm run offline-synthesis-contract:test && npm run codex-task-builder:test",
+    "test": "npm run test:contracts",
     "build": "npm run check && next build && npx tsc -p tsconfig.server.json && git rev-parse HEAD > dist/.version",
     "start": "NODE_ENV=production node dist/server.js",
     "smoke": "tsx scripts/smoke.ts",
