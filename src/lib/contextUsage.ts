@@ -1,6 +1,8 @@
 import { createReadStream, existsSync, statSync } from 'fs'
+import { join } from 'path'
 import { createInterface } from 'readline'
 import { readClaudeSessions } from './claudeSessions'
+import { WORKSPACE_PATHS } from './workspacePaths'
 
 export interface ContextUsage {
   available: boolean
@@ -63,7 +65,7 @@ export async function getContextUsage(
   type Candidate = { sessionId: string; path: string; mtime: number; isSupervised: boolean }
   const candidates: Candidate[] = []
   for (const s of matches) {
-    const p = `/root/.claude/projects/${encodedCwd}/${s.sessionId}.jsonl`
+    const p = join(WORKSPACE_PATHS.claudeStateRoot, 'projects', encodedCwd, `${s.sessionId}.jsonl`)
     if (!existsSync(p)) continue
     try {
       const mtime = statSync(p).mtimeMs

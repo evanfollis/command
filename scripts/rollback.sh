@@ -3,8 +3,12 @@
 # is already live; release.sh rolls back automatically on smoke failure.
 set -euo pipefail
 source "$(dirname "$0")/release-lib.sh"
-RELEASES=/opt/workspace/runtime/releases/command
-SERVICE_PORT=$(resolve_command_port /opt/workspace/projects/command/.env.local)
+WORKSPACE_ROOT=${WORKSPACE_ROOT:-/opt/workspace}
+PROJECTS_ROOT=${PROJECTS_ROOT:-"$WORKSPACE_ROOT/projects"}
+RUNTIME_ROOT=${RUNTIME_ROOT:-"$WORKSPACE_ROOT/runtime"}
+RELEASES=${COMMAND_RELEASE_ROOT:-"$RUNTIME_ROOT/releases/command"}
+REPO=${COMMAND_REPO_ROOT:-"$PROJECTS_ROOT/command"}
+SERVICE_PORT=$(resolve_command_port "$REPO/.env.local")
 [ -L "$RELEASES/previous" ] || { echo "no previous release to roll back to" >&2; exit 1; }
 PREV=$(readlink -f "$RELEASES/previous")
 CUR=$(readlink -f "$RELEASES/current")

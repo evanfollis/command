@@ -1,12 +1,12 @@
 {
   "prompt_version": "pv-0c9d25a78080edc9",
-  "spec_hash": "sh-036679d3b456c14f",
-  "golden_hash": "gh-17454b4c14eeb226",
+  "spec_hash": "sh-928b39d907f7d017",
+  "golden_hash": "gh-f8e5b3b8517c5147",
   "model": "claude-sonnet-4-6",
   "params": {},
   "judge_model": "opus",
-  "run_id": "run-20260720T053721Z-7adf3b",
-  "ts": "2026-07-20T05:54:49Z",
+  "run_id": "run-20260726T215245Z-0f643b",
+  "ts": "2026-07-26T22:05:09Z",
   "release": true,
   "passed": true,
   "accepted_from_cache": false,
@@ -87,7 +87,7 @@
       "must_pass": true
     }
   },
-  "all_pass_streak": 5,
+  "all_pass_streak": 6,
   "all_cases_passed": true,
   "required_cases": {
     "total": 15,
@@ -101,39 +101,22 @@
   },
   "provider_provenance": {
     "schema_version": "prompteval.provider-provenance.v1",
-    "run_id": "run-20260720T053721Z-7adf3b",
+    "run_id": "run-20260726T215245Z-0f643b",
     "requested_executor_model": "claude-sonnet-4-6",
     "requested_judge_model": "opus",
     "providers": [
-      "claude",
       "codex"
     ],
     "successful_calls": 70,
-    "fallback_successes": 28,
+    "fallback_successes": 70,
     "routes": [
       {
         "role": "executor-adapter",
-        "provider": "claude",
-        "model": "claude-sonnet-4-6",
-        "status": "success",
-        "fallback_from": "",
-        "calls": 11
-      },
-      {
-        "role": "executor-adapter",
         "provider": "codex",
         "model": "default",
         "status": "success",
         "fallback_from": "claude",
-        "calls": 5
-      },
-      {
-        "role": "judge",
-        "provider": "claude",
-        "model": "opus",
-        "status": "success",
-        "fallback_from": "",
-        "calls": 31
+        "calls": 16
       },
       {
         "role": "judge",
@@ -141,10 +124,10 @@
         "model": "default",
         "status": "success",
         "fallback_from": "claude",
-        "calls": 23
+        "calls": 54
       }
     ],
-    "telemetry_ref": "/opt/workspace/runtime/.telemetry/events.jsonl#runId=run-20260720T053721Z-7adf3b",
-    "attempt_log": "/opt/workspace/runtime/prompteval/.provenance/run-20260720T053721Z-7adf3b.jsonl"
+    "telemetry_ref": "/opt/workspace/runtime/.telemetry/events.jsonl#runId=run-20260726T215245Z-0f643b",
+    "attempt_log": "/opt/workspace/runtime/prompteval/.provenance/run-20260726T215245Z-0f643b.jsonl"
   }
 }

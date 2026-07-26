@@ -1,13 +1,15 @@
 # Command
 
-Command is the authenticated, read-only owner observatory for the Synaplex workspace at `command.synaplex.ai`. It presents bounded health, closure, evidence, eval, deployment, durability, and artifact lineage. Remote operation belongs in the Codex and Claude applications, not this web product.
+Command is the active, private owner observatory for the Synaplex workspace at
+`command.synaplex.ai`. It presents bounded health, closure, evidence, eval,
+deployment, durability, and artifact lineage. Remote operation belongs in the
+Codex and Claude applications, not this web product.
 
-## Stack
-
-- Next.js App Router, TypeScript, React, and Tailwind CSS
-- Minimal custom HTTP server on port 3100
-- Password + JWT authentication with an httpOnly cookie
-- Immutable host releases under `/opt/workspace/runtime/releases/command/`
+Verified today: the hosted product uses authenticated read-only routes,
+runtime-only JWT signing, typed evidence with explicit `unknown` states, and
+immutable lockfile-bound releases with smoke rollback. It does not claim to be
+an agent runtime. The dated root-service containment exception and remediation
+milestone are documented in `docs/architecture.md`.
 
 ## Product boundary
 
@@ -15,25 +17,27 @@ The authenticated web surface is read-only except for login and logout. It has n
 
 The exact allowed route and method inventory is documented in `docs/product-boundary.md` and enforced by `npm run product-boundary:test`, which is part of every build.
 
-## Commands
+## Prerequisite
+
+Use Node `24.18.0` (also declared in `.node-version` and `package.json`).
+Hosted installation is checksum-pinned through `make runtime-setup`; local
+dependency installation is `make setup`.
+
+## Fastest meaningful check
 
 ```bash
-npm run dev                    # local development server
-npm run check                  # pattern and product-boundary gates
-npm run observatory:test       # typed collector regressions
-npm run product-boundary:test  # route/import/dependency boundary
-npm run build                  # checks + Next build + server compilation
-npm run smoke                  # authenticated HTTP release smoke
-npm run browser:smoke          # authenticated Chromium verification
-npm run release:test           # immutable release/rollback invariants
+make check
 ```
 
-Deployment remains an explicit separate action (`npm run deploy`). See `CURRENT_STATE.md` for current release and eval-gate state.
+Use `make help` for the full interface. `make build` adds the production build
+and secret scan; `make deploy-check` adds release/rollback preflight without
+deploying. Deployment remains the explicit immutable `npm run deploy` path.
 
-## Internal docs
+## Navigate
 
-- `CLAUDE.md` — project charter and implementation constraints
+- `AGENTS.md` — canonical repository instructions
 - `CURRENT_STATE.md` — current operational and delivery state
+- `docs/architecture.md` — composition, artifact roles, deployment, and safety
 - `docs/product-boundary.md` — authoritative human web boundary
 - `docs/observatory-contracts.md` — typed collector contracts
 - `.prompteval/` — governed prompt evaluation loops

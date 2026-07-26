@@ -1,0 +1,19 @@
+{
+  "status": "active_cases_retired_and_replaced",
+  "reason": "Next.js 16 uses src/proxy.ts instead of the retired src/middleware.ts convention.",
+  "content_used_for_prompt_iteration": false,
+  "retired_records": [
+    {
+      "id": "gc-20ce076fb4925045",
+      "sha256": "56952ab6cb29c700367f0470263c6660d90c8b3a8b548d83bc1e90bcd382b875",
+      "replacement_id": "gc-f0ba92076c4692f8",
+      "replacement_sha256": "6d5a07b91ae489f9612220a69136e5dcfc3e46f73b3bfbe9320784ed59bb1ba4"
+    },
+    {
+      "id": "gc-03a8e553bc10ed72",
+      "sha256": "581ea175184daf30893784171cb3fdbb183fa7252ba3c13732d28fd2002ac25c",
+      "replacement_id": "gc-5273b75ea65fd750",
+      "replacement_sha256": "d18ad0c630b3cdb7de410f2921ee850cd47528682879d3a8ea217ebdf22246cd"
+    }
+  ]
+}

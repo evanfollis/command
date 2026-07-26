@@ -1,5 +1,5 @@
 import Shell from '@/components/Shell'
-import { listSymphonyTasks, type SymphonyState, type SymphonyTaskView } from '@/lib/symphonyStore'
+import { readSymphonyProjection, type SymphonyState, type SymphonyTaskView } from '@/lib/symphonyProjection'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,7 +58,8 @@ function TaskCard({ task }: { task: SymphonyTaskView }) {
 }
 
 export default function SymphonyClosurePage() {
-  const tasks = listSymphonyTasks()
+  const projection = readSymphonyProjection()
+  const tasks = projection.tasks
   const active = tasks.filter((task) => !['done', 'deferred'].includes(task.state))
   const closed = tasks.filter((task) => ['done', 'deferred'].includes(task.state))
 
@@ -70,9 +71,15 @@ export default function SymphonyClosurePage() {
           <h1 className="mt-2 text-2xl font-semibold text-neutral-100">Symphony closure</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-400">Typed historical task state, ownership, blocks, and review lineage. Command does not create or transition work; autonomous producers own this store.</p>
         </header>
+        {projection.status === 'unknown' && (
+          <aside className="mt-6 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4 text-sm text-amber-100">
+            <p className="font-medium">Lifecycle evidence is incomplete.</p>
+            <p className="mt-1 text-amber-100/70">{projection.issue?.message ?? 'Current Symphony health is unknown.'}</p>
+          </aside>
+        )}
         <section className="mt-7">
           <h2 className="text-xs uppercase tracking-[0.22em] text-neutral-500">Open lifecycle records · {active.length}</h2>
-          <div className="mt-3 grid gap-3">{active.length ? active.map((task) => <TaskCard key={task.id} task={task} />) : <p className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-sm text-neutral-500">No open lifecycle records.</p>}</div>
+          <div className="mt-3 grid gap-3">{active.length ? active.map((task) => <TaskCard key={task.id} task={task} />) : <p className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-sm text-neutral-500">{projection.status === 'unknown' ? 'Open lifecycle state is unknown.' : 'No open lifecycle records.'}</p>}</div>
         </section>
         <details className="mt-7">
           <summary className="cursor-pointer text-xs uppercase tracking-[0.22em] text-neutral-500 hover:text-neutral-300">Closed lifecycle records · {closed.length}</summary>

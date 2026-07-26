@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from 'child_process'
+import { spawnSync } from 'child_process'
 
 export interface AgentInfo {
   platform: 'claude' | 'codex' | 'unknown'
@@ -17,6 +17,20 @@ export interface Session {
   width: number
   height: number
   agent: AgentInfo
+}
+
+export interface TmuxObservation<T> {
+  status: 'observed' | 'unknown'
+  value: T
+  issue?: 'tmux-unavailable'
+}
+
+function runTmux(args: string[]) {
+  return spawnSync('/usr/bin/tmux', args, {
+    encoding: 'utf-8',
+    timeout: 5000,
+    stdio: ['ignore', 'pipe', 'ignore'],
+  })
 }
 
 export function parseAgentInfo(paneText: string): AgentInfo {
@@ -100,33 +114,36 @@ export function parseAgentInfo(paneText: string): AgentInfo {
 // Map tmux session name → pane PID. Since our supervised sessions spawn
 // claude directly as the pane process (no intermediate shell), this is
 // also the supervised claude PID for each tmux session.
-export function listSupervisedPids(): Record<string, number> {
-  try {
-    const raw = execSync(
-      'tmux list-panes -a -F "#{session_name}|#{pane_pid}"',
-      { encoding: 'utf-8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] }
-    ).trim()
-    const out: Record<string, number> = {}
-    if (!raw) return out
-    for (const line of raw.split('\n')) {
-      const [name, pid] = line.split('|')
-      const n = parseInt(pid, 10)
-      if (name && Number.isFinite(n)) out[name] = n
-    }
-    return out
-  } catch {
-    return {}
+export function observeSupervisedPids(): TmuxObservation<Record<string, number>> {
+  const result = runTmux(['list-panes', '-a', '-F', '#{session_name}|#{pane_pid}'])
+  if (result.status !== 0 || typeof result.stdout !== 'string') {
+    return { status: 'unknown', value: {}, issue: 'tmux-unavailable' }
   }
+  const out: Record<string, number> = {}
+  const raw = result.stdout.trim()
+  if (!raw) return { status: 'observed', value: out }
+  for (const line of raw.split('\n')) {
+    const [name, pid] = line.split('|')
+    const n = parseInt(pid, 10)
+    if (name && Number.isFinite(n)) out[name] = n
+  }
+  return { status: 'observed', value: out }
 }
 
-export function listSessions(): Session[] {
-  try {
-    const raw = execSync(
-      'tmux list-sessions -F "#{session_name}|#{session_created}|#{session_attached}|#{session_width}|#{session_height}"',
-      { encoding: 'utf-8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] }
-    ).trim()
-    if (!raw) return []
-    return raw.split('\n').map((line) => {
+export function observeSessions(): TmuxObservation<Session[]> {
+  const result = runTmux([
+    'list-sessions',
+    '-F',
+    '#{session_name}|#{session_created}|#{session_attached}|#{session_width}|#{session_height}',
+  ])
+  if (result.status !== 0 || typeof result.stdout !== 'string') {
+    return { status: 'unknown', value: [], issue: 'tmux-unavailable' }
+  }
+  const raw = result.stdout.trim()
+  if (!raw) return { status: 'observed', value: [] }
+  return {
+    status: 'observed',
+    value: raw.split('\n').map((line) => {
       const [name, created, attached, width, height] = line.split('|')
       const paneText = capturePane(name, 15)
       return {
@@ -137,9 +154,7 @@ export function listSessions(): Session[] {
         height: parseInt(height),
         agent: parseAgentInfo(paneText),
       }
-    })
-  } catch {
-    return []
+    }),
   }
 }
 
@@ -149,41 +164,10 @@ export function capturePane(sessionName: string, lines = 50): string {
     // an args array so we don't have to quote sessionName. Both of these
     // reduce the window for inherited fds to corrupt adjacent sockets
     // (observed under WebSocket polling at 200ms with long scrollback).
-    const result = spawnSync(
-      'tmux',
-      ['capture-pane', '-t', sessionName, '-p', '-S', `-${lines}`],
-      { encoding: 'utf-8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] }
-    )
+    const result = runTmux(['capture-pane', '-t', sessionName, '-p', '-S', `-${lines}`])
     if (result.status !== 0 || !result.stdout) return ''
     return result.stdout.trimEnd()
   } catch {
     return ''
-  }
-}
-
-export function sendKeys(sessionName: string, text: string, appendEnter = true): boolean {
-  try {
-    const enterArg = appendEnter ? ' Enter' : ''
-    const textArg = text === '' ? '' : ' ' + JSON.stringify(text)
-    execSync(`tmux send-keys -t "${sessionName}"${textArg}${enterArg}`, {
-      timeout: 5000,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-    return true
-  } catch {
-    return false
-  }
-}
-
-// Send tmux named keys (Enter, Escape, C-c, Tab, etc.) — passed unquoted so tmux interprets them.
-// `keys` is an array of tmux key names; each is shell-escaped individually but not JSON-quoted.
-const TMUX_KEY_PATTERN = /^([A-Z]-)*[A-Za-z0-9]+$/
-export function sendNamedKeys(sessionName: string, keys: string[]): boolean {
-  if (!keys.every((k) => TMUX_KEY_PATTERN.test(k))) return false
-  try {
-    execSync(`tmux send-keys -t "${sessionName}" ${keys.join(' ')}`, { timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] })
-    return true
-  } catch {
-    return false
   }
 }

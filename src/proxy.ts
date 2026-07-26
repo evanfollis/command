@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose/jwt/verify'
 
+import { resolveJwtSecret } from '@/lib/jwtSecret'
+
 const PUBLIC_PATHS = ['/login', '/api/auth']
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   if (PUBLIC_PATHS.includes(pathname)) {
@@ -28,10 +30,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', origin))
   }
 
+  // Resolve outside the verify try so a missing production secret fails loud
+  // (500) rather than being swallowed into a redirect loop. In production the
+  // secret is delivered at runtime via the systemd EnvironmentFile.
+  const secret = new TextEncoder().encode(resolveJwtSecret())
   try {
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || 'command-jwt-secret-change-in-production'
-    )
     await jwtVerify(token, secret)
     return NextResponse.next()
   } catch {

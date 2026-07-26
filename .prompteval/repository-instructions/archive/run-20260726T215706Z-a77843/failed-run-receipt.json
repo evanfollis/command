@@ -1,0 +1,19 @@
+{
+  "status": "failed_prebaseline_release_run",
+  "run_id": "run-20260726T215706Z-a77843",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/repository-instructions/runs/run-20260726T215706Z-a77843.json",
+  "run_sha256": "8855d65d05d3b15507fb704019558d2e3340226fc9aba82a7094050c68120b05",
+  "aggregate": 0.7857,
+  "active_failure_ids": [
+    "gc-25c6094b0272658c",
+    "gc-989ea1214cab587e"
+  ],
+  "sealed_failure_count": 1,
+  "active_outputs_inspected": true,
+  "sealed_content_inspected": false,
+  "disputed_case_id": "gc-25c6094b0272658c",
+  "disputed_trial": 2,
+  "disputed_output_sha256": "a285bc287d2b01d969c34e433ab79a7ae349c930a3e48b0ebb2dbf5e66b70d56",
+  "human_verdict": "pass",
+  "resolution": "The charter now names the exact build-canary artifact scan and a complete tool-free response contract. The operator rubric is aligned to semantic externalization rather than one literal owner phrase."
+}

@@ -1,7 +1,9 @@
 import { existsSync, readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 
-const CLAUDE_SESSIONS_DIR = '/root/.claude/sessions'
+import { WORKSPACE_PATHS } from './workspacePaths'
+
+const CLAUDE_SESSIONS_DIR = join(WORKSPACE_PATHS.claudeStateRoot, 'sessions')
 
 export interface ClaudeSessionState {
   pid: number

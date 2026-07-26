@@ -1,6 +1,6 @@
 {
   "id": "offline-synthesis-prompt",
-  "description": "Meta-learning offline synthesis. Given recurring observation patterns, produces evidence-bounded architectural change proposals (not bandaids), identifies design pressure, differentiates server-wide rules from local fixes, and preserves verified working mechanisms. Called by synthesizeMetaFindings(). The probe has real read tools but no write or execute tools; it may verify current code and must not claim mutation or execution.",
+  "description": "Historical offline-synthesis prompt retained as a pure offline builder and governed evaluation artifact after meta-learning execution moved out of Command. Given recurring observation patterns, it proposes evidence-bounded architectural changes, distinguishes workspace rules from local fixes, and preserves verified mechanisms. The probe may read but cannot mutate or execute.",
   "owner": "command",
   "source": {
     "type": "whole_file",
@@ -17,7 +17,7 @@
     "deps": [
       "scripts/prompteval-adapters/adapter_llm.py",
       "scripts/render-prompt.ts",
-      "src/lib/metaLearning.ts",
+      "src/lib/offlineSynthesisPrompt.ts",
       "src/lib/promptTemplate.ts"
     ],
     "timeout": 420

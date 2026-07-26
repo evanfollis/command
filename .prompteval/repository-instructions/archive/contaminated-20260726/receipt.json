@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "prompt_id": "repository-instructions",
+  "reason": "The current sealed definitions were surfaced by an overly broad local audit command before the first baseline was accepted. The in-flight release run was terminated and cannot be used as evidence.",
+  "contaminated_at": "2026-07-26T21:03:10Z",
+  "contaminated_holdout_sha256": "699543940c6b06132e925d5446245a6e159ad30c115295d0281bdc7632f52ead",
+  "contaminated_record_count": 2,
+  "replacement_record_ids": [
+    "gc-65f9dcbe719f2dc3",
+    "gc-04fcf6934aa6e29e"
+  ],
+  "replacement_holdout_sha256": "f58ca12a5908182e9a926f74607832eee14276f0a7fca1f92aad2cd23e5a5846",
+  "optimization_after_exposure": false,
+  "baseline_accepted_from_contaminated_run": false
+}

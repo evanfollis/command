@@ -36,6 +36,14 @@ const forbiddenSources = [
   'src/lib/attachStream.ts',
   'src/lib/threadConversation.ts',
   'src/lib/threads.ts',
+  'src/lib/environments.ts',
+  'src/lib/executive.ts',
+  'src/lib/executor.ts',
+  'src/lib/metaLearning.ts',
+  'src/lib/review.ts',
+  'src/lib/router.ts',
+  'src/lib/taskStore.ts',
+  'src/lib/symphonyStore.ts',
 ]
 
 for (const file of forbiddenSources) {
@@ -85,6 +93,8 @@ const forbiddenWebPatterns: Array<[RegExp, string]> = [
   [/WebSocketServer|new WebSocket\(/, 'interactive WebSocket runtime'],
   [/attachLock/, 'retired attach-lock import'],
   [/\bsendKeys\b|\bsendNamedKeys\b/, 'tmux mutation import'],
+  [/\b(?:writeFileSync|appendFileSync|rmSync|renameSync|unlinkSync|mkdirSync)\b/, 'filesystem mutation import'],
+  [/\b(?:spawn|spawnSync)\s*\(/, 'process-spawn import'],
 ]
 
 for (const file of webFiles) {
@@ -113,9 +123,22 @@ const authSource = readFileSync(join(ROOT, 'src/app/api/auth/route.ts'), 'utf8')
 const authMethods = [...authSource.matchAll(/export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE)\b/g)].map((match) => match[1]).sort()
 if (authMethods.join(',') !== 'DELETE,POST') errors.push(`auth route may export only POST and DELETE (found: ${authMethods.join(', ')})`)
 
-const middlewareSource = readFileSync(join(ROOT, 'src/middleware.ts'), 'utf8')
-if (!/from ['"]jose\/jwt\/verify['"]/.test(middlewareSource)) errors.push('middleware must import the narrow JWT verifier export')
-if (/from ['"]jose['"]/.test(middlewareSource)) errors.push('middleware must not trace the full jose JWE bundle into Edge')
+const proxySource = readFileSync(join(ROOT, 'src/proxy.ts'), 'utf8')
+if (!/from ['"]jose\/jwt\/verify['"]/.test(proxySource)) errors.push('proxy must import the narrow JWT verifier export')
+if (/from ['"]jose['"]/.test(proxySource)) errors.push('proxy must not trace the full jose JWE bundle')
+
+const tmuxSource = readFileSync(join(ROOT, 'src/lib/tmux.ts'), 'utf8')
+if (/\bsendKeys\b|\bsendNamedKeys\b|send-keys|new-session|kill-session/.test(tmuxSource)) {
+  errors.push('read-only tmux observer contains a mutation capability')
+}
+if (/\bexecSync\b|\bexecFileSync\b/.test(tmuxSource) || !/spawnSync\(['"]\/usr\/bin\/tmux['"]/.test(tmuxSource)) {
+  errors.push('tmux observer must use the fixed argv /usr/bin/tmux boundary without a shell')
+}
+
+const symphonySource = readFileSync(join(ROOT, 'src/lib/symphonyProjection.ts'), 'utf8')
+if (/\b(?:writeFileSync|appendFileSync|mkdirSync)\b|transitionSymphonyTask|createSymphonyTask/.test(symphonySource)) {
+  errors.push('read-only Symphony projection contains a mutation capability')
+}
 
 const packageJson = readFileSync(join(ROOT, 'package.json'), 'utf8')
 for (const dependency of ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links', 'node-pty', 'ws', '@types/ws']) {

@@ -28,7 +28,7 @@ async function main() {
   check('GET / unauthed redirects to login', [302, 307].includes(ownerUnauth.status), `status=${ownerUnauth.status}`)
   check('unauthenticated response omits private paths', !(await ownerUnauth.text()).includes('/opt/workspace'))
 
-  const cssMatch = loginBody.match(/\/_next\/static\/css\/[^"']+\.css/)
+  const cssMatch = loginBody.match(/\/_next\/static\/(?:css|chunks)\/[^"']+\.css/)
   if (cssMatch) {
     const cssRes = await fetch(`${BASE}${cssMatch[0]}`)
     check('login CSS asset is reachable', cssRes.status === 200, `status=${cssRes.status}`)

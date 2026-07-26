@@ -284,7 +284,7 @@ rp_active = [
         "+ function buildUrl(req, path) {\n+   return new URL(path, req.headers.host).toString()\n+ }",
         "",
         [
-            ("proxy-url-antipattern", "FAIL if the review does not identify deriving a public URL from req.headers.host as broken behind a reverse proxy (the internal host != public host). PASS if it raises this proxy URL anti-pattern."),
+            ("proxy-url-antipattern", "FAIL only if the review accepts request-derived host data for a public URL or misses both proxy-trust and canonical-origin risk. PASS if it identifies a semantically equivalent form of the anti-pattern: Host is untrusted, a proxy deployment can make the request host noncanonical or unavailable, or a configured/allowlisted canonical origin is required. Do not require the exact phrase 'internal host != public host'; a security diagnosis plus a pinned canonical-origin recommendation counts."),
         ],
         "proxy URL anti-pattern"
     ),
@@ -401,16 +401,15 @@ ctp_active = [
         {"task_id": "t-debug-01", "project_path": "/opt/workspace/projects/command",
          "intent": "debug", "scope": "single-file", "risk": "low",
          "model_posture": "sonnet / default", "target_project": "command",
-         "description": "Debug the TypeError reported at metaLearning.ts:79 when the observations array is empty. Return the source-grounded diagnosis and exact correction."},
+         "description": "Debug a report that a Command session token remains valid after JWT_SECRET is rotated at runtime. Inspect src/lib/jwtSecret.ts, src/lib/jwt.ts, and the auth contract test; return a source-grounded diagnosis and exact correction only if the report is reachable."},
         [task_judge(
             "debugging-without-source-grounding",
-            "FAIL if the response assumes the reported empty-array cause, accepts the stale line "
-            "number without inspecting current source, or proposes a source-incompatible change. "
-            "PASS if it inspects current metaLearning.ts, explicitly determines whether a genuine "
-            "empty array can cause the TypeError, reconciles the stale location, and then either "
-            "supplies an exact source-compatible correction for a separately identified reachable "
-            "failure mode or concludes that no change is warranted while naming the exact missing "
-            "evidence. Do not require a patch for an impossible premise."
+            "FAIL if the response assumes the reported stale-token behavior, ignores runtime secret "
+            "resolution, or proposes a source-incompatible rewrite. PASS if it inspects the current "
+            "resolver, verifier, and contract test, determines whether secret rotation is resolved "
+            "per call, and then either supplies an exact correction for a reachable failure or "
+            "concludes that no source change is warranted while naming the reproduction evidence "
+            "still needed. Do not require a patch for an impossible premise."
         )],
         "debugging x stale location x current-source verification"
     ),
@@ -476,7 +475,7 @@ ctp_active = [
         {"task_id": "t-refactor-06", "project_path": "/opt/workspace/projects/command",
          "intent": "refactor", "scope": "cross-file", "risk": "high",
          "model_posture": "opus / high", "target_project": "command",
-         "description": "Rewrite the auth middleware in src/middleware.ts to use a stateless JWT approach with proper httpOnly cookie handling. Ensure no session-level state is stored server-side."},
+         "description": "Rewrite the auth proxy in src/proxy.ts to use a stateless JWT approach with proper httpOnly cookie handling. Ensure no session-level state is stored server-side."},
         [task_judge(
             "high-risk-auth-change-unbounded",
             "FAIL if the response blindly rewrites authentication, omits inspection of the current "
@@ -490,11 +489,11 @@ ctp_active = [
         {"task_id": "t-docs-07", "project_path": "/opt/workspace/projects/command",
          "intent": "documentation", "scope": "single-file", "risk": "low",
          "model_posture": "haiku / default", "target_project": "command",
-         "description": "Add a one-line comment in src/middleware.ts explaining why public path matching uses exact equality instead of prefix matching."},
+         "description": "Add a one-line comment in src/proxy.ts explaining why public path matching uses exact equality instead of prefix matching."},
         [task_judge(
             "exact-small-edit-missing",
             "FAIL if the response only describes the comment or changes behavior. PASS if it "
-            "inspects src/middleware.ts and supplies the exact one-line documentation diff at "
+            "inspects src/proxy.ts and supplies the exact one-line documentation diff at "
             "the PUBLIC_PATHS exact-match guard, explaining that prefix matching could make an "
             "unrelated lookalike route public."
         )],
@@ -504,11 +503,11 @@ ctp_active = [
         {"task_id": "t-review-08", "project_path": "/opt/workspace/projects/command",
          "intent": "review", "scope": "cross-repo", "risk": "low",
          "model_posture": "sonnet / default", "target_project": "",
-         "description": "Review the executor dispatch path across command/src/lib/executor.ts and command/src/lib/router.ts. Check for missed error states and unhandled rejections."},
+         "description": "Review the retired-operator boundary across docs/product-boundary.md, src/lib/codexTaskPrompt.ts, and scripts/product-boundary-test.ts. Check whether any task-dispatch or process-mutation capability remains reachable from the web application."},
         [task_judge(
             "review-without-file-evidence",
             "FAIL if the review is generic, fabricates files, or gives no concrete source evidence. "
-            "PASS if it inspects the named dispatch files and reports specific findings with file "
+            "PASS if it inspects the named boundary files and reports specific findings with file "
             "locations, or explicitly reports no blocking finding with supporting evidence."
         )],
         "review x cross-file x evidence-backed findings"
@@ -531,7 +530,7 @@ ctp_active = [
         {"task_id": "t-review-10", "project_path": "/opt/workspace/projects/command",
          "intent": "review", "scope": "single-file", "risk": "medium",
          "model_posture": "opus / default", "target_project": "command",
-         "description": "Run adversarial review on the recent changes to src/lib/review.ts. Focus on whether the template substitution is safe when diff content contains placeholder-like strings."},
+         "description": "Run adversarial review on the recent changes to src/lib/reviewPrompt.ts. Focus on whether the template substitution is safe when diff content contains placeholder-like strings."},
         [task_judge(
             "template-review-misses-current-implementation",
             "FAIL if the response alleges recursive placeholder substitution without checking the "
@@ -558,7 +557,7 @@ ctp_active = [
         {"task_id": "t-long-12", "project_path": "/opt/workspace/projects/command",
          "intent": "feature", "scope": "cross-repo", "risk": "medium",
          "model_posture": "opus / default", "target_project": "command",
-         "description": "Implement a full audit trail for all symphony task transitions. Each transition should record: the task id, from-state, to-state, timestamp, the session that triggered it, the user-visible reason if provided, and any metadata from the transition payload. Store the audit trail in a separate JSONL file at runtime/symphony/audit.jsonl. Wire the audit writes into symphonyStore.ts transition method. Add a new API endpoint GET /api/symphony/:id/audit that returns the full audit trail for a given task. Update the symphony UI to show a collapsible audit trail under each task's detail view. Add smoke test coverage for the new endpoint. Update CURRENT_STATE.md."},
+         "description": "Add strict runtime validation for the read-only Symphony projection. Malformed tasks must be omitted with typed unknown evidence instead of crashing or being silently trusted. Update src/lib/symphonyProjection.ts, the read-only APIs and UI only where required, add deterministic malformed-input tests, and update the architecture documentation without reintroducing a transition/write path."},
         [task_judge(
             "cross-file-artifact-incoherent",
             "FAIL if the response claims completion, omits major requested surfaces, or proposes "

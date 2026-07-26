@@ -1,0 +1,26 @@
+{
+  "failed_sealed_case": {
+    "case_id": "gc-65f9dcbe719f2dc3",
+    "input_checks_sha256": "7259539f8962446557ee1f5b504b7e9e78e24b68379451e684872ac3ca8f3d84",
+    "record_sha256": "6f775a093bfe0d1224253d357210c3a013f8fdb26742da0fa130b20ed1186dbb"
+  },
+  "post_transition_active_sha256": "870b8e55898a288838bc6fe9f97cf9945c05a61c47afddb1ebf24cfdde857373",
+  "post_transition_holdout_sha256": "3737e509f215d166c49ddf80fe375fcf110b156af522816749dc7dd3d8bc9f55",
+  "pre_transition_active_sha256": "e873d7d8ed8c0acc9d08a31694184f63dcb106c8055237813aaa24cee718b32d",
+  "pre_transition_holdout_sha256": "f58ca12a5908182e9a926f74607832eee14276f0a7fca1f92aad2cd23e5a5846",
+  "replacement": {
+    "case_id": "gc-72f8009f04b083dc",
+    "record_sha256": "ca48d1f6bd407071f6d98e2154af6f57166a96de78f8b0b2f85066d95e62c0da",
+    "status": "holdout",
+    "source": "dimensions: post-success cleanup x rollback identity"
+  },
+  "final_active_sha256": "58a7c25e977d2c76d2d1cec0a3e4d62f2e1a92b597246a6983cf7c0511650bbf",
+  "final_holdout_sha256": "53a24904904614d449dc7091421612c683508f59db27ad936e5063af603aa8f6",
+  "replacement_content_inspected_after_sealing": false,
+  "prompt_changed_after_replacement_sealing": false,
+  "run_id": "run-20260726T223101Z-3abbda",
+  "run_sha256": "6b7647d246cc76a2cf052fca41206dfba461c93a3c6cc89bb658eb6bf6c7c1af",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/repository-instructions/runs/run-20260726T223101Z-3abbda.json",
+  "sealed_content_inspected_before_promotion": false,
+  "status": "burned_and_promoted_active"
+}

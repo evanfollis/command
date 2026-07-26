@@ -147,7 +147,7 @@ assert new_preserve_rubric == old_preserve_rubric
 
 release_source = (ROOT / 'scripts' / 'release.sh').read_text()
 preflight_source = Path('/opt/workspace/supervisor/scripts/lib/preflight-deploy.sh').read_text()
-assert release_source.index('/opt/workspace/supervisor/scripts/lib/preflight-deploy.sh') < release_source.index('git worktree add --detach')
+assert release_source.index('$WORKSPACE_ROOT/supervisor/scripts/lib/preflight-deploy.sh') < release_source.index('git worktree add --detach')
 assert '/opt/workspace/supervisor/scripts/prompteval check .' in preflight_source
 
 # Regeneration must preserve the sealed holdout and every accepted/untracked

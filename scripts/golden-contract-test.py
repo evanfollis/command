@@ -93,12 +93,16 @@ CONTAMINATED_HOLDOUT_RECORDS = {
     'gc-38b3e75ad2a0ab4d': 'a45eec707e38d78604103ca5fc5be07c8b40cef45694917d7e346d080217d6a0',
     'gc-94de61c46b321c2d': '61f4340999ce22799369deb950212468b9b14547797cef75586d8d16b7b21b41',
 }
-REPLACEMENT_HOLDOUT_SHA = 'cb3b48ab53aca4d9532ccd973fc8f594fa905561fdf94405093815f3d048ac6b'
+REPLACEMENT_HOLDOUT_SHA = '4fc87e7e2a846ce0041d3e656aaa09be4c8b5dbe6acd233711c38c95f9f673bb'
 REPLACEMENT_HOLDOUT_RECORDS = {
     'gc-51913b36c1570860': '6cf1bd39dcf07dbf5ce4ecf28dc60602a5f6632e6e09434790a280e443c48453',
     'gc-15d1a422f6b33458': '5bb52e7561c3b32d73650c5aa33ab03f24ee0f906391310b3d20da26aff003ff',
-    'gc-6e4d655c2e0f8997': '72dbb40fbd1e686c5224f9c5ffb8260e325999943590a0d3c4dbe5acade40ca7',
+    'gc-f4a583ea1d73f274': 'bd35acc49fde519f802b4d9e4c19f31fc630351529a89479eb263ca52d5efd39',
 }
+ADR0050_ROTATION_ARCHIVE = SPEC / 'archive' / 'adr-0050-20260726'
+NEXT16_PROXY_ARCHIVE = SPEC / 'archive' / 'next16-proxy-20260726'
+ADR0050_CONTAMINATED_ID = 'gc-6e4d655c2e0f8997'
+ADR0050_CONTAMINATED_SHA = '72dbb40fbd1e686c5224f9c5ffb8260e325999943590a0d3c4dbe5acade40ca7'
 PRODUCT_BOUNDARY_ARCHIVE = SPEC / 'archive' / 'v2-product-boundary-20260719'
 RETIRED_ATTACH_SOURCE_SHA = '49850946fa91d63e868bf4e58585565ac6281b32ffbee4cabc6ffa374f3895a2'
 RETIRED_ATTACH_CASES_SHA = '47fc8a7bef5b818bb6a64139f80e7c032db2d87fec6425a5c8d73abe0913e8b4'
@@ -236,6 +240,15 @@ replacement_record_hashes = {
     for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines(keepends=True)
 }
 assert replacement_record_hashes == REPLACEMENT_HOLDOUT_RECORDS
+adr0050_rotation = json.loads((ADR0050_ROTATION_ARCHIVE / 'contamination-receipt.json').read_text())
+assert adr0050_rotation['status'] == 'contaminated_and_rotated'
+assert adr0050_rotation['content_used_for_prompt_iteration'] is False
+assert adr0050_rotation['outputs_inspected'] is False
+assert adr0050_rotation['contaminated_case_id'] == ADR0050_CONTAMINATED_ID
+assert adr0050_rotation['archived_record_sha256'] == ADR0050_CONTAMINATED_SHA
+assert adr0050_rotation['post_transition_holdout_sha256'] == REPLACEMENT_HOLDOUT_SHA
+assert adr0050_rotation['replacement_case_id'] in REPLACEMENT_HOLDOUT_RECORDS
+assert digest(ADR0050_ROTATION_ARCHIVE / 'contaminated-obsolete-case.jsonl') == ADR0050_CONTAMINATED_SHA
 rotation_archive = SPEC / 'archive' / RUN_3D168B
 assert digest(rotation_archive / 'contaminated-holdout.jsonl') == CONTAMINATED_HOLDOUT_SHA
 contaminated_record_hashes = {
@@ -262,7 +275,33 @@ assert not ({case['id'] for case in active} & {case['id'] for case in holdout})
 assert not ({case['id'] for case in holdout} & {case['id'] for case in v1_cases}), 'v2 holdouts must be freshly minted'
 assert not ({case['id'] for case in active} & {case['id'] for case in retired_attach_cases})
 assert all('attachLock.ts' not in case['input']['description'] for case in active)
-assert set(boundary_manifest['replacement_active_case_ids']) <= {case['id'] for case in active}
+active_record_hashes = {
+    case['id']: hashlib.sha256(line.encode()).hexdigest()
+    for line in (SPEC / 'golden' / 'cases.jsonl').read_text().splitlines(keepends=True)
+    if (case := json.loads(line))
+}
+next16_proxy_receipt = json.loads((NEXT16_PROXY_ARCHIVE / 'migration-receipt.json').read_text())
+assert next16_proxy_receipt['status'] == 'active_cases_retired_and_replaced'
+assert next16_proxy_receipt['content_used_for_prompt_iteration'] is False
+retired_next16_lines = (NEXT16_PROXY_ARCHIVE / 'retired-active-cases.jsonl').read_text().splitlines(keepends=True)
+retired_next16_hashes = {
+    json.loads(line)['id']: hashlib.sha256(line.encode()).hexdigest()
+    for line in retired_next16_lines
+}
+next16_mappings = {
+    record['id']: record
+    for record in next16_proxy_receipt['retired_records']
+}
+assert retired_next16_hashes == {
+    record_id: record['sha256']
+    for record_id, record in next16_mappings.items()
+}
+assert set(boundary_manifest['replacement_active_case_ids']) <= (
+    {case['id'] for case in active} | set(next16_mappings)
+)
+for record in next16_mappings.values():
+    assert active_record_hashes[record['replacement_id']] == record['replacement_sha256']
+    assert record['replacement_id'] not in next16_mappings
 assert boundary_manifest['sealed_holdout_sha256'] == RUN_5A9247_PRE_HOLDOUT_SHA
 
 # The failed sealed record stayed opaque until the generator mechanically
@@ -468,7 +507,7 @@ assert 'basename(dirname(path))' in fixed_rubric
 
 small_edit_case = next(case for case in active if case['input']['task_id'] == 't-docs-07')
 small_edit_rubric = next(check['rubric'] for check in small_edit_case['checks'] if check.get('failure_mode') == 'exact-small-edit-missing')
-assert 'src/middleware.ts' in small_edit_rubric
+assert 'src/proxy.ts' in small_edit_rubric
 assert 'PUBLIC_PATHS' in small_edit_rubric
 
 smoke_case = next(case for case in active if case['input']['task_id'] == 't-smoke-04')
@@ -510,10 +549,10 @@ for required in (
 ):
     assert required in prompt_source, f'missing exact-contract or no-change rule: {required}'
 
-debug_case = next(case for case in active if case['id'] == 'gc-466822e89b2392f2')
+debug_case = next(case for case in active if case['input']['task_id'] == 't-debug-01')
 debug_rubric = next(check['rubric'] for check in debug_case['checks'] if check.get('failure_mode') == 'debugging-without-source-grounding')
 assert debug_case['must_pass'] is True
-assert 'explicitly determines whether a genuine empty array can cause the TypeError' in debug_rubric
+assert 'determines whether secret rotation is resolved per call' in debug_rubric
 assert 'Do not require a patch for an impossible premise' in debug_rubric
 
 for case in [*active, *holdout]:

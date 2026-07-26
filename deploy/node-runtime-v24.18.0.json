@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "name": "node",
+  "version": "24.18.0",
+  "channel": "LTS",
+  "platform": "linux-x64",
+  "source": "https://nodejs.org/dist/v24.18.0/node-v24.18.0-linux-x64.tar.xz",
+  "sha256": "55aa7153f9d88f28d765fcdad5ae6945b5c0f98a36881703817e4c450fa76742",
+  "install_path": "/opt/workspace/runtime/toolchains/node-v24.18.0-linux-x64",
+  "active_link": "/opt/workspace/runtime/toolchains/node-24-current"
+}

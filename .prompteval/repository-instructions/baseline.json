@@ -1,0 +1,137 @@
+{
+  "prompt_version": "pv-3f18f96b62d4c4b5",
+  "spec_hash": "sh-c6adb38a1882ac68",
+  "golden_hash": "gh-9c3c58a1d7dd2c14",
+  "model": "gpt-5.4",
+  "params": {},
+  "judge_model": "opus",
+  "run_id": "run-20260726T230410Z-c9d61d",
+  "ts": "2026-07-26T23:37:29Z",
+  "release": true,
+  "passed": true,
+  "accepted_from_cache": false,
+  "gate_policy": {
+    "basis": "must_pass_cases",
+    "advisory_cases_gate": false
+  },
+  "aggregate": 1.0,
+  "required_aggregate": 1.0,
+  "judge_unknown_ratio": 0.0,
+  "gate": {
+    "passed": true,
+    "reasons": []
+  },
+  "cases": {
+    "gc-ad50f399b84311c1": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-25c6094b0272658c": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-3093e1fa55c1ece8": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-475e1c3af90a8559": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-989ea1214cab587e": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-09a6e8868441ad79": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-9bb9ce8621f82e38": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-914345a7c1daafdc": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-771431696611a469": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-0a8c2e79869abd65": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-0589ea3e52c4c4d4": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-feac3474e6728d14": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-65f9dcbe719f2dc3": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-72f8009f04b083dc": {
+      "pass": true,
+      "must_pass": true
+    },
+    "gc-04fcf6934aa6e29e": {
+      "pass": true,
+      "must_pass": true
+    }
+  },
+  "all_pass_streak": 1,
+  "all_cases_passed": true,
+  "required_cases": {
+    "total": 15,
+    "passed": 15,
+    "failed": 0
+  },
+  "advisory_cases": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "provider_provenance": {
+    "schema_version": "prompteval.provider-provenance.v1",
+    "run_id": "run-20260726T230410Z-c9d61d",
+    "requested_executor_model": "gpt-5.4",
+    "requested_judge_model": "opus",
+    "providers": [
+      "codex"
+    ],
+    "successful_calls": 180,
+    "fallback_successes": 135,
+    "routes": [
+      {
+        "role": "executor",
+        "provider": "codex",
+        "model": "gpt-5.4",
+        "status": "success",
+        "fallback_from": "",
+        "calls": 45
+      },
+      {
+        "role": "judge",
+        "provider": "claude",
+        "model": "opus",
+        "status": "throttled",
+        "fallback_from": "",
+        "calls": 16
+      },
+      {
+        "role": "judge",
+        "provider": "codex",
+        "model": "default",
+        "status": "success",
+        "fallback_from": "claude",
+        "calls": 135
+      }
+    ],
+    "telemetry_ref": "/opt/workspace/runtime/.telemetry/events.jsonl#runId=run-20260726T230410Z-c9d61d",
+    "attempt_log": "/opt/workspace/runtime/prompteval/.provenance/run-20260726T230410Z-c9d61d.jsonl"
+  }
+}

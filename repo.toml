@@ -1,0 +1,11 @@
+schema_version = 1
+name = "command"
+shape = "application"
+lifecycle = "active"
+agentic_risk = "model-assisted"
+canonical_repository = "https://github.com/evanfollis/command"
+
+[artifacts]
+authoritative = ["src/", "scripts/", "docs/", "deploy/", ".prompteval/"]
+generated = [".next/", "dist/"]
+historical = [".reviews/"]

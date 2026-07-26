@@ -1,12 +1,12 @@
 {
   "prompt_version": "pv-0b6adfd6d31abcaa",
-  "spec_hash": "sh-ccd9c610fc3488c2",
-  "golden_hash": "gh-15ae66884ff6bb6b",
+  "spec_hash": "sh-225daf96d4ec2f1f",
+  "golden_hash": "gh-369bd07001c4af30",
   "model": "claude-sonnet-4-6",
   "params": {},
   "judge_model": "opus",
-  "run_id": "run-20260720T083722Z-cbdf26",
-  "ts": "2026-07-20T09:16:06Z",
+  "run_id": "run-20260726T214018Z-46c0d8",
+  "ts": "2026-07-26T22:53:15Z",
   "release": true,
   "passed": true,
   "accepted_from_cache": false,
@@ -22,7 +22,7 @@
     "reasons": []
   },
   "cases": {
-    "gc-466822e89b2392f2": {
+    "gc-d6e53763002cc568": {
       "pass": true,
       "must_pass": true
     },
@@ -42,15 +42,15 @@
       "pass": true,
       "must_pass": true
     },
-    "gc-20ce076fb4925045": {
+    "gc-f0ba92076c4692f8": {
       "pass": true,
       "must_pass": true
     },
-    "gc-03a8e553bc10ed72": {
+    "gc-5273b75ea65fd750": {
       "pass": true,
       "must_pass": true
     },
-    "gc-cb721b1a677003af": {
+    "gc-89bc04e1913f4365": {
       "pass": true,
       "must_pass": true
     },
@@ -58,7 +58,7 @@
       "pass": true,
       "must_pass": true
     },
-    "gc-8350809ac32c69d5": {
+    "gc-1aa5b3f01606ce77": {
       "pass": true,
       "must_pass": true
     },
@@ -66,7 +66,7 @@
       "pass": true,
       "must_pass": true
     },
-    "gc-dacb6094a0651bd4": {
+    "gc-be334525cbad1938": {
       "pass": true,
       "must_pass": true
     },
@@ -82,7 +82,7 @@
       "pass": true,
       "must_pass": true
     },
-    "gc-6e4d655c2e0f8997": {
+    "gc-f4a583ea1d73f274": {
       "pass": true,
       "must_pass": true
     }
@@ -101,7 +101,7 @@
   },
   "provider_provenance": {
     "schema_version": "prompteval.provider-provenance.v1",
-    "run_id": "run-20260720T083722Z-cbdf26",
+    "run_id": "run-20260726T214018Z-46c0d8",
     "requested_executor_model": "claude-sonnet-4-6",
     "requested_judge_model": "opus",
     "providers": [
@@ -132,7 +132,7 @@
         "model": "opus",
         "status": "throttled",
         "fallback_from": "",
-        "calls": 15
+        "calls": 5
       },
       {
         "role": "judge",
@@ -143,7 +143,7 @@
         "calls": 144
       }
     ],
-    "telemetry_ref": "/opt/workspace/runtime/.telemetry/events.jsonl#runId=run-20260720T083722Z-cbdf26",
-    "attempt_log": "/opt/workspace/runtime/prompteval/.provenance/run-20260720T083722Z-cbdf26.jsonl"
+    "telemetry_ref": "/opt/workspace/runtime/.telemetry/events.jsonl#runId=run-20260726T214018Z-46c0d8",
+    "attempt_log": "/opt/workspace/runtime/prompteval/.provenance/run-20260726T214018Z-46c0d8.jsonl"
   }
 }

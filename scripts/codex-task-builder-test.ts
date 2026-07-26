@@ -1,36 +1,24 @@
 #!/usr/bin/env tsx
 import assert from 'node:assert/strict'
-import type { Task } from '../src/lib/taskStore'
-import { buildCodexPrompt } from '../src/lib/executor'
+import { buildCodexPrompt, type CodexTaskPromptInput } from '../src/lib/codexTaskPrompt'
 
 process.env.PROMPTEVAL_RENDER = '1'
 
 function render(description: string, overrides: Record<string, unknown> = {}): string {
-  const task: Task = {
+  const task: CodexTaskPromptInput = {
     id: 'contract-test',
-    sessionId: 'contract-session',
     description,
     signals: {
       description,
-      intent: (overrides.intent as Task['signals']['intent']) ?? 'implement',
+      intent: (overrides.intent as string) ?? 'implement',
       scope: 'multi-file',
       risk: 'medium',
       project: 'command',
     },
     decision: {
-      platform: 'codex',
       model: 'sonnet',
       reasoning: 'medium',
-      session: 'executive-codex',
-      environmentId: 'codex-project-write',
-      rationale: 'contract test',
-      rules: [],
     },
-    environmentId: 'codex-project-write',
-    status: 'analyzed',
-    reviewStatus: 'none',
-    createdAt: 0,
-    events: [],
   }
   return buildCodexPrompt(task)
 }

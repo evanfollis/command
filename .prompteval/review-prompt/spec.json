@@ -1,6 +1,6 @@
 {
   "id": "review-prompt",
-  "description": "Adversarial review instructions for recent code changes. Used by executeReview() via Codex (primary) or Claude (secondary). Should challenge design decisions, failure modes, race conditions \u2014 NOT style. Input: session name, diff, optional focus hint. KNOWN LIMITATION: the probe runs with tools disabled, so action-taking is observed as stated intent, not execution. The probe wrapper is deliberately behavior-neutral; judges grade substance (was the work done or handed back), not phrasing.",
+  "description": "Historical adversarial-review instructions retained as a pure offline builder and governed evaluation artifact after review dispatch moved out of Command. The prompt challenges design decisions, failure modes, and races rather than style. Its probe is tool-free, so completed and proposed work must remain truthfully distinct.",
   "owner": "command",
   "source": {
     "type": "whole_file",
@@ -18,7 +18,7 @@
       "scripts/prompteval-adapters/adapter_llm.py",
       "scripts/render-prompt.ts",
       "src/lib/promptTemplate.ts",
-      "src/lib/review.ts"
+      "src/lib/reviewPrompt.ts"
     ],
     "timeout": 420
   },

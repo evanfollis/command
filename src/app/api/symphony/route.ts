@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
-import { listSymphonyTasks } from '@/lib/symphonyStore'
+import { readSymphonyProjection } from '@/lib/symphonyProjection'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function GET() {
-  const tasks = listSymphonyTasks()
-  return NextResponse.json({ tasks })
+  return NextResponse.json(readSymphonyProjection())
 }

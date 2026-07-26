@@ -21,12 +21,22 @@ set -euo pipefail
 
 source "$(dirname "$0")/release-lib.sh"
 
-REPO=/opt/workspace/projects/command
-RELEASES=/opt/workspace/runtime/releases/command
+WORKSPACE_ROOT=${WORKSPACE_ROOT:-/opt/workspace}
+PROJECTS_ROOT=${PROJECTS_ROOT:-"$WORKSPACE_ROOT/projects"}
+RUNTIME_ROOT=${RUNTIME_ROOT:-"$WORKSPACE_ROOT/runtime"}
+REPO=${COMMAND_REPO_ROOT:-"$PROJECTS_ROOT/command"}
+RELEASES=${COMMAND_RELEASE_ROOT:-"$RUNTIME_ROOT/releases/command"}
+STAGING_ROOT=${COMMAND_STAGING_ROOT:-"$RUNTIME_ROOT/staging"}
+NODE_RUNTIME=${COMMAND_NODE_RUNTIME:-"$RUNTIME_ROOT/toolchains/node-24-current"}
 KEEP=5
 SERVICE=command
 
 cd "$REPO"
+[ "$("$NODE_RUNTIME/bin/node" --version 2>/dev/null || true)" = "v24.18.0" ] || {
+  echo "ERROR: supported Node runtime missing; run npm run runtime:setup" >&2
+  exit 1
+}
+export PATH="$NODE_RUNTIME/bin:$PATH"
 SHA=$(git rev-parse HEAD)
 SHORT=$(git rev-parse --short HEAD)
 # Three modes, because "the tree is dirty" has two legitimate answers and one wrong one:
@@ -53,19 +63,19 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 echo "==> preflight checks"
-/opt/workspace/supervisor/scripts/lib/preflight-deploy.sh "$REPO"
+"$WORKSPACE_ROOT/supervisor/scripts/lib/preflight-deploy.sh" "$REPO"
 
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 RELEASE_ID="$TS-$SHORT"; [ "$DIRTY" = true ] && RELEASE_ID="$RELEASE_ID-dirty"
 RELEASE="$RELEASES/$RELEASE_ID"
-STAGE=$(mktemp -d /opt/workspace/runtime/staging/command-build.XXXXXX)
+mkdir -p "$RELEASES" "$STAGING_ROOT"
+STAGE=$(mktemp -d "$STAGING_ROOT/command-build.XXXXXX")
 DEPS_STAGE=""
 
 cleanup() { cd "$REPO"; git worktree remove --force "$STAGE" 2>/dev/null || rm -rf "$STAGE"; [ -z "$DEPS_STAGE" ] || rm -rf "$DEPS_STAGE"; }
 trap cleanup EXIT
 
 echo "==> building $RELEASE_ID (sha=$SHORT dirty=$DIRTY) in an isolated worktree"
-mkdir -p "$RELEASES" /opt/workspace/runtime/staging
 rm -rf "$STAGE"
 git worktree add --detach "$STAGE" HEAD >/dev/null
 if [ "$DIRTY" = true ]; then
@@ -82,7 +92,7 @@ SERVICE_PORT=$(resolve_command_port "$STAGE/.env.local")
 LOCK_HASH=$(sha256sum "$STAGE/package-lock.json" | cut -d' ' -f1)
 DEPS="$RELEASES/.deps-v2-$LOCK_HASH"
 if [ ! -d "$DEPS/node_modules" ]; then
-  DEPS_STAGE=$(mktemp -d /opt/workspace/runtime/staging/command-deps.XXXXXX)
+  DEPS_STAGE=$(mktemp -d "$STAGING_ROOT/command-deps.XXXXXX")
   cp "$STAGE/package.json" "$STAGE/package-lock.json" "$DEPS_STAGE/"
   ( cd "$DEPS_STAGE" && npm ci )
   chmod -R a-w "$DEPS_STAGE/node_modules"

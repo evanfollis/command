@@ -62,12 +62,12 @@ async function main() {
       break
     }
     case 'review-prompt': {
-      const { buildReviewPrompt } = await import('../src/lib/review')
+      const { buildReviewPrompt } = await import('../src/lib/reviewPrompt')
       out = buildReviewPrompt(input.session ?? 'unknown', input.diff ?? '(no diff)', input.focus || undefined)
       break
     }
     case 'codex-task-prompt': {
-      const { buildCodexPrompt } = await import('../src/lib/executor')
+      const { buildCodexPrompt } = await import('../src/lib/codexTaskPrompt')
       out = buildCodexPrompt({
         id: input.task_id,
         description: input.description ?? '',
@@ -85,7 +85,7 @@ async function main() {
       break
     }
     case 'offline-synthesis-prompt': {
-      const { buildOfflineSynthesisPrompt } = await import('../src/lib/metaLearning')
+      const { buildOfflineSynthesisPrompt } = await import('../src/lib/offlineSynthesisPrompt')
       out = buildOfflineSynthesisPrompt(
         (input.patterns ?? []).map((p: any, i: number) => ({
           key: `${p.project}:${p.category}:${i}`,

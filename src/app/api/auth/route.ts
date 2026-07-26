@@ -24,13 +24,22 @@ export async function POST(req: NextRequest) {
   const contentType = req.headers.get('content-type') || ''
   const isForm = contentType.includes('application/x-www-form-urlencoded')
 
-  let password: string
-  if (isForm) {
-    const form = await req.formData()
-    password = String(form.get('password') || '')
-  } else {
-    const body = await req.json()
-    password = body.password
+  let password: unknown
+  try {
+    if (isForm) {
+      const form = await req.formData()
+      password = form.get('password')
+    } else {
+      const body: unknown = await req.json()
+      password = body && typeof body === 'object'
+        ? (body as Record<string, unknown>).password
+        : undefined
+    }
+  } catch {
+    return NextResponse.json({ error: 'Malformed request' }, { status: 400 })
+  }
+  if (typeof password !== 'string') {
+    return NextResponse.json({ error: 'Password must be a string' }, { status: 400 })
   }
 
   if (!checkPassword(password)) {

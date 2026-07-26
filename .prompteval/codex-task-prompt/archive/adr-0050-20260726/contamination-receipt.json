@@ -1,0 +1,15 @@
+{
+  "schema_version": "prompteval.holdout-contamination.v1",
+  "status": "contaminated_and_rotated",
+  "recorded_at": "2026-07-26T21:00:00Z",
+  "reason": "Recursive path search exposed the sealed case definition to the migration agent; the case also referenced the retired mutable task store.",
+  "content_used_for_prompt_iteration": false,
+  "outputs_inspected": false,
+  "contaminated_case_id": "gc-6e4d655c2e0f8997",
+  "archived_record": "contaminated-obsolete-case.jsonl",
+  "archived_record_sha256": "72dbb40fbd1e686c5224f9c5ffb8260e325999943590a0d3c4dbe5acade40ca7",
+  "pre_transition_holdout_sha256": "cb3b48ab53aca4d9532ccd973fc8f594fa905561fdf94405093815f3d048ac6b",
+  "replacement_case_id": "gc-f4a583ea1d73f274",
+  "post_transition_holdout_sha256": "4fc87e7e2a846ce0041d3e656aaa09be4c8b5dbe6acd233711c38c95f9f673bb",
+  "replacement_source": "ADR-0050 migration: clean-room replacement for an obsolete and exposed task-store holdout"
+}

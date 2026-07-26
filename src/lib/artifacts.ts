@@ -1,5 +1,7 @@
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'fs'
-import { join, relative, sep } from 'path'
+import { existsSync, globSync, readdirSync, readFileSync, realpathSync, statSync } from 'fs'
+import path from 'path'
+
+import { WORKSPACE_PATHS } from './workspacePaths'
 
 export interface ArtifactEntry {
   relativePath: string
@@ -32,14 +34,14 @@ const SOURCES: SourceDef[] = [
     id: 'research',
     label: 'Research',
     description: 'Primary-source research artifacts produced for workspace projects.',
-    root: '/opt/workspace/runtime/research',
+    root: path.join(/*turbopackIgnore: true*/ WORKSPACE_PATHS.runtimeRoot, 'research'),
     mode: 'recursive',
   },
   {
     id: 'syntheses',
     label: 'Cross-cutting syntheses',
     description: 'Twice-daily cross-project synthesis passes from the reflection loop.',
-    root: '/opt/workspace/runtime/.meta',
+    root: path.join(/*turbopackIgnore: true*/ WORKSPACE_PATHS.runtimeRoot, '.meta'),
     mode: 'flat-pattern',
     pattern: /^cross-cutting-[0-9T:\-Z.]+\.md$/,
   },
@@ -71,61 +73,58 @@ export function validateRelativePath(segments: string[]): string | null {
 }
 
 function resolveSafe(sourceRoot: string, relativePath: string): string | null {
-  const rootReal = realpathSync(sourceRoot)
-  const candidate = join(rootReal, relativePath)
+  const rootReal = realpathSync(path.join(/*turbopackIgnore: true*/ sourceRoot))
+  const candidate = path.join(/*turbopackIgnore: true*/ rootReal, relativePath)
   let resolved: string
   try {
     resolved = realpathSync(candidate)
   } catch {
     return null
   }
-  if (resolved !== rootReal && !resolved.startsWith(rootReal + sep)) {
+  if (resolved !== rootReal && !resolved.startsWith(rootReal + path.sep)) {
     return null
   }
   return resolved
 }
 
-function walkMarkdown(root: string, current: string, out: ArtifactEntry[]): void {
-  let entries: string[] = []
+function listRecursive(source: SourceDef): ArtifactEntry[] {
+  let paths: string[]
   try {
-    entries = readdirSync(current)
+    paths = globSync('**/*.md', { cwd: source.root })
   } catch {
-    return
+    return []
   }
-  for (const name of entries) {
-    if (name.startsWith('.')) continue
-    const abs = join(current, name)
+  return paths.flatMap((relativePath) => {
+    if (relativePath.split('/').some((segment) => segment.startsWith('.'))) return []
+    const abs = path.join(/*turbopackIgnore: true*/ source.root, relativePath)
     let stat
     try {
       stat = statSync(abs)
     } catch {
-      continue
+      return []
     }
-    if (stat.isDirectory()) {
-      walkMarkdown(root, abs, out)
-    } else if (stat.isFile() && name.endsWith('.md')) {
-      const rel = relative(root, abs)
-      out.push({
-        relativePath: rel.split(sep).join('/'),
+    if (!stat.isFile()) return []
+    const rel = path.relative(source.root, abs)
+    return [{
+        relativePath: rel.split(path.sep).join('/'),
         title: deriveTitleFromPath(rel),
         mtime: stat.mtimeMs,
         sizeBytes: stat.size,
-      })
-    }
-  }
+    }]
+  })
 }
 
 function listFlat(source: SourceDef): ArtifactEntry[] {
   const out: ArtifactEntry[] = []
   let entries: string[] = []
   try {
-    entries = readdirSync(source.root)
+    entries = readdirSync(path.join(/*turbopackIgnore: true*/ source.root))
   } catch {
     return out
   }
   for (const name of entries) {
     if (!source.pattern || !source.pattern.test(name)) continue
-    const abs = join(source.root, name)
+    const abs = path.join(/*turbopackIgnore: true*/ source.root, name)
     let stat
     try {
       stat = statSync(abs)
@@ -151,13 +150,8 @@ function deriveTitleFromPath(rel: string): string {
 export function listArtifacts(sourceId: string): ArtifactEntry[] | null {
   const source = findSource(sourceId)
   if (!source) return null
-  if (!existsSync(source.root)) return []
-  const out: ArtifactEntry[] = []
-  if (source.mode === 'recursive') {
-    walkMarkdown(source.root, source.root, out)
-  } else {
-    out.push(...listFlat(source))
-  }
+  if (!existsSync(path.join(/*turbopackIgnore: true*/ source.root))) return []
+  const out = source.mode === 'recursive' ? listRecursive(source) : listFlat(source)
   return out.sort((a, b) => b.mtime - a.mtime)
 }
 
@@ -191,19 +185,19 @@ export function readArtifact(sourceId: string, segments: string[]): ArtifactDoc 
     if (segments.length !== 1) return null
     if (!source.pattern || !source.pattern.test(segments[0])) return null
   }
-  if (!existsSync(source.root)) return null
+  if (!existsSync(path.join(/*turbopackIgnore: true*/ source.root))) return null
   const absolute = resolveSafe(source.root, rel)
   if (!absolute) return null
   let stat
   try {
-    stat = statSync(absolute)
+    stat = statSync(path.join(/*turbopackIgnore: true*/ absolute))
   } catch {
     return null
   }
   if (!stat.isFile()) return null
   let raw: string
   try {
-    raw = readFileSync(absolute, 'utf-8')
+    raw = readFileSync(path.join(/*turbopackIgnore: true*/ absolute), 'utf-8')
   } catch {
     return null
   }

@@ -1,6 +1,6 @@
 {
   "enforce": true,
-  "note": "All four governed prompts have fresh accepted release baselines as of 2026-07-20; new ungoverned prompts fail closed (ADR-0039).",
+  "note": "All five governed prompts have fresh accepted release baselines as of 2026-07-26; new ungoverned prompts fail closed (ADR-0039).",
   "prompts": [
     {
       "file": "src/prompts/thread-opening-frame.md",
@@ -23,19 +23,30 @@
       "status": "governed"
     },
     {
-      "file": "src/lib/review.ts",
+      "file": "AGENTS.md",
+      "id": "repository-instructions",
+      "status": "governed"
+    },
+    {
+      "file": "CLAUDE.md",
+      "id": null,
+      "status": "not-a-prompt",
+      "note": "thin provider adapter; canonical behavioral instructions are governed in AGENTS.md"
+    },
+    {
+      "file": "src/lib/reviewPrompt.ts",
       "id": null,
       "status": "not-a-prompt",
       "note": "prompt builder; static template extracted to src/prompts/review-prompt.md"
     },
     {
-      "file": "src/lib/executor.ts",
+      "file": "src/lib/codexTaskPrompt.ts",
       "id": null,
       "status": "not-a-prompt",
       "note": "prompt builder; static template extracted to src/prompts/codex-task-prompt.md"
     },
     {
-      "file": "src/lib/metaLearning.ts",
+      "file": "src/lib/offlineSynthesisPrompt.ts",
       "id": null,
       "status": "not-a-prompt",
       "note": "prompt builder; static template extracted to src/prompts/offline-synthesis-prompt.md"

@@ -39,4 +39,20 @@ The following are intentionally absent, not hidden: operator-tools navigation, t
 
 ## Internal machinery
 
-The prompt-eval renderer still imports the governed review and Codex task builders. Those modules are not imported by the Next application, components, or server and have no web endpoint. Retired source specimens and superseded active cases live under `.prompteval/<id>/archive/`, never under `src/`. This preserves prompt/eval provenance while keeping execution authority outside the human web product.
+The prompt-eval renderer imports pure governed prompt builders. These builders
+format text and capture eval inputs only; they cannot dispatch a task, control
+tmux, spawn an agent, change lifecycle state, or write an operator store.
+Command's former operator runtime was removed from the source tree and remains
+available through Git history. Codex and Claude applications own remote
+operation.
+
+The web process imports a read-only tmux observer and a read-only Symphony
+projection. The product-boundary test fails if tmux send/session-mutation
+capabilities, Symphony create/transition functions, filesystem mutations, or
+generic process spawning re-enter the web dependency surface. Bounded host
+collectors may execute only fixed argument-vector reads; they do not accept
+commands from requests or invoke a shell. Invalid Symphony records are omitted
+with typed `unknown` evidence, and failed host reads remain `null`; neither is
+presented as a healthy zero or empty store. Retired source specimens and
+superseded active cases live under `.prompteval/<id>/archive/`, never under
+`src/`.

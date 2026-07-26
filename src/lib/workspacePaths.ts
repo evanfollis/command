@@ -1,11 +1,13 @@
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/opt/workspace'
 const PROJECTS_ROOT = process.env.PROJECTS_ROOT || `${WORKSPACE_ROOT}/projects`
 const RUNTIME_ROOT = process.env.RUNTIME_ROOT || `${WORKSPACE_ROOT}/runtime`
+const CLAUDE_STATE_ROOT = process.env.CLAUDE_STATE_ROOT || '/root/.claude'
 
 export const WORKSPACE_PATHS = {
   workspaceRoot: WORKSPACE_ROOT,
   projectsRoot: PROJECTS_ROOT,
   runtimeRoot: RUNTIME_ROOT,
+  claudeStateRoot: CLAUDE_STATE_ROOT,
   generalRoot: WORKSPACE_ROOT,
   commandRoot: `${PROJECTS_ROOT}/command`,
   mentorRoot: `${PROJECTS_ROOT}/career-os/mentor`,
@@ -15,8 +17,8 @@ export const WORKSPACE_PATHS = {
   telemetryLog: `${RUNTIME_ROOT}/.telemetry/events.jsonl`,
   healthStatus: `${RUNTIME_ROOT}/.health-status.txt`,
   metaDir: `${RUNTIME_ROOT}/.meta`,
-  taskStore: `${RUNTIME_ROOT}/.command-runtime/tasks.json`,
   symphonyTasks: `${RUNTIME_ROOT}/symphony/tasks.json`,
-  metaStore: `${RUNTIME_ROOT}/.command-runtime/meta-observations.json`,
   envLocal: `${PROJECTS_ROOT}/command/.env.local`,
+  sessionsConfig: `${WORKSPACE_ROOT}/supervisor/scripts/lib/sessions.conf`,
+  supervisorStatus: `${WORKSPACE_ROOT}/supervisor/system/status.md`,
 } as const

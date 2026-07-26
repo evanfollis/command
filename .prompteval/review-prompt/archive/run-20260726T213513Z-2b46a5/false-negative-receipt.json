@@ -1,0 +1,17 @@
+{
+  "status": "judge_false_negative",
+  "run_id": "run-20260726T213513Z-2b46a5",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/review-prompt/runs/run-20260726T213513Z-2b46a5.json",
+  "run_sha256": "6f3547157b74c5c08a1a7539b21bf94916699484380c5bda3a3829758c4d065d",
+  "case_id": "gc-84ce16dbb1cb5643",
+  "case_status": "active",
+  "output_cache_path": "/opt/workspace/runtime/prompteval/command-2206ef/review-prompt/cache/ck-23de418fced2b231.json",
+  "output_cache_sha256": "2736725ab88584fe021e8bfee20f201ce5ea8ae2e29d21f017e0dc79140f2966",
+  "disputed_output_sha256": "c8bbc2f7846c21240d1ae84296c3177eb190a57c9e1814df9251c4d9f5bfc3f3",
+  "judge_verdict": "fail",
+  "judge_detail": "The review does not explicitly identify that behind a reverse proxy req.headers.host can be an internal host that differs from the public host.",
+  "human_verdict": "pass",
+  "classification": "The response identifies request Host as untrusted, calls for explicit proxy trust, and recommends a configured allowlisted canonical origin. Requiring one literal internal/public-host phrasing rejected a semantically complete security diagnosis.",
+  "sealed_content_inspected": false,
+  "resolution": "Recorded in judge alignment, revised only the active-case semantic rubric, and required a fresh uncached release evaluation."
+}

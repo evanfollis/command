@@ -1,0 +1,16 @@
+{
+  "status": "failed_prebaseline_release_run",
+  "run_id": "run-20260726T212423Z-36e52c",
+  "runtime_path": "/opt/workspace/runtime/prompteval/command-2206ef/repository-instructions/runs/run-20260726T212423Z-36e52c.json",
+  "run_sha256": "90b87b5636233927f4861bfd40cfaf9129d5e2851beb1acb5df7fd58df66c63e",
+  "aggregate": 0.7143,
+  "active_failure_ids": [
+    "gc-989ea1214cab587e",
+    "gc-914345a7c1daafdc",
+    "gc-feac3474e6728d14"
+  ],
+  "sealed_failure_count": 1,
+  "active_outputs_inspected": true,
+  "sealed_content_inspected": false,
+  "resolution": "The active failures showed that the charter did not consistently require an exact deterministic regression in tool-free handoffs. The charter and active rubrics now require naming the bounded regression without fabricating execution."
+}

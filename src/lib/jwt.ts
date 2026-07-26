@@ -1,11 +1,12 @@
 import { verify } from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'command-jwt-secret-change-in-production'
+import { resolveJwtSecret } from './jwtSecret'
+
 const COOKIE_NAME = 'command_token'
 
 export function verifyToken(token: string): boolean {
   try {
-    verify(token, JWT_SECRET)
+    verify(token, resolveJwtSecret())
     return true
   } catch {
     return false

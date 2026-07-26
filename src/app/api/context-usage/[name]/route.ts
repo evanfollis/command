@@ -2,12 +2,13 @@ import { readFileSync } from 'fs'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getContextUsage } from '@/lib/contextUsage'
-import { listSupervisedPids } from '@/lib/tmux'
+import { observeSupervisedPids } from '@/lib/tmux'
+import { WORKSPACE_PATHS } from '@/lib/workspacePaths'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const SESSIONS_CONF = '/opt/workspace/supervisor/scripts/lib/sessions.conf'
+const SESSIONS_CONF = WORKSPACE_PATHS.sessionsConfig
 
 interface SessionRow {
   name: string
@@ -15,22 +16,25 @@ interface SessionRow {
   agent: string
 }
 
-function parseSessionsConf(): SessionRow[] {
+function parseSessionsConf(): { status: 'observed' | 'unknown'; value: SessionRow[] } {
   try {
     const raw = readFileSync(SESSIONS_CONF, 'utf-8')
-    return raw
-      .split('\n')
-      .filter((line) => line.trim() && !line.startsWith('#'))
-      .map((line) => {
-        const [name, cwd, agent] = line.split('|')
-        return {
-          name: name.trim(),
-          cwd: (cwd || '').trim(),
-          agent: (agent || 'claude').trim(),
-        }
-      })
+    return {
+      status: 'observed',
+      value: raw
+        .split('\n')
+        .filter((line) => line.trim() && !line.startsWith('#'))
+        .map((line) => {
+          const [name, cwd, agent] = line.split('|')
+          return {
+            name: name.trim(),
+            cwd: (cwd || '').trim(),
+            agent: (agent || 'claude').trim(),
+          }
+        }),
+    }
   } catch {
-    return []
+    return { status: 'unknown', value: [] }
   }
 }
 
@@ -40,14 +44,24 @@ export async function GET(
 ) {
   const { name } = await params
   const sessions = parseSessionsConf()
-  const session = sessions.find((s) => s.name === name)
+  if (sessions.status === 'unknown') {
+    return NextResponse.json(
+      { available: false, freshness: 'unknown', issue: 'sessions-config-unavailable' },
+      { status: 503 },
+    )
+  }
+  const session = sessions.value.find((s) => s.name === name)
   if (!session) {
     return NextResponse.json({ error: 'not found' }, { status: 404 })
   }
   // Pass the supervised tmux pane PID so getContextUsage can prefer the
   // managed session over any ad-hoc tick Claude sharing the same cwd.
-  const supervisedPids = listSupervisedPids()
-  const supervisedPid = supervisedPids[name] ?? null
+  const supervisedPids = observeSupervisedPids()
+  const supervisedPid = supervisedPids.value[name] ?? null
   const usage = await getContextUsage(session.name, session.cwd, session.agent, supervisedPid)
-  return NextResponse.json(usage)
+  return NextResponse.json({
+    ...usage,
+    tmuxStatus: supervisedPids.status,
+    ...(supervisedPids.issue ? { issue: supervisedPids.issue } : {}),
+  })
 }
