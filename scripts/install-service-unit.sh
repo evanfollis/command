@@ -18,6 +18,11 @@ LEGACY_DROPIN="$LEGACY_DROPIN_DIR/10-immutable-release.conf"
 HAD_SERVICE=false
 
 [ "$(id -u)" -eq 0 ] || { echo 'service installation requires root' >&2; exit 1; }
+[ -f "$ROOT/.env.local" ] || { echo 'service installation requires .env.local' >&2; exit 1; }
+[ "$(stat -c '%U:%G' "$ROOT/.env.local")" = 'root:root' ] \
+  || { echo '.env.local must be owned by root:root' >&2; exit 1; }
+[ $((8#$(stat -c '%a' "$ROOT/.env.local") & 8#077)) -eq 0 ] \
+  || { echo '.env.local must not be accessible by group or other users' >&2; exit 1; }
 "$ROOT/scripts/install-node-runtime.sh"
 NODE_RUNTIME="$RUNTIME_ROOT/toolchains/node-24-current"
 export PATH="$NODE_RUNTIME/bin:$PATH"

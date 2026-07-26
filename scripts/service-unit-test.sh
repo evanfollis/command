@@ -26,6 +26,8 @@ grep -q '^Environment=PORT=3310$' deploy/command-canary.service
 grep -q 'rm -f "$LEGACY_DROPIN"' scripts/install-service-unit.sh
 grep -q 'property=DropInPaths' scripts/install-service-unit.sh
 grep -q 'node-24-current/bin/node' scripts/install-service-unit.sh
+grep -q '.env.local must be owned by root:root' scripts/install-service-unit.sh
+grep -q '.env.local must not be accessible by group or other users' scripts/install-service-unit.sh
 grep -q 'tar --no-same-owner' scripts/install-node-runtime.sh
 grep -q 'chown -R root:root "$TARGET"' scripts/install-node-runtime.sh
 grep -q '"version": "24.18.0"' deploy/node-runtime-v24.18.0.json

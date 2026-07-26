@@ -93,12 +93,12 @@ function getLastCommit(cwd: string): { subject: string; relativeTime: string } |
   // ref, etc.) so the journal stays clean.
   if (!existsSync(join(/*turbopackIgnore: true*/ cwd, '.git', 'HEAD'))) return null
   try {
-    const subject = execFileSync('git', ['-C', cwd, 'log', '-1', '--format=%s'], {
+    const subject = execFileSync('/usr/bin/git', ['-C', cwd, 'log', '-1', '--format=%s'], {
       encoding: 'utf-8',
       timeout: 2000,
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim()
-    const relativeTime = execFileSync('git', ['-C', cwd, 'log', '-1', '--format=%ar'], {
+    const relativeTime = execFileSync('/usr/bin/git', ['-C', cwd, 'log', '-1', '--format=%ar'], {
       encoding: 'utf-8',
       timeout: 2000,
       stdio: ['ignore', 'pipe', 'ignore'],

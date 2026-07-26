@@ -331,9 +331,9 @@ function collectTelemetry(): ObservatorySignal[] {
 
 async function collectAutomation(): Promise<ObservatorySignal[]> {
   const [failedOutput, timerOutput, serviceOutput] = await Promise.all([
-    execFileAsync('systemctl', ['list-units', '--state=failed', '--no-legend', '--no-pager']),
-    execFileAsync('systemctl', ['list-timers', '--all', '--no-legend', '--no-pager', '--output=json']),
-    execFileAsync('systemctl', ['show', 'command.service', '--property=ActiveState,SubState,Result,ExecMainStartTimestamp', '--output=json']),
+    execFileAsync('/usr/bin/systemctl', ['list-units', '--state=failed', '--no-legend', '--no-pager']),
+    execFileAsync('/usr/bin/systemctl', ['list-timers', '--all', '--no-legend', '--no-pager', '--output=json']),
+    execFileAsync('/usr/bin/systemctl', ['show', 'command.service', '--property=ActiveState,SubState,Result,ExecMainStartTimestamp', '--output=json']),
   ])
   const failed = failedOutput.split('\n').filter(Boolean).map((line) => line.trim().split(/\s+/)[0]).slice(0, 12)
   const timers = (JSON.parse(timerOutput) as Array<Record<string, unknown>>).filter((item) => /^(workspace|command|synaplex|server|metrics)/.test(String(item.unit)))
