@@ -104,18 +104,17 @@ runtime environment before applying the service identity; the process cannot
 open the environment file itself. The workspace is read-only except for the
 telemetry directory.
 
-Two legacy observation sources still require narrow grants until the supervisor
-emits a complete typed projection. The installer applies read/default ACLs only
-to `/root/.claude/sessions` and uses tmux's native `server-access` facility to
-grant `command` read-only socket access. It grants a write/default ACL only to
-the telemetry directory. The service is deliberately not added to the Docker
-group: container evidence that cannot be obtained without the root-equivalent
-Docker socket remains typed `unknown`.
+The installer applies read/default ACLs only to `/root/.claude/sessions` and a
+write/default ACL only to the telemetry directory. tmux's server ACL makes
+read-only clients unable to issue even observation commands; writable clients
+could mutate sessions. The web service therefore receives no tmux socket,
+runs with `PrivateTmp=yes`, and reports tmux-derived fields as typed `unknown`.
+It is likewise not added to the Docker group: container evidence that cannot be
+obtained without the root-equivalent Docker socket remains `unknown`.
 
-`PrivateTmp=yes` remains incompatible with direct tmux observation, but this no
-longer requires a root process. Owner: workspace supervisor. Projection
-milestone: replace both legacy grants with a sanitized supervisor-owned
-evidence file, then remove `/root` traversal and tmux access entirely.
+Owner: workspace supervisor. Projection milestone: replace both unavailable
+privileged sources with a sanitized supervisor-owned evidence file, then remove
+the remaining `/root` traversal ACL.
 
 ## Verification
 

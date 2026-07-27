@@ -10,9 +10,7 @@ Group=command
 WorkingDirectory=/opt/workspace/runtime/releases/command/current
 Environment=NODE_ENV=production
 EnvironmentFile=/opt/workspace/projects/command/.env.local
-Environment=PORT=3310
-ExecStartPre=-+/usr/bin/tmux server-access -a command
-ExecStartPre=-+/usr/bin/tmux server-access -r command
+EnvironmentFile=/run/command-hardening-canary.env
 ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js
 Restart=no
 UMask=0077
@@ -30,6 +28,7 @@ ProtectClock=yes
 ProtectHostname=yes
 PrivateDevices=yes
 PrivateMounts=yes
+PrivateTmp=yes
 RestrictNamespaces=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
@@ -42,4 +41,4 @@ IPAddressDeny=any
 IPAddressAllow=localhost
 ReadOnlyPaths=/opt/workspace
 ReadWritePaths=/opt/workspace/runtime/.telemetry
-InaccessiblePaths=/root/.ssh /root/.gnupg /root/.aws /root/.config/gh /root/.claude.json /root/.claude/.credentials.json /opt/workspace/runtime/.secrets /opt/workspace/projects/command/.env.local
+InaccessiblePaths=-/root/.ssh -/root/.gnupg -/root/.aws -/root/.config/gh -/root/.claude.json -/root/.claude/.credentials.json -/opt/workspace/runtime/.secrets /opt/workspace/projects/command/.env.local

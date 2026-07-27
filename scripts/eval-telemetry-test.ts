@@ -22,6 +22,9 @@ const runs = join(root, 'runtime', 'prompteval', 'command-abc123', 'review-promp
 mkdirSync(runs, { recursive: true })
 writeFileSync(join(runs, 'run-20260718T000000Z-old.json'), JSON.stringify({ project: 'command', prompt_id: 'review-prompt', run_id: 'old', ts: '2026-07-18T00:00:00Z', aggregate: 0.5, gate: { passed: false }, release: true, model: 'sonnet' }))
 writeFileSync(join(runs, 'run-20260719T000000Z-new.json'), JSON.stringify({ project: 'command', prompt_id: 'review-prompt', run_id: 'new', ts: '2026-07-19T00:00:00Z', aggregate: 1, gate: { passed: true }, release: true, model: 'sonnet' }))
+const hiddenRuns = join(root, 'runtime', 'prompteval', '.provenance', 'internal', 'runs')
+mkdirSync(hiddenRuns, { recursive: true })
+writeFileSync(join(hiddenRuns, 'run-20260720T000000Z-hidden.json'), JSON.stringify({ project: 'internal', run_id: 'hidden', ts: '2026-07-20T00:00:00Z', gate: { passed: true }, release: true }))
 
 async function main() {
   const { getEvalSummary, listLatestEvalRuns, MAX_EVAL_REPORT_CANDIDATES_PER_PROMPT } = await import('../src/lib/evalTelemetry')
@@ -35,6 +38,7 @@ async function main() {
   assert.equal(summary.eval_runs.length, 1)
   assert.equal(summary.eval_runs[0].runId, 'new')
   assert.equal(summary.eval_runs[0].passed, true)
+  assert.equal(summary.eval_runs.some((run) => run.runId === 'hidden'), false)
 
   // A valid report immediately beyond the discovery cap must never be read as
   // a fallback, even when every selected recent candidate is malformed.

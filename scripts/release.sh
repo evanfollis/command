@@ -30,8 +30,17 @@ STAGING_ROOT=${COMMAND_STAGING_ROOT:-"$RUNTIME_ROOT/staging"}
 NODE_RUNTIME=${COMMAND_NODE_RUNTIME:-"$RUNTIME_ROOT/toolchains/node-24-current"}
 KEEP=5
 SERVICE=command
+SERVICE_USER=${COMMAND_SERVICE_USER:-command}
 
 cd "$REPO"
+[ "$(id -u)" -eq 0 ] || {
+  echo "ERROR: immutable release deployment requires root" >&2
+  exit 1
+}
+getent passwd "$SERVICE_USER" >/dev/null || {
+  echo "ERROR: dedicated service identity is missing; run npm run service:install" >&2
+  exit 1
+}
 [ "$("$NODE_RUNTIME/bin/node" --version 2>/dev/null || true)" = "v24.18.0" ] || {
   echo "ERROR: supported Node runtime missing; run npm run runtime:setup" >&2
   exit 1
@@ -117,6 +126,11 @@ cat > "$RELEASE/RELEASE.json" <<EOF
 EOF
 chmod -R a-w "$RELEASE/.next" "$RELEASE/dist"
 chmod a-w "$RELEASE/package.json" "$RELEASE/next.config.js" "$RELEASE/RELEASE.json" "$RELEASE"
+# Keep ownership and immutability with root while granting the service identity
+# only the read/traverse access required to execute this exact release. The
+# dependency cache is a separate immutable tree reached through node_modules.
+setfacl -m "u:$SERVICE_USER:--x" "$RELEASES" "$DEPS"
+setfacl -R -m "u:$SERVICE_USER:r-X" "$RELEASE" "$DEPS/node_modules"
 
 PREV=""
 [ -L "$RELEASES/current" ] && PREV=$(readlink -f "$RELEASES/current")

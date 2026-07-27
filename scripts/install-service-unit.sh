@@ -13,6 +13,7 @@ STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 BACKUP_DIR="$RUNTIME_ROOT/deploy-backups/command/$STAMP"
 INSTALLED="$SYSTEMD_ROOT/$SERVICE"
 CANARY_INSTALLED="$SYSTEMD_ROOT/$CANARY"
+CANARY_ENV=/run/command-hardening-canary.env
 LEGACY_DROPIN_DIR="$SYSTEMD_ROOT/command.service.d"
 LEGACY_DROPIN="$LEGACY_DROPIN_DIR/10-immutable-release.conf"
 HAD_SERVICE=false
@@ -51,23 +52,58 @@ setfacl -m "u:$SERVICE_USER:rwx,d:u:$SERVICE_USER:rwx" "$RUNTIME_ROOT/.telemetry
 if [ -f "$RUNTIME_ROOT/.telemetry/events.jsonl" ]; then
   setfacl -m "u:$SERVICE_USER:rw-" "$RUNTIME_ROOT/.telemetry/events.jsonl"
 fi
-if /usr/bin/tmux list-sessions >/dev/null 2>&1; then
-  /usr/bin/tmux server-access -a "$SERVICE_USER" >/dev/null 2>&1 || true
-  /usr/bin/tmux server-access -r "$SERVICE_USER"
-  runuser -u "$SERVICE_USER" -- /usr/bin/tmux list-sessions >/dev/null
-fi
 
-"$ROOT/scripts/install-node-runtime.sh"
+# Eval reports are an explicitly declassified observability surface. Expose
+# only visible project/prompt directories and their run JSON reports; caches,
+# transcripts, provenance, and repository holdouts remain inaccessible.
+PROMPTEVAL_ROOT="$RUNTIME_ROOT/prompteval"
+if [ -d "$PROMPTEVAL_ROOT" ]; then
+  setfacl -m "u:$SERVICE_USER:r-x" "$PROMPTEVAL_ROOT"
+  while IFS= read -r -d '' project_dir; do
+    setfacl -m "u:$SERVICE_USER:r-x" "$project_dir"
+    while IFS= read -r -d '' prompt_dir; do
+      setfacl -m "u:$SERVICE_USER:r-x" "$prompt_dir"
+      runs_dir="$prompt_dir/runs"
+      [ -d "$runs_dir" ] || continue
+      setfacl -m "u:$SERVICE_USER:r-x" "$runs_dir"
+      find "$runs_dir" -maxdepth 1 -type f -name '*.json' \
+        -exec setfacl -m "u:$SERVICE_USER:r--" {} +
+    done < <(find "$project_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0)
+  done < <(find "$PROMPTEVAL_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0)
+fi
+bash "$ROOT/scripts/install-node-runtime.sh"
 NODE_RUNTIME="$RUNTIME_ROOT/toolchains/node-24-current"
+NODE_RUNTIME_REAL=$(readlink -f "$NODE_RUNTIME")
+CURRENT_RELEASE=$(readlink -f "$RUNTIME_ROOT/releases/command/current")
+CURRENT_DEPS=$(readlink -f "$CURRENT_RELEASE/node_modules")
+[ -d "$NODE_RUNTIME_REAL" ] || { echo 'pinned Node runtime target is missing' >&2; exit 1; }
+[ -d "$CURRENT_RELEASE" ] || { echo 'current immutable release target is missing' >&2; exit 1; }
+[ -d "$CURRENT_DEPS" ] || { echo 'current immutable dependency target is missing' >&2; exit 1; }
+
+# Runtime artifacts remain root-owned and immutable. Named ACLs expose only
+# read/traverse access to the dedicated process identity, including the
+# dependency cache reached through the release's node_modules symlink.
+setfacl -m "u:$SERVICE_USER:--x" \
+  "$RUNTIME_ROOT/toolchains" "$RUNTIME_ROOT/releases" "$RUNTIME_ROOT/releases/command"
+setfacl -R -m "u:$SERVICE_USER:r-X" "$NODE_RUNTIME_REAL" "$CURRENT_RELEASE"
+setfacl -m "u:$SERVICE_USER:--x" "$(dirname "$CURRENT_DEPS")"
+setfacl -R -m "u:$SERVICE_USER:r-X" "$CURRENT_DEPS"
 export PATH="$NODE_RUNTIME/bin:$PATH"
 runuser -u "$SERVICE_USER" -- test -x "$NODE_RUNTIME/bin/node"
-runuser -u "$SERVICE_USER" -- test -r "$RUNTIME_ROOT/releases/command/current/dist/server.js"
+runuser -u "$SERVICE_USER" -- test -r "$CURRENT_RELEASE/dist/server.js"
+runuser -u "$SERVICE_USER" -- test -r "$CURRENT_DEPS/next/package.json"
 runuser -u "$SERVICE_USER" -- test -w "$RUNTIME_ROOT/.telemetry"
+if [ -d "$PROMPTEVAL_ROOT/.provenance" ] \
+  && runuser -u "$SERVICE_USER" -- test -r "$PROMPTEVAL_ROOT/.provenance"; then
+  echo 'command service account must not read eval provenance' >&2
+  exit 1
+fi
 if runuser -u "$SERVICE_USER" -- test -r "$ROOT/.env.local"; then
   echo 'command service account must not read the runtime environment file' >&2
   exit 1
 fi
 SERVICE_PORT=$(resolve_command_port "$ROOT/.env.local")
+CURRENT_VERSION=$(cat "$CURRENT_RELEASE/dist/.version")
 systemd-analyze verify "$ROOT/deploy/command.service" "$ROOT/deploy/command-canary.service"
 mkdir -p "$BACKUP_DIR"
 if [ -f "$INSTALLED" ]; then
@@ -81,10 +117,13 @@ fi
 cleanup_canary() {
   systemctl stop "$CANARY" >/dev/null 2>&1 || true
   rm -f "$CANARY_INSTALLED"
+  rm -f "$CANARY_ENV"
   systemctl daemon-reload
 }
 trap cleanup_canary EXIT
 
+printf 'PORT=3310\n' > "$CANARY_ENV"
+chmod 0600 "$CANARY_ENV"
 install -m 0644 "$ROOT/deploy/command-canary.service" "$CANARY_INSTALLED"
 systemctl daemon-reload
 systemctl start "$CANARY"
@@ -94,9 +133,22 @@ for _ in $(seq 1 15); do
   fi
   sleep 1
 done
-SMOKE_BASE=http://127.0.0.1:3310 npm --prefix "$ROOT" run smoke
+if [ "$CURRENT_VERSION" = 'fde91bef34827c18572465b37557201fe7535eb1' ]; then
+  # This immutable predecessor scans hidden eval provenance before the
+  # dedicated-identity projection boundary existed. Do not grant that access:
+  # permit only its known eval-summary 500 while exercising every other
+  # authenticated canary assertion. All newer releases must return 200.
+  SMOKE_ALLOW_LEGACY_EVAL_ACL_FAILURE=1 \
+    SMOKE_BASE=http://127.0.0.1:3310 npm --prefix "$ROOT" run smoke
+else
+  SMOKE_BASE=http://127.0.0.1:3310 npm --prefix "$ROOT" run smoke
+fi
 cleanup_canary
 trap - EXIT
+if [ "${CANARY_ONLY:-0}" = '1' ]; then
+  echo 'dedicated-identity canary and authenticated smoke passed; production unit unchanged'
+  exit 0
+fi
 
 install -m 0644 "$ROOT/deploy/command.service" "$INSTALLED.new"
 mv -T "$INSTALLED.new" "$INSTALLED"

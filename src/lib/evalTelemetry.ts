@@ -152,17 +152,31 @@ function readJson(path: string): Record<string, any> | null {
   }
 }
 
+function readVisibleDirectories(path: string): string[] {
+  try {
+    return readdirSync(path)
+      .filter((name) => !name.startsWith('.'))
+      .filter((name) => {
+        try { return statSync(join(path, name)).isDirectory() } catch { return false }
+      })
+      .slice(0, 100)
+  } catch {
+    return []
+  }
+}
+
 export function listLatestEvalRuns(readReport: (path: string) => Record<string, any> | null = readJson): EvalRunSummary[] {
   const root = join(WORKSPACE_PATHS.runtimeRoot, 'prompteval')
   if (!existsSync(root)) return []
   const rows: EvalRunSummary[] = []
-  for (const projectKey of readdirSync(root).slice(0, 100)) {
+  for (const projectKey of readVisibleDirectories(root)) {
     const projectPath = join(root, projectKey)
-    try { if (!statSync(projectPath).isDirectory()) continue } catch { continue }
-    for (const promptId of readdirSync(projectPath).slice(0, 100)) {
+    for (const promptId of readVisibleDirectories(projectPath)) {
       const runsDir = join(projectPath, promptId, 'runs')
       if (!existsSync(runsDir)) continue
-      const candidates = readdirSync(runsDir)
+      let runNames: string[]
+      try { runNames = readdirSync(runsDir) } catch { continue }
+      const candidates = runNames
         .filter((name) => name.endsWith('.json'))
         .flatMap((name) => {
           const path = join(runsDir, name)
