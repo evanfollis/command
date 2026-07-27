@@ -1,4 +1,14 @@
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'fs'
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  openSync,
+  readdirSync,
+  readSync,
+  realpathSync,
+  statSync,
+} from 'fs'
 import path from 'path'
 
 import { WORKSPACE_PATHS } from './workspacePaths'
@@ -49,6 +59,7 @@ const SOURCES: SourceDef[] = [
 
 const MAX_RECURSIVE_ARTIFACTS = 1_000
 const MAX_ARTIFACT_DEPTH = 12
+const MAX_ARTIFACT_BYTES = 2_000_000
 
 export function listSources(): Array<{ id: string; label: string; description: string }> {
   return SOURCES.map((s) => ({ id: s.id, label: s.label, description: s.description }))
@@ -126,7 +137,7 @@ function listRecursive(source: SourceDef): ArtifactEntry[] {
     } catch {
       return []
     }
-    if (!stat.isFile()) return []
+    if (!stat.isFile() || stat.size > MAX_ARTIFACT_BYTES) return []
     const rel = path.relative(source.root, abs)
     return [{
         relativePath: rel.split(path.sep).join('/'),
@@ -154,7 +165,7 @@ function listFlat(source: SourceDef): ArtifactEntry[] {
     } catch {
       continue
     }
-    if (!stat.isFile()) continue
+    if (!stat.isFile() || stat.size > MAX_ARTIFACT_BYTES) continue
     out.push({
       relativePath: name,
       title: deriveTitleFromPath(name),
@@ -199,6 +210,38 @@ function parseFrontmatter(raw: string): { frontmatter: Record<string, string>; b
   return { frontmatter, body }
 }
 
+function readBoundedArtifact(absolute: string): { raw: string; mtime: number } | null {
+  let fd: number
+  try {
+    fd = openSync(
+      path.join(/*turbopackIgnore: true*/ absolute),
+      constants.O_RDONLY | constants.O_NOFOLLOW,
+    )
+  } catch {
+    return null
+  }
+  try {
+    const initial = fstatSync(fd)
+    if (!initial.isFile() || initial.size > MAX_ARTIFACT_BYTES) return null
+    const buffer = Buffer.alloc(MAX_ARTIFACT_BYTES + 1)
+    let offset = 0
+    while (offset < buffer.length) {
+      const count = readSync(fd, buffer, offset, buffer.length - offset, null)
+      if (count === 0) break
+      offset += count
+    }
+    if (offset > MAX_ARTIFACT_BYTES) return null
+    return {
+      raw: buffer.subarray(0, offset).toString('utf8'),
+      mtime: initial.mtimeMs,
+    }
+  } catch {
+    return null
+  } finally {
+    closeSync(fd)
+  }
+}
+
 export function readArtifact(sourceId: string, segments: string[]): ArtifactDoc | null {
   const source = findSource(sourceId)
   if (!source) return null
@@ -211,27 +254,16 @@ export function readArtifact(sourceId: string, segments: string[]): ArtifactDoc 
   if (!existsSync(path.join(/*turbopackIgnore: true*/ source.root))) return null
   const absolute = resolveSafe(source.root, rel)
   if (!absolute) return null
-  let stat
-  try {
-    stat = statSync(path.join(/*turbopackIgnore: true*/ absolute))
-  } catch {
-    return null
-  }
-  if (!stat.isFile()) return null
-  let raw: string
-  try {
-    raw = readFileSync(path.join(/*turbopackIgnore: true*/ absolute), 'utf-8')
-  } catch {
-    return null
-  }
-  const { frontmatter, body } = parseFrontmatter(raw)
+  const bounded = readBoundedArtifact(absolute)
+  if (!bounded) return null
+  const { frontmatter, body } = parseFrontmatter(bounded.raw)
   const title = frontmatter.title || deriveTitleFromPath(rel)
   return {
     source: sourceId,
     relativePath: rel,
     absolutePath: absolute,
     title,
-    mtime: stat.mtimeMs,
+    mtime: bounded.mtime,
     frontmatter,
     content: body,
   }

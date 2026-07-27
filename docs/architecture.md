@@ -25,6 +25,9 @@ models or dispatch agents.
 - `src/lib/*Projection.ts` and other collector modules read external evidence.
   Invalid or missing evidence remains an explicit typed `unknown`; valid
   partial records may be shown but are never relabeled as complete.
+- Artifact discovery is capped by count and depth; individual files are capped
+  at two million bytes and opened through no-follow descriptors after realpath
+  containment so a concurrent symlink replacement cannot escape the source.
 - `scripts/render-prompt.ts` renders historical governed prompts offline
   through pure builders. It is not reachable from the web application.
 - `scripts/release.sh` builds a clean detached worktree into an immutable
