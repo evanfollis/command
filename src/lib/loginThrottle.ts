@@ -2,8 +2,10 @@ import { isIP } from 'node:net'
 
 const WINDOW_MS = 5 * 60 * 1000
 const FAILURE_LIMIT = 8
+const GLOBAL_FAILURE_LIMIT = 64
 const MAX_CLIENTS = 1024
 const UNKNOWN_CLIENT = 'unattributed'
+const GLOBAL_CLIENT = '\0global'
 
 interface FailureWindow {
   attempts: number[]
@@ -43,6 +45,16 @@ export function loginThrottleStatus(
   key: string,
   now = Date.now(),
 ): { allowed: true } | { allowed: false; retryAfterSeconds: number } {
+  const client = throttleWindowStatus(key, FAILURE_LIMIT, now)
+  if (!client.allowed) return client
+  return throttleWindowStatus(GLOBAL_CLIENT, GLOBAL_FAILURE_LIMIT, now)
+}
+
+function throttleWindowStatus(
+  key: string,
+  limit: number,
+  now: number,
+): { allowed: true } | { allowed: false; retryAfterSeconds: number } {
   const window = failures.get(key)
   if (!window) return { allowed: true }
   prune(window, now)
@@ -51,7 +63,7 @@ export function loginThrottleStatus(
     return { allowed: true }
   }
   window.lastSeen = now
-  if (window.attempts.length < FAILURE_LIMIT) return { allowed: true }
+  if (window.attempts.length < limit) return { allowed: true }
   return {
     allowed: false,
     retryAfterSeconds: Math.max(
@@ -61,7 +73,7 @@ export function loginThrottleStatus(
   }
 }
 
-export function recordLoginFailure(key: string, now = Date.now()): void {
+function recordFailureWindow(key: string, now: number): void {
   let window = failures.get(key)
   if (!window) {
     evictOldestClient()
@@ -73,8 +85,14 @@ export function recordLoginFailure(key: string, now = Date.now()): void {
   window.lastSeen = now
 }
 
+export function recordLoginFailure(key: string, now = Date.now()): void {
+  recordFailureWindow(key, now)
+  recordFailureWindow(GLOBAL_CLIENT, now)
+}
+
 export function clearLoginFailures(key: string): void {
   failures.delete(key)
+  failures.delete(GLOBAL_CLIENT)
 }
 
 export function resetLoginThrottleForTest(): void {

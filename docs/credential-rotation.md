@@ -11,7 +11,8 @@ claim that it meets the desired strength.
 Compensating controls are:
 
 - the service listens on loopback and is reached through the Cloudflare tunnel;
-- failed logins are limited to eight attempts per five-minute client window;
+- failed logins are limited to eight attempts per client and 64 total per
+  five-minute window;
 - only Cloudflare's trusted-tunnel connecting-address header selects a client
   bucket; untrusted forwarded headers do not;
 - successful sessions require the runtime-only Command issuer, owner audience,

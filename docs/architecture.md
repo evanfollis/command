@@ -95,10 +95,11 @@ non-logging rotation/recovery procedure are recorded in
 
 The cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, and path-scoped to `/`.
 Proxy redirects are relative or use the pinned public origin.
-Password failures are throttled per trusted-tunnel Cloudflare client address in
-a bounded in-process window. Untrusted forwarded headers cannot select a
-bucket, the client map is capped, successful authentication clears the bucket,
-and no durable identity or session store is introduced.
+Password failures are throttled in bounded five-minute in-process windows:
+eight per trusted-tunnel Cloudflare client address and 64 globally. Untrusted
+forwarded headers cannot select a bucket, the client map is capped, successful
+authentication clears the windows, and no durable identity or session store is
+introduced.
 All routes emit framing, MIME-sniffing, referrer, transport, and browser
 capability restrictions. CSP defaults scripts, connections, fonts, frames, and
 styles to the application origin, permits only HTTPS/data artifact images, and

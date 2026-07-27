@@ -93,6 +93,16 @@ try {
   recordLoginFailure(clientKey, 400000)
   clearLoginFailures(clientKey)
   assert.deepEqual(loginThrottleStatus(clientKey, 400000), { allowed: true })
+  resetLoginThrottleForTest()
+  for (let attempt = 0; attempt < 64; attempt += 1) {
+    recordLoginFailure(`203.0.113.${attempt}`, 500000)
+  }
+  assert.deepEqual(loginThrottleStatus('198.51.100.7', 500000), {
+    allowed: false,
+    retryAfterSeconds: 300,
+  }, 'distributed failures must reach a bounded global ceiling')
+  clearLoginFailures('198.51.100.7')
+  assert.deepEqual(loginThrottleStatus('198.51.100.7', 500000), { allowed: true })
 
   const config = readFileSync('next.config.js', 'utf8')
   assert.doesNotMatch(
