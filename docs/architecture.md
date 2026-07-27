@@ -95,7 +95,7 @@ non-logging rotation/recovery procedure are recorded in
 
 The cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, and path-scoped to `/`.
 Proxy redirects are relative or use the pinned public origin.
-Password failures are throttled per Cloudflare-authenticated client address in
+Password failures are throttled per trusted-tunnel Cloudflare client address in
 a bounded in-process window. Untrusted forwarded headers cannot select a
 bucket, the client map is capped, successful authentication clears the bucket,
 and no durable identity or session store is introduced.

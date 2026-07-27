@@ -12,7 +12,7 @@ Compensating controls are:
 
 - the service listens on loopback and is reached through the Cloudflare tunnel;
 - failed logins are limited to eight attempts per five-minute client window;
-- only Cloudflare's authenticated connecting-address header selects a client
+- only Cloudflare's trusted-tunnel connecting-address header selects a client
   bucket; untrusted forwarded headers do not;
 - successful sessions require the runtime-only Command issuer, owner audience,
   owner role, and pinned signing algorithm; and
