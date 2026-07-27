@@ -1,8 +1,9 @@
 import { createHash } from 'crypto'
 import { execFile } from 'child_process'
-import { existsSync, openSync, closeSync, readFileSync, readSync, readdirSync, statSync } from 'fs'
+import { existsSync, readdirSync, statSync } from 'fs'
 import { basename, dirname, join } from 'path'
 
+import { readBoundedUtf8File, readBoundedUtf8Tail } from './boundedFile'
 import { WORKSPACE_PATHS } from './workspacePaths'
 import { getEvalSummary, type EvalSummary } from './evalTelemetry'
 
@@ -100,18 +101,11 @@ export function containsPrivateProjectionField(value: unknown): boolean {
 }
 
 export function readTail(path: string, maxBytes = MAX_TAIL_BYTES): string {
-  const size = statSync(path).size
-  const length = Math.min(size, maxBytes)
-  const buffer = Buffer.alloc(length)
-  const fd = openSync(path, 'r')
-  try { readSync(fd, buffer, 0, length, size - length) } finally { closeSync(fd) }
-  const text = buffer.toString('utf8')
-  return size > length ? text.slice(text.indexOf('\n') + 1) : text
+  return readBoundedUtf8Tail(path, maxBytes).text
 }
 
 function readBounded(path: string, maxBytes = MAX_TEXT_BYTES): string {
-  if (statSync(path).size > maxBytes) throw new Error(`source exceeds ${maxBytes} byte hot-path limit`)
-  return readFileSync(path, 'utf8')
+  return readBoundedUtf8File(path, maxBytes).text
 }
 
 async function timed<T>(label: string, task: () => Promise<T> | T, timeoutMs = SOURCE_TIMEOUT_MS): Promise<T> {

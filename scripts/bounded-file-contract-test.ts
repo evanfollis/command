@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { readBoundedUtf8File } from '../src/lib/boundedFile'
+import { readBoundedUtf8File, readBoundedUtf8Tail } from '../src/lib/boundedFile'
 
 const root = mkdtempSync(join(tmpdir(), 'command-bounded-file-'))
 try {
@@ -19,6 +19,9 @@ try {
   assert.throws(() => readBoundedUtf8File(large, 64), /exceeds 64 bytes/)
   assert.throws(() => readBoundedUtf8File(link, 64), /ELOOP/)
   assert.throws(() => readBoundedUtf8File(small, 0), /positive safe integer/)
+  writeFileSync(large, 'discarded\nsecond\nthird\n')
+  assert.equal(readBoundedUtf8Tail(large, 13).text, 'second\nthird\n')
+  assert.throws(() => readBoundedUtf8Tail(link, 64), /ELOOP/)
   console.log('bounded no-follow UTF-8 file contract tests passed')
 } finally {
   rmSync(root, { recursive: true, force: true })

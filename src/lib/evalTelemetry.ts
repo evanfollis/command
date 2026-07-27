@@ -1,5 +1,6 @@
-import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from 'fs'
+import { existsSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
+import { readBoundedUtf8File, readBoundedUtf8Tail } from './boundedFile'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
 const WINDOWS = {
@@ -75,13 +76,7 @@ function emptyWindow(): LlmUsageWindow {
 }
 
 function readTail(path: string, maxBytes: number): string {
-  const size = statSync(path).size
-  const length = Math.min(size, maxBytes)
-  const buffer = Buffer.alloc(length)
-  const fd = openSync(path, 'r')
-  try { readSync(fd, buffer, 0, length, size - length) } finally { closeSync(fd) }
-  const text = buffer.toString('utf8')
-  return size > length ? text.slice(text.indexOf('\n') + 1) : text
+  return readBoundedUtf8Tail(path, maxBytes).text
 }
 
 function readTelemetry(): RawEvent[] {
@@ -145,8 +140,7 @@ function projectFromRuntimeKey(name: string): string {
 
 function readJson(path: string): Record<string, any> | null {
   try {
-    if (statSync(path).size > MAX_REPORT_BYTES) return null
-    return JSON.parse(readFileSync(path, 'utf-8'))
+    return JSON.parse(readBoundedUtf8File(path, MAX_REPORT_BYTES).text)
   } catch {
     return null
   }
