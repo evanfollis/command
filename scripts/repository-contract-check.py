@@ -3,13 +3,23 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REQUIRED = ("README.md", "repo.toml", "Makefile", "AGENTS.md", "CLAUDE.md", ".ignore", "docs/architecture.md")
+REQUIRED = (
+    "README.md",
+    "repo.toml",
+    "Makefile",
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".ignore",
+    ".verification/test-collection.json",
+    "docs/architecture.md",
+)
 ALLOWED = {
     "shape": {"service", "application", "library", "monorepo", "contract", "context", "control-plane", "profile"},
     "lifecycle": {"active", "maintained", "case-study", "archived"},
@@ -37,6 +47,30 @@ for key, allowed in ALLOWED.items():
         errors.append(f"repo.toml {key} must be one of {sorted(allowed)}")
 if declaration.get("canonical_repository") != "https://github.com/evanfollis/command":
     errors.append("canonical_repository does not match the public repository")
+
+try:
+    witness = json.loads(
+        (ROOT / ".verification" / "test-collection.json").read_text(encoding="utf-8")
+    )
+    collectors = witness.get("collectors", [])
+    if witness.get("schema_version") != 1 or len(collectors) != 1:
+        errors.append("test-collection witness must declare exactly one schema-v1 collector")
+    else:
+        collector = collectors[0]
+        expected = collector.get("files", [])
+        discovered = sorted(
+            {
+                path.relative_to(ROOT).as_posix()
+                for pattern in collector.get("include", [])
+                for root in collector.get("roots", [])
+                for path in (ROOT / root).rglob(pattern)
+                if path.is_file() and not path.is_symlink()
+            }
+        )
+        if collector.get("mode") != "files" or expected != discovered:
+            errors.append("test-collection witness differs from runnable *-test files")
+except (OSError, json.JSONDecodeError, AttributeError, TypeError) as error:
+    errors.append(f"test-collection witness invalid: {error}")
 
 sealed_search_rule = ".prompteval/**/golden/holdout.jsonl"
 try:
