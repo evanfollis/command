@@ -36,6 +36,11 @@ for (const invalid of [
 
 assert.equal(containsPrivateProjectionField({ records: { claims: [] } }), false)
 for (const key of ['transcript', 'password', 'token', 'rawTelemetry', 'localPath']) assert.equal(containsPrivateProjectionField({ records: [{ [key]: 'nope' }] }), true)
+assert.doesNotMatch(
+  readFileSync('src/lib/observatory.ts', 'utf8'),
+  /join\(WORKSPACE_PATHS\.runtimeRoot, 'prompteval'\)/,
+  'the web observatory must not traverse the raw evaluator runtime tree',
+)
 
 const dir = mkdtempSync(join(tmpdir(), 'command-observatory-'))
 const eventsPath = join(dir, 'events.jsonl')

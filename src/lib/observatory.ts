@@ -553,16 +553,11 @@ function collectEvalState(): ObservatorySignal[] {
       && current.spec_hash === parsed.spec_hash
     return evidence && identityValid ? [evidence] : []
   })
-  const statusRoot = join(WORKSPACE_PATHS.runtimeRoot, 'prompteval')
-  const commandStatus = existsSync(statusRoot) ? readdirSync(statusRoot).find((name) => name.startsWith('command-') && existsSync(join(statusRoot, name, 'status.json'))) : undefined
-  const statusPath = commandStatus ? join(statusRoot, commandStatus, 'status.json') : null
-  const status = statusPath ? JSON.parse(readBounded(statusPath, 1_000_000)) as { prompts?: Record<string, { flags?: unknown[]; flag_streak?: number }> } : null
-  const flagged = Object.entries(status?.prompts ?? {}).filter(([, value]) => Array.isArray(value.flags) && value.flags.length).map(([id, value]) => `${id}:${value.flags?.join('+')}(${value.flag_streak ?? 0})`)
   const complete = ids.length > 0 && baselines.length === ids.length && inventory.enforce
   const advisoryCases = baselines.reduce((sum, baseline) => sum + baseline.advisoryTotal, 0)
   const advisoryFailures = baselines.reduce((sum, baseline) => sum + baseline.advisoryFailed, 0)
   const advisoryReason = `${advisoryFailures}/${advisoryCases} advisory cases failed (non-blocking).`
-  return [signal({ id: 'eval-governance', title: 'Prompt eval release gate', state: complete ? 'healthy' : 'blocked', observedAt: statusPath ? statSync(statusPath).mtime.toISOString() : undefined, sourceRef: statusPath ?? receiptPath, artifactHref: '/lineage', reason: complete ? `${baselines.length}/${ids.length} governed prompts match current prompt/spec identity and the evaluator-asserted sealed-golden identity in the stable-source receipt; enforcement is enabled; ${advisoryReason}` : `${baselines.length}/${ids.length} governed prompts match current prompt/spec identity and the evaluator-asserted sealed-golden identity in the stable-source receipt; inventory enforcement is ${inventory.enforce ? 'enabled' : 'disabled'}; ${advisoryReason}`, details: { governed: ids.length, acceptedFreshBaselines: baselines.length, advisoryCases, advisoryFailures, enforce: inventory.enforce, sourceReceiptValid: receiptValid, decayFlags: flagged.join(', ') || 'none' } })]
+  return [signal({ id: 'eval-governance', title: 'Prompt eval release gate', state: complete ? 'healthy' : 'blocked', observedAt: existsSync(receiptPath) ? statSync(receiptPath).mtime.toISOString() : undefined, sourceRef: receiptPath, artifactHref: '/lineage', reason: complete ? `${baselines.length}/${ids.length} governed prompts match current prompt/spec identity and the evaluator-asserted sealed-golden identity in the stable-source receipt; enforcement is enabled; ${advisoryReason}` : `${baselines.length}/${ids.length} governed prompts match current prompt/spec identity and the evaluator-asserted sealed-golden identity in the stable-source receipt; inventory enforcement is ${inventory.enforce ? 'enabled' : 'disabled'}; ${advisoryReason}`, details: { governed: ids.length, acceptedFreshBaselines: baselines.length, advisoryCases, advisoryFailures, enforce: inventory.enforce, sourceReceiptValid: receiptValid } })]
 }
 
 function collectDeployment(): ObservatorySignal[] {
