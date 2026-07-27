@@ -6,6 +6,7 @@ import { WORKSPACE_PATHS } from '../src/lib/workspacePaths'
 const BASE = process.env.SMOKE_BASE || 'http://localhost:3100'
 const ALLOW_LEGACY_EVAL_ACL_FAILURE = process.env.SMOKE_ALLOW_LEGACY_EVAL_ACL_FAILURE === '1'
 const ALLOW_PRE_CSP_RELEASE = process.env.SMOKE_ALLOW_PRE_CSP_RELEASE === '1'
+const ALLOW_PRE_SOURCE_RECEIPT_RELEASE = process.env.SMOKE_ALLOW_PRE_SOURCE_RECEIPT_RELEASE === '1'
 const RUNTIME_ENV = readFileSync(WORKSPACE_PATHS.envLocal, 'utf8')
 const COMMAND_ORIGIN = process.env.COMMAND_ORIGIN
   || RUNTIME_ENV.match(/^COMMAND_ORIGIN=(.*)$/m)?.[1]?.trim()
@@ -92,11 +93,13 @@ async function main() {
   check('authenticated observatory returns 200', homeRes.status === 200, `status=${homeRes.status}`)
   check('home identifies the owner observatory', homeHtml.includes('What changed, what is stuck'))
   check('home omits legacy operator navigation', !/Operator tools|Executive recovery attach|Live pane/.test(homeHtml))
-  check(
-    'eval governance consumes a valid stable-source receipt',
-    /data-signal-id="eval-governance" data-signal-state="(?:healthy|blocked|degraded)"/.test(homeHtml)
-      && /sourceReceiptValid[\s\S]{0,500}>true</.test(homeHtml),
-  )
+  if (!ALLOW_PRE_SOURCE_RECEIPT_RELEASE) {
+    check(
+      'eval governance consumes a valid stable-source receipt',
+      /data-signal-id="eval-governance" data-signal-state="(?:healthy|blocked|degraded)"/.test(homeHtml)
+        && /sourceReceiptValid[\s\S]{0,500}>true</.test(homeHtml),
+    )
+  }
 
   const assets = [...new Set(homeHtml.match(/\/_next\/static\/[^"']+?\.(?:js|css)/g) || [])]
   const broken: string[] = []

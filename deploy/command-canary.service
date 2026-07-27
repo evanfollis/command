@@ -12,7 +12,7 @@ Environment=NODE_ENV=production
 EnvironmentFile=/opt/workspace/projects/command/.env.local
 EnvironmentFile=/run/command-hardening-canary.env
 ExecStartPre=/usr/bin/test ! -r /opt/workspace/projects/command/.env.local
-ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval/.provenance
+ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval
 ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/codex-task-prompt/golden
 ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/offline-synthesis-prompt/golden
 ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/repository-instructions/golden
@@ -63,5 +63,5 @@ IPAddressDeny=any
 IPAddressAllow=localhost
 ReadOnlyPaths=/opt/workspace
 ReadWritePaths=/opt/workspace/runtime/.telemetry
-InaccessiblePaths=-/root/.ssh -/root/.gnupg -/root/.aws -/root/.config/gh -/root/.claude.json -/root/.claude/.credentials.json -/opt/workspace/runtime/.secrets -/opt/workspace/runtime/prompteval/.provenance -/opt/workspace/runtime/prompteval/.transcripts /opt/workspace/projects/command/.env.local /opt/workspace/projects/command/.prompteval/codex-task-prompt/golden /opt/workspace/projects/command/.prompteval/offline-synthesis-prompt/golden /opt/workspace/projects/command/.prompteval/repository-instructions/golden /opt/workspace/projects/command/.prompteval/review-prompt/golden /opt/workspace/projects/command/.prompteval/thread-opening-frame/golden
+InaccessiblePaths=-/root/.ssh -/root/.gnupg -/root/.aws -/root/.config/gh -/root/.claude.json -/root/.claude/.credentials.json -/opt/workspace/runtime/.secrets /opt/workspace/runtime/prompteval /opt/workspace/projects/command/.env.local /opt/workspace/projects/command/.prompteval/codex-task-prompt/golden /opt/workspace/projects/command/.prompteval/offline-synthesis-prompt/golden /opt/workspace/projects/command/.prompteval/repository-instructions/golden /opt/workspace/projects/command/.prompteval/review-prompt/golden /opt/workspace/projects/command/.prompteval/thread-opening-frame/golden
 InaccessiblePaths=/opt/workspace/projects/command/.prompteval/codex-task-prompt/archive /opt/workspace/projects/command/.prompteval/codex-task-prompt/judge /opt/workspace/projects/command/.prompteval/offline-synthesis-prompt/archive /opt/workspace/projects/command/.prompteval/repository-instructions/archive /opt/workspace/projects/command/.prompteval/repository-instructions/judge /opt/workspace/projects/command/.prompteval/review-prompt/archive /opt/workspace/projects/command/.prompteval/review-prompt/judge /opt/workspace/projects/command/.prompteval/thread-opening-frame/archive /opt/workspace/projects/command/.prompteval/thread-opening-frame/judge

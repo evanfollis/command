@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 const sources = [
   { title: 'Cross-cutting syntheses', href: '/artifacts', source: `${WORKSPACE_PATHS.runtimeRoot}/.meta/cross-cutting-*.md`, note: 'Long-form diagnosis and proposal lineage.' },
   { title: 'Research artifacts', href: '/artifacts', source: `${WORKSPACE_PATHS.runtimeRoot}/research/`, note: 'Full research documents behind bounded knowledge summaries.' },
-  { title: 'Eval run index', href: '/api/evals/summary', source: `${WORKSPACE_PATHS.runtimeRoot}/prompteval/`, note: 'Structured run identities and release verdicts; bulky per-case reports stay in the runtime tree.' },
+  { title: 'Accepted eval baselines', href: '/api/evals/summary', source: `${WORKSPACE_PATHS.commandRoot}/.prompteval/*/baseline.json`, note: 'Payload-free accepted identities and release verdicts; raw per-case reports remain inaccessible in the evaluator runtime tree.' },
   { title: 'Symphony lifecycle', href: '/symphony', source: WORKSPACE_PATHS.symphonyTasks, note: 'Read-only task states, owners, review artifacts, and completion timestamps.' },
   { title: 'Model and system telemetry', href: '/api/evals/summary', source: WORKSPACE_PATHS.telemetryLog, note: 'Append-only full-fidelity event lineage. The linked endpoint exposes only a bounded summary.' },
   { title: 'Remote durability receipts', href: '/', source: `${WORKSPACE_PATHS.runtimeRoot}/.telemetry/remote-durability.jsonl`, note: 'Per-repository publication identity and freshness receipts.' },

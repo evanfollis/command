@@ -58,26 +58,26 @@ if [ -f "$RUNTIME_ROOT/.telemetry/events.jsonl" ]; then
   setfacl -m "u:$SERVICE_USER:rw-" "$RUNTIME_ROOT/.telemetry/events.jsonl"
 fi
 
-# Eval reports are an explicitly declassified observability surface. Expose
-# only visible project/prompt directories and their run JSON reports; caches,
-# transcripts, provenance, and repository holdouts remain inaccessible.
+# Raw eval reports contain per-case checks and trial material, including sealed
+# release cases. The web process consumes only repository baselines and must
+# have no traversal path into the runtime evaluator tree. Remove ACLs from the
+# predecessor projection before closing the root.
 PROMPTEVAL_ROOT="$RUNTIME_ROOT/prompteval"
 if [ -d "$PROMPTEVAL_ROOT" ]; then
-  setfacl -m "u:$SERVICE_USER:r-x" "$PROMPTEVAL_ROOT"
-  while IFS= read -r -d '' project_dir; do
-    setfacl -m "u:$SERVICE_USER:r-x" "$project_dir"
-    while IFS= read -r -d '' prompt_dir; do
-      setfacl -m "u:$SERVICE_USER:r-x" "$prompt_dir"
-      runs_dir="$prompt_dir/runs"
-      [ -d "$runs_dir" ] || continue
-      # Reports created later in this already-approved projection inherit the
-      # same read-only service ACL. No default is placed on the eval root,
-      # project, or prompt directory, so novel trees remain fail-closed.
-      setfacl -m "u:$SERVICE_USER:r-x,d:u:$SERVICE_USER:r-x" "$runs_dir"
-      find "$runs_dir" -maxdepth 1 -type f -name '*.json' \
-        -exec setfacl -m "u:$SERVICE_USER:r--" {} +
-    done < <(find "$project_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0)
-  done < <(find "$PROMPTEVAL_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0)
+  while IFS= read -r -d '' eval_dir; do
+    setfacl -x "u:$SERVICE_USER" "$eval_dir" 2>/dev/null || true
+    setfacl -x "d:u:$SERVICE_USER" "$eval_dir" 2>/dev/null || true
+  done < <(find "$PROMPTEVAL_ROOT" -type d -print0)
+  while IFS= read -r -d '' eval_file; do
+    setfacl -x "u:$SERVICE_USER" "$eval_file" 2>/dev/null || true
+  done < <(find "$PROMPTEVAL_ROOT" -type f -print0)
+  chown root:root "$PROMPTEVAL_ROOT"
+  chmod 0700 "$PROMPTEVAL_ROOT"
+  if runuser -u "$SERVICE_USER" -- test -x "$PROMPTEVAL_ROOT" \
+    || runuser -u "$SERVICE_USER" -- test -r "$PROMPTEVAL_ROOT"; then
+    echo 'command service account must not access raw eval runtime evidence' >&2
+    exit 1
+  fi
 fi
 
 # Grant the declassified identity surface needed by collectEvalState. Resolve
@@ -228,6 +228,7 @@ if [ "$CURRENT_VERSION" = 'fde91bef34827c18572465b37557201fe7535eb1' ]; then
   # predecessor exceptions explicitly; all newer releases receive neither.
   SMOKE_ALLOW_LEGACY_EVAL_ACL_FAILURE=1 \
     SMOKE_ALLOW_PRE_CSP_RELEASE=1 \
+    SMOKE_ALLOW_PRE_SOURCE_RECEIPT_RELEASE=1 \
     SMOKE_BASE=http://127.0.0.1:3310 npm --prefix "$ROOT" run smoke
 else
   SMOKE_BASE=http://127.0.0.1:3310 npm --prefix "$ROOT" run smoke

@@ -1,6 +1,6 @@
 # Command — Current State
 
-**Updated:** 2026-07-27T08:05Z
+**Updated:** 2026-07-27T09:00Z
 
 Command is the private, authenticated owner observatory for the Synaplex
 workspace. The legacy remote-operation product has been removed rather than
@@ -75,12 +75,14 @@ metadata-inspection command exposed the two surviving sealed definitions.
 Those records are preserved as contaminated evidence. An independent
 Anthropic Opus clean-room author and separate no-tool auditor have approved and
 sealed three fresh, non-derivative replacements from public coverage gaps.
-Three independent opposing-review passes have driven remediation. The latest
-pass's declassified-identity ACL, shallow-checkout provenance, archived-raw
-evidence isolation, and distributed login-lockout findings are implemented and
-locally verified, including a real `command`-identity access proof. Production
-remains pinned while that code receives a fresh independent re-review and the
-full stable-source 18-case run completes, until:
+Four independent opposing-review passes have driven remediation. The latest
+pass identified a second sealed-data path through raw runtime run reports and
+a legacy-canary incompatibility in the new receipt smoke. Raw evaluator runtime
+evidence is now wholly inaccessible to the service identity; the UI projects
+only payload-free accepted baselines, and the exact pinned predecessor has a
+named, version-scoped smoke allowance. Production remains pinned while those
+changes receive a fresh independent re-review and the full stable-source
+18-case run completes, until:
 
 1. a full uncached 18-case release evaluation passes with no unknown verdicts;
 2. the complete branch receives an independent opposing Anthropic review and

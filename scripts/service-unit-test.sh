@@ -6,6 +6,10 @@ set -euo pipefail
   exit 1
 }
 
+SEALED_DIRS=$(find .prompteval -mindepth 2 -maxdepth 2 -type d \
+  \( -name golden -o -name archive -o -name judge \) | sort)
+SEALED_DIR_COUNT=$(printf '%s\n' "$SEALED_DIRS" | sed '/^$/d' | wc -l)
+
 for unit in deploy/command.service deploy/command-canary.service; do
   # Full executable resolution belongs to the host install gate. A clean
   # checkout has no workspace-pinned Node tree yet, so its repository contract
@@ -34,15 +38,19 @@ for unit in deploy/command.service deploy/command-canary.service; do
   grep -q '^ReadOnlyPaths=/opt/workspace$' "$unit"
   grep -q '^ReadWritePaths=/opt/workspace/runtime/.telemetry$' "$unit"
   grep -q '^InaccessiblePaths=.*runtime/.secrets' "$unit"
-  grep -q '^InaccessiblePaths=.*prompteval/.provenance.*prompteval/.transcripts' "$unit"
+  grep -q '^InaccessiblePaths=.*runtime/prompteval' "$unit"
   grep -q '^InaccessiblePaths=.*projects/command/.env.local' "$unit"
   grep -q '^InaccessiblePaths=.*codex-task-prompt/golden.*offline-synthesis-prompt/golden.*repository-instructions/golden.*review-prompt/golden.*thread-opening-frame/golden' "$unit"
   grep -q '^InaccessiblePaths=.*codex-task-prompt/archive.*codex-task-prompt/judge.*offline-synthesis-prompt/archive.*repository-instructions/archive.*repository-instructions/judge.*review-prompt/archive.*review-prompt/judge.*thread-opening-frame/archive.*thread-opening-frame/judge' "$unit"
   grep -q '^InaccessiblePaths=.*root/.claude.json.*root/.claude/.credentials.json' "$unit"
   grep -q '^ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js$' "$unit"
   grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/projects/command/.env.local$' "$unit"
-  grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval/.provenance$' "$unit"
-  test "$(grep -Ec '^ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/.*/(golden|archive|judge)$' "$unit")" -eq 14
+  grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval$' "$unit"
+  test "$(grep -Ec '^ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/.*/(golden|archive|judge)$' "$unit")" -eq "$SEALED_DIR_COUNT"
+  while IFS= read -r sealed_dir; do
+    [ -z "$sealed_dir" ] || grep -Fq \
+      "ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/$sealed_dir" "$unit"
+  done <<< "$SEALED_DIRS"
   grep -q '^User=command$' "$unit"
   grep -q '^Group=command$' "$unit"
 done
@@ -59,10 +67,8 @@ grep -q 'useradd --system --user-group --home-dir /nonexistent --shell /usr/sbin
 grep -q 'setfacl -m "u:$SERVICE_USER:--x" /root' scripts/install-service-unit.sh
 grep -q 'd:u:$SERVICE_USER:r-x" /root/.claude/sessions' scripts/install-service-unit.sh
 grep -q 'd:u:$SERVICE_USER:rwx" "$RUNTIME_ROOT/.telemetry"' scripts/install-service-unit.sh
-grep -Fq 'find "$PROMPTEVAL_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name '\''.*'\'' -print0' scripts/install-service-unit.sh
-grep -Fq 'find "$runs_dir" -maxdepth 1 -type f -name '\''*.json'\''' scripts/install-service-unit.sh
-grep -q 'd:u:$SERVICE_USER:r-x" "$runs_dir"' scripts/install-service-unit.sh
-grep -q 'command service account must not read eval provenance' scripts/install-service-unit.sh
+grep -q 'command service account must not access raw eval runtime evidence' scripts/install-service-unit.sh
+grep -q 'chmod 0700 "$PROMPTEVAL_ROOT"' scripts/install-service-unit.sh
 grep -q 'command service account must not traverse sealed eval directory' scripts/install-service-unit.sh
 grep -q 'command service account must not read sealed eval definition' scripts/install-service-unit.sh
 grep -Fq '\( -name golden -o -name archive -o -name judge \)' scripts/install-service-unit.sh
@@ -85,7 +91,9 @@ grep -q "CURRENT_VERSION.*CURRENT_RELEASE/dist/.version" scripts/install-service
 grep -q "CURRENT_VERSION.*fde91bef34827c18572465b37557201fe7535eb1" scripts/install-service-unit.sh
 grep -q 'SMOKE_ALLOW_LEGACY_EVAL_ACL_FAILURE=1' scripts/install-service-unit.sh
 grep -q 'SMOKE_ALLOW_PRE_CSP_RELEASE=1' scripts/install-service-unit.sh
+grep -q 'SMOKE_ALLOW_PRE_SOURCE_RECEIPT_RELEASE=1' scripts/install-service-unit.sh
 grep -q 'ALLOW_PRE_CSP_RELEASE' scripts/smoke.ts
+grep -q 'ALLOW_PRE_SOURCE_RECEIPT_RELEASE' scripts/smoke.ts
 grep -q "path === '/api/evals/summary'" scripts/smoke.ts
 grep -q "response.status === 500" scripts/smoke.ts
 grep -Fq "printf 'PORT=3310\\n' > \"\$CANARY_ENV\"" scripts/install-service-unit.sh

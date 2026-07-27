@@ -12,7 +12,6 @@ const WINDOWS = {
 type WindowKey = keyof typeof WINDOWS
 const MAX_TELEMETRY_BYTES = 768_000
 const MAX_REPORT_BYTES = 2_000_000
-export const MAX_EVAL_REPORT_CANDIDATES_PER_PROMPT = 8
 
 interface RawEvent {
   timestamp?: number
@@ -134,10 +133,6 @@ export function summarizeLlmUsage(now = Date.now()): Record<WindowKey, LlmUsageW
   return out
 }
 
-function projectFromRuntimeKey(name: string): string {
-  return name.replace(/-[0-9a-f]{6}$/, '')
-}
-
 function readJson(path: string): Record<string, any> | null {
   try {
     return JSON.parse(readBoundedUtf8File(path, MAX_REPORT_BYTES).text)
@@ -146,66 +141,33 @@ function readJson(path: string): Record<string, any> | null {
   }
 }
 
-function readVisibleDirectories(path: string): string[] {
-  try {
-    return readdirSync(path)
-      .filter((name) => !name.startsWith('.'))
-      .filter((name) => {
-        try { return statSync(join(path, name)).isDirectory() } catch { return false }
-      })
-      .slice(0, 100)
-  } catch {
-    return []
-  }
-}
-
 export function listLatestEvalRuns(readReport: (path: string) => Record<string, any> | null = readJson): EvalRunSummary[] {
-  const root = join(WORKSPACE_PATHS.runtimeRoot, 'prompteval')
+  // Only payload-free accepted baselines cross into the web process. Raw
+  // runtime reports contain trial/check material (including release holdouts)
+  // and remain wholly inaccessible to the service identity.
+  const root = join(WORKSPACE_PATHS.commandRoot, '.prompteval')
   if (!existsSync(root)) return []
   const rows: EvalRunSummary[] = []
-  for (const projectKey of readVisibleDirectories(root)) {
-    const projectPath = join(root, projectKey)
-    for (const promptId of readVisibleDirectories(projectPath)) {
-      const runsDir = join(projectPath, promptId, 'runs')
-      if (!existsSync(runsDir)) continue
-      let runNames: string[]
-      try { runNames = readdirSync(runsDir) } catch { continue }
-      const candidates = runNames
-        .filter((name) => name.endsWith('.json'))
-        .flatMap((name) => {
-          const path = join(runsDir, name)
-          try {
-            const stat = statSync(path)
-            const match = name.match(/run-(\d{8}T\d{6}Z)/)
-            const runTime = match ? Date.parse(match[1].replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, '$1-$2-$3T$4:$5:$6Z')) : NaN
-            return stat.isFile() ? [{ name, path, recencyMs: Number.isNaN(runTime) ? stat.mtimeMs : runTime }] : []
-          } catch {
-            return []
-          }
-        })
-        // Run ids embed a UTC timestamp, preserving chronology across copies;
-        // mtime supplies recency for report names outside that convention.
-        .sort((a, b) => b.recencyMs - a.recencyMs || b.name.localeCompare(a.name))
-        .slice(0, MAX_EVAL_REPORT_CANDIDATES_PER_PROMPT)
-      const reports = candidates
-        .flatMap(({ path }) => {
-          const data = readReport(path)
-          return data ? [{ path, data }] : []
-        })
-        .sort((a, b) => String(b.data.ts || '').localeCompare(String(a.data.ts || '')))
-      const latest = reports[0]
-      if (!latest) continue
+  for (const promptId of readdirSync(root).filter((name) => !name.startsWith('.')).slice(0, 100)) {
+    const promptPath = join(root, promptId)
+    try {
+      if (!statSync(promptPath).isDirectory()) continue
+      const path = join(promptPath, 'baseline.json')
+      const data = readReport(path)
+      if (!data) continue
       rows.push({
-        project: latest.data.project || projectFromRuntimeKey(projectKey),
+        project: 'command',
         promptId,
-        runId: latest.data.run_id || '',
-        ts: latest.data.ts || '',
-        aggregate: typeof latest.data.aggregate === 'number' ? latest.data.aggregate : null,
-        passed: typeof latest.data.gate?.passed === 'boolean' ? latest.data.gate.passed : null,
-        release: Boolean(latest.data.release),
-        model: latest.data.model || null,
-        reportPath: latest.path,
+        runId: data.run_id || '',
+        ts: data.ts || '',
+        aggregate: typeof data.aggregate === 'number' ? data.aggregate : null,
+        passed: typeof data.gate?.passed === 'boolean' ? data.gate.passed : null,
+        release: Boolean(data.release),
+        model: data.model || null,
+        reportPath: path,
       })
+    } catch {
+      continue
     }
   }
   return rows.sort((a, b) => b.ts.localeCompare(a.ts))
