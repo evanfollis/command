@@ -45,6 +45,12 @@ async function main() {
     assert.equal(projection.issue?.code, 'invalid-schema')
     assert.deepEqual(projection.tasks, [])
 
+    writeFileSync(storePath, 'x'.repeat(2_000_001), 'utf8')
+    projection = readSymphonyProjection()
+    assert.equal(projection.status, 'unknown')
+    assert.equal(projection.issue?.code, 'invalid-schema')
+    assert.deepEqual(projection.tasks, [])
+
     writeFileSync(storePath, JSON.stringify({ tasks: [validTask, { id: 'untrusted' }] }), 'utf8')
     projection = readSymphonyProjection()
     assert.equal(projection.status, 'unknown')

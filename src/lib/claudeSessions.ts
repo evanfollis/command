@@ -1,9 +1,12 @@
-import { existsSync, readFileSync, readdirSync } from 'fs'
+import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 
+import { readBoundedUtf8File } from './boundedFile'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
 const CLAUDE_SESSIONS_DIR = join(WORKSPACE_PATHS.claudeStateRoot, 'sessions')
+const MAX_SESSION_METADATA_BYTES = 64_000
+const MAX_SESSION_METADATA_FILES = 1_000
 
 export interface ClaudeSessionState {
   pid: number
@@ -33,16 +36,18 @@ export function readClaudeSessions(): ClaudeSessionState[] {
   let entries: string[] = []
   try {
     entries = readdirSync(CLAUDE_SESSIONS_DIR)
+      .filter((name) => name.endsWith('.json'))
+      .sort()
+      .slice(-MAX_SESSION_METADATA_FILES)
   } catch {
     return []
   }
   const out: ClaudeSessionState[] = []
   for (const name of entries) {
-    if (!name.endsWith('.json')) continue
     const abs = join(CLAUDE_SESSIONS_DIR, name)
     let raw: string
     try {
-      raw = readFileSync(abs, 'utf-8')
+      raw = readBoundedUtf8File(abs, MAX_SESSION_METADATA_BYTES).text
     } catch {
       continue
     }

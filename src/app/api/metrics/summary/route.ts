@@ -1,12 +1,14 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync } from 'fs'
 import { NextResponse } from 'next/server'
 
+import { readBoundedUtf8File } from '@/lib/boundedFile'
 import { WORKSPACE_PATHS } from '@/lib/workspacePaths'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const WINDOWS = ['1h', '24h', '7d', '30d'] as const
+const MAX_METRICS_BYTES = 2_000_000
 type Window = typeof WINDOWS[number]
 
 interface ProjectWindowMetrics {
@@ -22,7 +24,7 @@ function loadWindow(window: Window): Record<string, ProjectWindowMetrics> {
   const path = `${WORKSPACE_PATHS.runtimeRoot}/.metrics/${window}.json`
   if (!existsSync(path)) return {}
   try {
-    const raw = JSON.parse(readFileSync(path, 'utf-8'))
+    const raw = JSON.parse(readBoundedUtf8File(path, MAX_METRICS_BYTES).text)
     return raw.projects || {}
   } catch {
     return {}
@@ -62,7 +64,9 @@ export async function GET() {
     const latestPath = `${WORKSPACE_PATHS.runtimeRoot}/.metrics/LATEST.json`
     if (!existsSync(latestPath)) return null
     try {
-      return JSON.parse(readFileSync(latestPath, 'utf-8')).generated_at ?? null
+      return JSON.parse(
+        readBoundedUtf8File(latestPath, MAX_METRICS_BYTES).text,
+      ).generated_at ?? null
     } catch {
       return null
     }

@@ -1,6 +1,6 @@
-import { readFileSync } from 'fs'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { readBoundedUtf8File } from '@/lib/boundedFile'
 import { getContextUsage } from '@/lib/contextUsage'
 import { observeSupervisedPids } from '@/lib/tmux'
 import { WORKSPACE_PATHS } from '@/lib/workspacePaths'
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const SESSIONS_CONF = WORKSPACE_PATHS.sessionsConfig
+const MAX_SESSIONS_CONFIG_BYTES = 128_000
 
 interface SessionRow {
   name: string
@@ -18,7 +19,10 @@ interface SessionRow {
 
 function parseSessionsConf(): { status: 'observed' | 'unknown'; value: SessionRow[] } {
   try {
-    const raw = readFileSync(SESSIONS_CONF, 'utf-8')
+    const raw = readBoundedUtf8File(
+      SESSIONS_CONF,
+      MAX_SESSIONS_CONFIG_BYTES,
+    ).text
     return {
       status: 'observed',
       value: raw

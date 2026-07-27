@@ -1,12 +1,14 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync } from 'fs'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { readBoundedUtf8File } from '@/lib/boundedFile'
 import { WORKSPACE_PATHS } from '@/lib/workspacePaths'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const ALLOWED_WINDOWS = new Set(['1h', 'today', '24h', '7d', '30d', 'all', 'LATEST'])
+const MAX_METRICS_BYTES = 2_000_000
 
 export async function GET(req: NextRequest) {
   const window = req.nextUrl.searchParams.get('window') || 'today'
@@ -18,9 +20,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'metrics not yet generated', path }, { status: 404 })
   }
   try {
-    const raw = readFileSync(path, 'utf-8')
+    const raw = readBoundedUtf8File(path, MAX_METRICS_BYTES).text
     return NextResponse.json(JSON.parse(raw))
-  } catch (e) {
-    return NextResponse.json({ error: 'read failed', detail: e instanceof Error ? e.message : String(e) }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'metrics evidence unavailable' }, { status: 500 })
   }
 }

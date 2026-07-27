@@ -1,8 +1,9 @@
 import { execFileSync } from 'child_process'
-import { existsSync, readFileSync } from 'fs'
+import { existsSync } from 'fs'
 import { join } from 'path'
 import { NextResponse } from 'next/server'
 
+import { readBoundedUtf8File } from '@/lib/boundedFile'
 import { correlateSession } from '@/lib/claudeSessions'
 import { observeSessions, observeSupervisedPids } from '@/lib/tmux'
 import { WORKSPACE_PATHS } from '@/lib/workspacePaths'
@@ -25,6 +26,8 @@ const CURRENT_STATE_FALLBACK: Record<string, string> = {
 }
 
 const SESSIONS_CONF = WORKSPACE_PATHS.sessionsConfig
+const MAX_SESSIONS_CONFIG_BYTES = 128_000
+const MAX_CURRENT_STATE_BYTES = 1_000_000
 
 interface SessionRow {
   name: string
@@ -35,7 +38,10 @@ interface SessionRow {
 
 function parseSessionsConf(): { status: 'observed' | 'unknown'; value: SessionRow[] } {
   try {
-    const raw = readFileSync(SESSIONS_CONF, 'utf-8')
+    const raw = readBoundedUtf8File(
+      SESSIONS_CONF,
+      MAX_SESSIONS_CONFIG_BYTES,
+    ).text
     return {
       status: 'observed',
       value: raw
@@ -75,7 +81,13 @@ function readCurrentState(session: SessionRow): { path: string | null; content: 
   const path = currentStatePath(session)
   if (!path) return { path: null, content: null }
   try {
-    return { path, content: readFileSync(/*turbopackIgnore: true*/ path, 'utf-8') }
+    return {
+      path,
+      content: readBoundedUtf8File(
+        /*turbopackIgnore: true*/ path,
+        MAX_CURRENT_STATE_BYTES,
+      ).text,
+    }
   } catch {
     return { path, content: null }
   }

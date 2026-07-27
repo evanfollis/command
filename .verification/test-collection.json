@@ -16,6 +16,7 @@
         "scripts/adapter-llm-contract-test.py",
         "scripts/artifacts-contract-test.ts",
         "scripts/auth-contract-test.ts",
+        "scripts/bounded-file-contract-test.ts",
         "scripts/claude-session-contract-test.ts",
         "scripts/codex-task-builder-test.ts",
         "scripts/eval-telemetry-test.ts",

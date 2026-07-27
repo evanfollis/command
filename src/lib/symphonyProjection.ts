@@ -1,5 +1,4 @@
-import { readFileSync } from 'fs'
-
+import { readBoundedUtf8File } from './boundedFile'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
 const SYMPHONY_STATES = ['ready', 'running', 'blocked', 'review', 'done', 'deferred'] as const
@@ -54,6 +53,7 @@ export interface SymphonyProjection {
 
 const STALE_RUNNING_MS = 2 * 60 * 60 * 1000
 const STALE_REVIEW_MS = 24 * 60 * 60 * 1000
+const MAX_SYMPHONY_BYTES = 2_000_000
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
@@ -115,7 +115,10 @@ function isSymphonyTask(value: unknown): value is SymphonyTask {
 function loadProjection(): SymphonyProjection {
   let raw: string
   try {
-    raw = readFileSync(WORKSPACE_PATHS.symphonyTasks, 'utf8')
+    raw = readBoundedUtf8File(
+      WORKSPACE_PATHS.symphonyTasks,
+      MAX_SYMPHONY_BYTES,
+    ).text
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code
     return {

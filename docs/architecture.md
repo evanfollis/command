@@ -28,6 +28,10 @@ models or dispatch agents.
 - Artifact discovery is capped by count and depth; individual files are capped
   at two million bytes and opened through no-follow descriptors after realpath
   containment so a concurrent symlink replacement cannot escape the source.
+- External UTF-8 evidence uses one no-follow bounded-file primitive. Metrics
+  and Symphony files cap at two million bytes, current-state documents at one
+  million, session configuration at 128,000, and session metadata at 64,000;
+  oversize, symlinked, missing, or malformed inputs fail closed per projection.
 - `scripts/render-prompt.ts` renders historical governed prompts offline
   through pure builders. It is not reachable from the web application.
 - `scripts/release.sh` builds a clean detached worktree into an immutable

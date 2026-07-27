@@ -1,16 +1,7 @@
-import {
-  closeSync,
-  constants,
-  existsSync,
-  fstatSync,
-  openSync,
-  readdirSync,
-  readSync,
-  realpathSync,
-  statSync,
-} from 'fs'
+import { existsSync, readdirSync, realpathSync, statSync } from 'fs'
 import path from 'path'
 
+import { readBoundedUtf8File } from './boundedFile'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
 export interface ArtifactEntry {
@@ -211,34 +202,14 @@ function parseFrontmatter(raw: string): { frontmatter: Record<string, string>; b
 }
 
 function readBoundedArtifact(absolute: string): { raw: string; mtime: number } | null {
-  let fd: number
   try {
-    fd = openSync(
+    const bounded = readBoundedUtf8File(
       path.join(/*turbopackIgnore: true*/ absolute),
-      constants.O_RDONLY | constants.O_NOFOLLOW,
+      MAX_ARTIFACT_BYTES,
     )
+    return { raw: bounded.text, mtime: bounded.mtimeMs }
   } catch {
     return null
-  }
-  try {
-    const initial = fstatSync(fd)
-    if (!initial.isFile() || initial.size > MAX_ARTIFACT_BYTES) return null
-    const buffer = Buffer.alloc(MAX_ARTIFACT_BYTES + 1)
-    let offset = 0
-    while (offset < buffer.length) {
-      const count = readSync(fd, buffer, offset, buffer.length - offset, null)
-      if (count === 0) break
-      offset += count
-    }
-    if (offset > MAX_ARTIFACT_BYTES) return null
-    return {
-      raw: buffer.subarray(0, offset).toString('utf8'),
-      mtime: initial.mtimeMs,
-    }
-  } catch {
-    return null
-  } finally {
-    closeSync(fd)
   }
 }
 
