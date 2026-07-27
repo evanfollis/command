@@ -5,6 +5,13 @@ import { sign } from 'jsonwebtoken'
 
 import { checkPassword, createToken, verifyToken } from '../src/lib/auth'
 import { resolveJwtSecret } from '../src/lib/authKey'
+import {
+  clearLoginFailures,
+  loginClientKey,
+  loginThrottleStatus,
+  recordLoginFailure,
+  resetLoginThrottleForTest,
+} from '../src/lib/loginThrottle'
 
 const originalSecret = process.env.JWT_SECRET
 const originalPassword = process.env.COMMAND_PASSWORD
@@ -61,6 +68,31 @@ try {
   assert.equal(checkPassword('contract-password-a9f50d'), false, 'a same-length mismatch must fail')
   assert.equal(checkPassword('short'), false, 'a different-length mismatch must fail')
   assert.equal(checkPassword(undefined), false, 'a malformed JSON password must fail closed')
+
+  resetLoginThrottleForTest()
+  const cloudflareHeaders = new Headers({ 'cf-connecting-ip': '203.0.113.8' })
+  const clientKey = loginClientKey(cloudflareHeaders)
+  assert.equal(clientKey, '203.0.113.8')
+  assert.equal(
+    loginClientKey(new Headers({
+      'cf-connecting-ip': 'not-an-ip',
+      'x-forwarded-for': '198.51.100.7',
+    })),
+    'unattributed',
+    'untrusted forwarded headers must not create attacker-selected throttle buckets',
+  )
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    assert.deepEqual(loginThrottleStatus(clientKey, 1000), { allowed: true })
+    recordLoginFailure(clientKey, 1000)
+  }
+  assert.deepEqual(loginThrottleStatus(clientKey, 1000), {
+    allowed: false,
+    retryAfterSeconds: 300,
+  })
+  assert.deepEqual(loginThrottleStatus(clientKey, 301001), { allowed: true })
+  recordLoginFailure(clientKey, 400000)
+  clearLoginFailures(clientKey)
+  assert.deepEqual(loginThrottleStatus(clientKey, 400000), { allowed: true })
 
   const config = readFileSync('next.config.js', 'utf8')
   assert.doesNotMatch(

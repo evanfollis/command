@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createToken, checkPassword, COOKIE_NAME } from '@/lib/auth'
+import {
+  clearLoginFailures,
+  loginClientKey,
+  loginThrottleStatus,
+  recordLoginFailure,
+} from '@/lib/loginThrottle'
 import { recordTelemetry } from '@/lib/telemetry'
 
 function cookieHeader(token: string): string {
@@ -21,6 +27,21 @@ function redirect(location: string, setCookie?: string): Response {
 }
 
 export async function POST(req: NextRequest) {
+  const clientKey = loginClientKey(req.headers)
+  const throttle = loginThrottleStatus(clientKey)
+  if (!throttle.allowed) {
+    return NextResponse.json(
+      { error: 'Too many login attempts' },
+      {
+        status: 429,
+        headers: {
+          'Cache-Control': 'no-store',
+          'Retry-After': String(throttle.retryAfterSeconds),
+        },
+      },
+    )
+  }
+
   const contentType = req.headers.get('content-type') || ''
   const isForm = contentType.includes('application/x-www-form-urlencoded')
 
@@ -46,6 +67,7 @@ export async function POST(req: NextRequest) {
     // Only emit a failure event for non-empty passwords — empty submissions are
     // password-manager autofill races, not meaningful security events.
     if (password.trim().length > 0) {
+      recordLoginFailure(clientKey)
       recordTelemetry({
         project: 'command',
         source: 'command.api.auth',
@@ -58,6 +80,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
   }
 
+  clearLoginFailures(clientKey)
   const token = createToken()
   recordTelemetry({
     project: 'command',
