@@ -12,6 +12,8 @@ for unit in deploy/command.service deploy/command-canary.service; do
   grep -q '^CapabilityBoundingSet=$' "$unit"
   grep -q '^ProtectSystem=strict$' "$unit"
   grep -q '^ProtectKernelModules=yes$' "$unit"
+  grep -q '^ProtectProc=invisible$' "$unit"
+  grep -q '^ProcSubset=pid$' "$unit"
   grep -q '^PrivateDevices=yes$' "$unit"
   grep -q '^PrivateMounts=yes$' "$unit"
   grep -q '^PrivateTmp=yes$' "$unit"
