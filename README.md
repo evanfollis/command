@@ -37,6 +37,7 @@ deploying. Deployment remains the explicit immutable `npm run deploy` path.
 ## Navigate
 
 - `AGENTS.md` — canonical repository instructions
+- `SECURITY.md` — private reporting and supported security boundary
 - `CURRENT_STATE.md` — current operational and delivery state
 - `docs/architecture.md` — composition, artifact roles, deployment, and safety
 - `docs/credential-rotation.md` — current credential exception and secure rotation
