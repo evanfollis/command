@@ -16,6 +16,9 @@ ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server
 Restart=on-failure
 RestartSec=5
 UMask=0077
+TasksMax=64
+MemoryMax=512M
+LimitNOFILE=4096
 
 NoNewPrivileges=yes
 CapabilityBoundingSet=

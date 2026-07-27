@@ -16,6 +16,9 @@ ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval/.provenance
 ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js
 Restart=no
 UMask=0077
+TasksMax=64
+MemoryMax=512M
+LimitNOFILE=4096
 
 NoNewPrivileges=yes
 CapabilityBoundingSet=

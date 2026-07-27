@@ -133,7 +133,8 @@ The web service runs as the system nologin `command` user with no Linux
 capabilities or privileged supplementary groups. systemd loads the root-owned
 runtime environment before applying the service identity; the process cannot
 open the environment file itself. The workspace is read-only except for the
-telemetry directory.
+telemetry directory. Both production and canary units cap the process at 64
+tasks, 512 MiB of memory, and 4,096 open file descriptors.
 
 The installer applies read/default ACLs only to `/root/.claude/sessions`,
 read-only ACLs to already-approved eval `runs/` projections, and a
