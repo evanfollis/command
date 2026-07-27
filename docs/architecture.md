@@ -71,7 +71,11 @@ cutover.
 server verification, and Next proxy verification use the same resolver.
 `next.config.js` does not expose the secret through the build-time environment
 map. Every production build scans `.next` and `dist` for configured auth values
-and the retired fallback without printing secret values.
+and the retired fallback without printing secret values. The build itself uses
+fixed non-secret JWT/password canaries and scans their exact, base64, and hex
+forms after removing trace/cache output. Artifact-route NFT manifests are
+parsed and rejected if dynamic runtime reads retain repository files outside
+the runtime package boundary.
 The systemd environment file is root-owned and has no group/other access; the
 service installer refuses to proceed when that ownership boundary is weaker.
 
@@ -122,7 +126,8 @@ the remaining `/root` traversal ACL.
 ## Verification
 
 `make check` is the deterministic merge gate. `make build` adds the complete
-Next/server build and secret scan. `make deploy-check` adds immutable
+Node 24 Next/server build, credential-canary scan, and artifact trace-boundary
+check. `make deploy-check` adds immutable
 release/rollback and shared preflight checks. Production closure requires
 authenticated HTTP smoke, authenticated Chromium smoke, active release identity
 matching the deployed commit, and a known previous release for rollback.
