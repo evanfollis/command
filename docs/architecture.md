@@ -159,3 +159,9 @@ check. `make deploy-check` adds immutable
 release/rollback and shared preflight checks. Production closure requires
 authenticated HTTP smoke, authenticated Chromium smoke, active release identity
 matching the deployed commit, and a known previous release for rollback.
+
+Prompt-evaluation run documents can contain sealed inputs, model outputs,
+judge rubrics, and grader details. Operators inspect a run with
+`python3 scripts/prompteval-safe-metadata.py <run.json>`, which emits only an
+allowlisted aggregate summary. Broad JSON rendering of a run document is not
+an accepted metadata-inspection path.

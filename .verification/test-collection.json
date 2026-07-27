@@ -26,6 +26,7 @@
         "scripts/offline-synthesis-contract-test.py",
         "scripts/product-boundary-test.ts",
         "scripts/prompteval-config-test.ts",
+        "scripts/prompteval-safe-metadata-test.py",
         "scripts/release-invariants-test.sh",
         "scripts/repository-instructions-contract-test.py",
         "scripts/review-prompt-contract-test.py",
