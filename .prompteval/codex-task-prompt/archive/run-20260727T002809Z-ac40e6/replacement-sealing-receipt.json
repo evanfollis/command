@@ -1,0 +1,63 @@
+{
+  "schema_version": "prompteval.clean-room-reseal.v2",
+  "status": "resealed_after_failed_holdout_burn_and_inspection_rotation",
+  "sealed_at": "2026-07-27T05:27:58Z",
+  "author": {
+    "provider": "Anthropic",
+    "model": "opus",
+    "effort": "xhigh",
+    "tools": [],
+    "session_persistence": false,
+    "inputs": "public response contract and three uncovered dimensions only",
+    "prohibited_inputs_available": false,
+    "raw_output_sha256": "be480e29cf90fbbb53d1024621c1a4c06af167e4ef2cdf032c9bab70b2a21e4e"
+  },
+  "audit": {
+    "provider": "Anthropic",
+    "model": "opus",
+    "effort": "xhigh",
+    "tools": [],
+    "session_persistence": false,
+    "verdict": "APPROVE",
+    "raw_output_sha256": "3846a66a0e232263d16d93b4f439a03a9edfcbf8b957b3e31e45a70b1f6e949f",
+    "receipt_sha256": "f8c4ddeed40e0d30a9c9e76547a4cd74c575a21b489f6f9d0009119abeefbeb5"
+  },
+  "inspection_rotation_receipt": {
+    "path": ".prompteval/codex-task-prompt/archive/inspection-20260727T041105Z/contamination-receipt.json",
+    "sha256": "12f0d6d8812a5b2cee513987106619e2f7c6061c730630aae26383c26715a81f"
+  },
+  "novelty": {
+    "candidate_contract_sha256": {
+      "gc-011fb671e1563de7": "46160bc22cf2b4a318a122e7f018dfd50bba5a2558c7ec282b38bf9517554be0",
+      "gc-ebafb273d0dd2430": "5ccb60654c38569607e9557467bda6b42dca609240379a650b7a3830ad1a4ea1",
+      "gc-5ca93d52b2f41823": "235d260f74a8732147574e96ef079a4fbd5fbd5227948909960e3a6237f96a9c"
+    },
+    "active_and_burned_exact_duplicates": 0,
+    "active_burned_and_candidate_max_description_jaccard": {
+      "gc-011fb671e1563de7": 0.1023,
+      "gc-ebafb273d0dd2430": 0.3036,
+      "gc-5ca93d52b2f41823": 0.2722
+    },
+    "contaminated_definitions_opened_for_comparison": false
+  },
+  "pre_transition_active_sha256": "095cdf02f54645262111f4caf3a35f63e2f7e671d9497d5f4f5bc2f010c8ca36",
+  "pre_transition_holdout_sha256": "76b852aff6868407a46ad0d9ff5df021b123c34e25041b29d02b61db7e05c99d",
+  "pre_transition_active_count": 15,
+  "pre_transition_holdout_count": 2,
+  "replacement_case_ids": [
+    "gc-011fb671e1563de7",
+    "gc-ebafb273d0dd2430",
+    "gc-5ca93d52b2f41823"
+  ],
+  "replacement_record_sha256": {
+    "gc-011fb671e1563de7": "f90170c4fcb063bb52d32274c5a306035d2fc5745f4d639be610d928a51bca1d",
+    "gc-ebafb273d0dd2430": "8e105fd4de8822eeae7642d13c80ae727cbaeefdfcef1ae17fd4dd72a97989d5",
+    "gc-5ca93d52b2f41823": "dc2bd78800de325e853b061213ea016372bc21b5a4cb83d0967322a53f195b7b"
+  },
+  "final_active_sha256": "095cdf02f54645262111f4caf3a35f63e2f7e671d9497d5f4f5bc2f010c8ca36",
+  "final_holdout_sha256": "ce69e556a07874b117aeeb99ffdf089bfb968509ed16d7af74a6996647233fd8",
+  "final_active_count": 15,
+  "final_holdout_count": 3,
+  "prompt_changes_after_sealing": false,
+  "candidate_plaintext_retained_outside_holdout": false
+}

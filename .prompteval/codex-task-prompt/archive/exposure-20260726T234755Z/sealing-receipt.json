@@ -1,0 +1,46 @@
+{
+  "schema_version": "prompteval.clean-room-reseal.v1",
+  "sealed_at": "2026-07-27T00:26:00Z",
+  "author": {
+    "provider": "Anthropic",
+    "model": "opus",
+    "effort": "xhigh",
+    "tools": [],
+    "session_persistence": false,
+    "inputs": "public response contract and high-level active coverage gaps only",
+    "prohibited_inputs_available": false
+  },
+  "audit": {
+    "provider": "Anthropic",
+    "model": "opus",
+    "effort": "xhigh",
+    "tools": [],
+    "session_persistence": false,
+    "verdict": "APPROVE",
+    "receipt_sha256": "70bc10e6e0ab937553fa478cfa557ea5ac5ced1dae6d45a06dec9a5f2ef6d5e6"
+  },
+  "novelty": {
+    "candidate_contract_sha256": "995a584e2888e340645ec49ada2bfbb88afac23d51408f5ebcbfc345096b791a",
+    "active_exact_duplicates": 0,
+    "active_max_description_jaccard": 0.0522,
+    "exposed_exact_duplicate": false,
+    "exposed_description_jaccard": 0.0522,
+    "sealed_definitions_opened_for_comparison": false
+  },
+  "replacement_case_id": "gc-867525fbdc2c090e",
+  "replacement_record_sha256": "59ce9e940b330d5f6fd46d33d8b47e6ce7db38a8e7b4a5bfb37d80066ee89ce3",
+  "final_active_sha256": "bf026f36713100eec66bff30a34fedb978e7fb45968068bddd31402af895d4cd",
+  "final_holdout_sha256": "029a6b182c2edfe6d45b2529850a8e083270c695f8ce55bc015ee8f6f150550d",
+  "final_active_count": 14,
+  "final_holdout_count": 3,
+  "prompt_changes_after_sealing": false,
+  "candidate_plaintext_retained_outside_holdout": false,
+  "subsequent_status": {
+    "status": "failed_release_run_and_burned",
+    "run_id": "run-20260727T002809Z-ac40e6",
+    "replacement_promoted_to_active": true,
+    "eligible_as_final_release_evidence": false,
+    "authoritative_burn_receipt": "../run-20260727T002809Z-ac40e6/burn-receipt.json",
+    "authoritative_reseal_receipt": "../run-20260727T002809Z-ac40e6/replacement-sealing-receipt.json"
+  }
+}

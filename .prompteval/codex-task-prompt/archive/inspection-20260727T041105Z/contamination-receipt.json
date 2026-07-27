@@ -1,0 +1,16 @@
+{
+  "schema_version": "prompteval.holdout-inspection-contamination.v1",
+  "status": "contaminated_and_rotated",
+  "recorded_at": "2026-07-27T05:27:58Z",
+  "cause": "metadata inspection command rendered full failed-run case bodies into the active model session",
+  "content_used_for_prompt_iteration": false,
+  "prompt_changed_from_contaminated_content": false,
+  "contaminated_holdout_sha256": "76b852aff6868407a46ad0d9ff5df021b123c34e25041b29d02b61db7e05c99d",
+  "contaminated_holdout_count": 2,
+  "contaminated_records": {
+    "gc-51913b36c1570860": "6cf1bd39dcf07dbf5ce4ecf28dc60602a5f6632e6e09434790a280e443c48453",
+    "gc-15d1a422f6b33458": "5bb52e7561c3b32d73650c5aa33ab03f24ee0f906391310b3d20da26aff003ff"
+  },
+  "archived_file": "contaminated-holdout.jsonl",
+  "replacement_author_inputs": "public response contract and three named coverage dimensions only"
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": "prompteval.clean-room-candidate-audit.v1",
+  "provider": "Anthropic",
+  "model": "opus",
+  "effort": "xhigh",
+  "tools": [],
+  "session_persistence": false,
+  "audited_at": "2026-07-27T00:23:00Z",
+  "sealed_material_available": false,
+  "active_material_available": "high-level coverage summary only",
+  "verdict": "APPROVE",
+  "findings": [
+    "Schema and metadata are compatible.",
+    "Every judge clause is grounded in the hypothetical input.",
+    "The generated-artifact canary and distinct immutable rollback intersection is novel relative to the stated active coverage.",
+    "No sealed-material, case-ID, archive, transcript, or incident leakage was present.",
+    "Authenticated promotion and recovery checks must be phrased as prerequisites so the tool-free probe cannot satisfy them through fabricated execution."
+  ],
+  "bounded_change_applied_before_sealing": "Checks describe authenticated outcome verification as a required prerequisite and explicitly forbid claiming it ran.",
+  "verbatim_final_line": "VERDICT: APPROVE"
+}

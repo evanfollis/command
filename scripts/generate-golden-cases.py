@@ -753,7 +753,10 @@ existing_codex_cases = read_existing(
 for existing_case in existing_codex_cases.values():
     if (
         existing_case.get('status') == 'active'
-        and existing_case.get('source', '').startswith('accidental sealed-case disclosure')
+        and (
+            existing_case.get('source', '').startswith('accidental sealed-case disclosure')
+            or existing_case.get('source', '').startswith('failed sealed case from release run')
+        )
         and existing_case['id'] not in {case['id'] for case in ctp_active}
     ):
         ctp_active.append(existing_case)

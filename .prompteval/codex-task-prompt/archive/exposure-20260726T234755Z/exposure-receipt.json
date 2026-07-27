@@ -19,7 +19,24 @@
     "provenance_sha256": "0409cfcee5a6816ef20f0e1da2a46d4b536df451dccc5062eac9694cce8caa11",
     "accepted_as_release_evidence_after_exposure": false
   },
-  "replacement_case_id": null,
-  "replacement_source": "pending independent clean-room authoring after Anthropic quota reset",
-  "required_next_gate": "full uncached codex-task-prompt release run with all active cases and two sealed cases"
+  "replacement_case_id": "gc-867525fbdc2c090e",
+  "replacement_source": "independent Anthropic Opus clean-room authoring and separate no-tool audit after the 2026-07-27 quota reset",
+  "replacement_record_sha256": "59ce9e940b330d5f6fd46d33d8b47e6ce7db38a8e7b4a5bfb37d80066ee89ce3",
+  "initial_replacement_status": {
+    "status": "failed_release_run_and_burned",
+    "run_id": "run-20260727T002809Z-ac40e6",
+    "aggregate": 0.9412,
+    "mechanically_promoted_before_inspection": true,
+    "eligible_as_sealed_evidence": false,
+    "authoritative_receipt": "../run-20260727T002809Z-ac40e6/burn-receipt.json"
+  },
+  "final_replacement_source": "a second independent Anthropic Opus clean-room author and separate no-tool auditor produced three fresh cases from public service-identity, bounded-evidence, and login-throttling gaps only",
+  "final_replacement_receipt": "../run-20260727T002809Z-ac40e6/replacement-sealing-receipt.json",
+  "subsequent_pool_rotation": {
+    "status": "remaining_two_records_contaminated_and_rotated",
+    "cause": "a metadata inspection command rendered full failed-run case bodies",
+    "content_used_for_prompt_iteration": false,
+    "authoritative_receipt": "../inspection-20260727T041105Z/contamination-receipt.json"
+  },
+  "required_next_gate": "full uncached codex-task-prompt release run with 15 active cases and three sealed cases"
 }

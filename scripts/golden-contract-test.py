@@ -93,12 +93,39 @@ CONTAMINATED_HOLDOUT_RECORDS = {
     'gc-38b3e75ad2a0ab4d': 'a45eec707e38d78604103ca5fc5be07c8b40cef45694917d7e346d080217d6a0',
     'gc-94de61c46b321c2d': '61f4340999ce22799369deb950212468b9b14547797cef75586d8d16b7b21b41',
 }
-REPLACEMENT_HOLDOUT_SHA = '4fc87e7e2a846ce0041d3e656aaa09be4c8b5dbe6acd233711c38c95f9f673bb'
-REPLACEMENT_HOLDOUT_RECORDS = {
+ADR0050_REPLACEMENT_HOLDOUT_SHA = '4fc87e7e2a846ce0041d3e656aaa09be4c8b5dbe6acd233711c38c95f9f673bb'
+ADR0050_REPLACEMENT_HOLDOUT_RECORDS = {
     'gc-51913b36c1570860': '6cf1bd39dcf07dbf5ce4ecf28dc60602a5f6632e6e09434790a280e443c48453',
     'gc-15d1a422f6b33458': '5bb52e7561c3b32d73650c5aa33ab03f24ee0f906391310b3d20da26aff003ff',
     'gc-f4a583ea1d73f274': 'bd35acc49fde519f802b4d9e4c19f31fc630351529a89479eb263ca52d5efd39',
 }
+FAILED_REPLACEMENT_POOL_SHA = '029a6b182c2edfe6d45b2529850a8e083270c695f8ce55bc015ee8f6f150550d'
+FAILED_REPLACEMENT_POOL_RECORDS = {
+    'gc-51913b36c1570860': '6cf1bd39dcf07dbf5ce4ecf28dc60602a5f6632e6e09434790a280e443c48453',
+    'gc-15d1a422f6b33458': '5bb52e7561c3b32d73650c5aa33ab03f24ee0f906391310b3d20da26aff003ff',
+    'gc-867525fbdc2c090e': '59ce9e940b330d5f6fd46d33d8b47e6ce7db38a8e7b4a5bfb37d80066ee89ce3',
+}
+CURRENT_ACTIVE_SHA = '095cdf02f54645262111f4caf3a35f63e2f7e671d9497d5f4f5bc2f010c8ca36'
+CURRENT_HOLDOUT_SHA = 'ce69e556a07874b117aeeb99ffdf089bfb968509ed16d7af74a6996647233fd8'
+CURRENT_HOLDOUT_RECORDS = {
+    'gc-011fb671e1563de7': 'f90170c4fcb063bb52d32274c5a306035d2fc5745f4d639be610d928a51bca1d',
+    'gc-ebafb273d0dd2430': '8e105fd4de8822eeae7642d13c80ae727cbaeefdfcef1ae17fd4dd72a97989d5',
+    'gc-5ca93d52b2f41823': 'dc2bd78800de325e853b061213ea016372bc21b5a4cb83d0967322a53f195b7b',
+}
+EXPOSURE_ARCHIVE = SPEC / 'archive' / 'exposure-20260726T234755Z'
+EXPOSED_CASE_ID = 'gc-f4a583ea1d73f274'
+EXPOSED_ORIGINAL_SHA = 'bd35acc49fde519f802b4d9e4c19f31fc630351529a89479eb263ca52d5efd39'
+EXPOSED_PROMOTED_SHA = 'b58185a84150dae674bc4ac999631fd26d262089df29ef4b48e9e21a3c1baf6b'
+EXPOSURE_PRE_HOLDOUT_SHA = '4fc87e7e2a846ce0041d3e656aaa09be4c8b5dbe6acd233711c38c95f9f673bb'
+EXPOSURE_POST_PROMOTION_HOLDOUT_SHA = '76b852aff6868407a46ad0d9ff5df021b123c34e25041b29d02b61db7e05c99d'
+EXPOSURE_FINAL_ACTIVE_SHA = 'bf026f36713100eec66bff30a34fedb978e7fb45968068bddd31402af895d4cd'
+EXPOSURE_REPLACEMENT_ID = 'gc-867525fbdc2c090e'
+EXPOSURE_REPLACEMENT_SHA = '59ce9e940b330d5f6fd46d33d8b47e6ce7db38a8e7b4a5bfb37d80066ee89ce3'
+FAILED_REPLACEMENT_ARCHIVE = SPEC / 'archive' / 'run-20260727T002809Z-ac40e6'
+FAILED_REPLACEMENT_RUN_SHA = 'e508cf56e0d0e0f5ff060af03f8976ebb4b8e73cc481e2d1090c98b96e560bab'
+INSPECTION_ARCHIVE = SPEC / 'archive' / 'inspection-20260727T041105Z'
+INSPECTION_RECEIPT_SHA = '12f0d6d8812a5b2cee513987106619e2f7c6061c730630aae26383c26715a81f'
+FINAL_AUDIT_RECEIPT_SHA = 'f8c4ddeed40e0d30a9c9e76547a4cd74c575a21b489f6f9d0009119abeefbeb5'
 ADR0050_ROTATION_ARCHIVE = SPEC / 'archive' / 'adr-0050-20260726'
 NEXT16_PROXY_ARCHIVE = SPEC / 'archive' / 'next16-proxy-20260726'
 ADR0050_CONTAMINATED_ID = 'gc-6e4d655c2e0f8997'
@@ -232,23 +259,109 @@ for case in v1_cases:
 
 active = load_jsonl(SPEC / 'golden' / 'cases.jsonl')
 holdout = load_jsonl(SPEC / 'golden' / 'holdout.jsonl')
-assert len(active) == 13
+assert len(active) == 15
 assert len(holdout) == 3
-assert digest(SPEC / 'golden' / 'holdout.jsonl') == REPLACEMENT_HOLDOUT_SHA
+assert digest(SPEC / 'golden' / 'holdout.jsonl') == CURRENT_HOLDOUT_SHA
 replacement_record_hashes = {
     json.loads(line)['id']: hashlib.sha256(line.encode()).hexdigest()
     for line in (SPEC / 'golden' / 'holdout.jsonl').read_text().splitlines(keepends=True)
 }
-assert replacement_record_hashes == REPLACEMENT_HOLDOUT_RECORDS
+assert replacement_record_hashes == CURRENT_HOLDOUT_RECORDS
 adr0050_rotation = json.loads((ADR0050_ROTATION_ARCHIVE / 'contamination-receipt.json').read_text())
 assert adr0050_rotation['status'] == 'contaminated_and_rotated'
 assert adr0050_rotation['content_used_for_prompt_iteration'] is False
 assert adr0050_rotation['outputs_inspected'] is False
 assert adr0050_rotation['contaminated_case_id'] == ADR0050_CONTAMINATED_ID
 assert adr0050_rotation['archived_record_sha256'] == ADR0050_CONTAMINATED_SHA
-assert adr0050_rotation['post_transition_holdout_sha256'] == REPLACEMENT_HOLDOUT_SHA
-assert adr0050_rotation['replacement_case_id'] in REPLACEMENT_HOLDOUT_RECORDS
+assert adr0050_rotation['post_transition_holdout_sha256'] == ADR0050_REPLACEMENT_HOLDOUT_SHA
+assert adr0050_rotation['replacement_case_id'] in ADR0050_REPLACEMENT_HOLDOUT_RECORDS
 assert digest(ADR0050_ROTATION_ARCHIVE / 'contaminated-obsolete-case.jsonl') == ADR0050_CONTAMINATED_SHA
+exposure_receipt = json.loads((EXPOSURE_ARCHIVE / 'exposure-receipt.json').read_text())
+sealing_receipt = json.loads((EXPOSURE_ARCHIVE / 'sealing-receipt.json').read_text())
+assert exposure_receipt['status'] == 'contaminated_and_promoted'
+assert exposure_receipt['content_used_for_prompt_iteration'] is False
+assert exposure_receipt['outputs_inspected_after_exposure'] is False
+assert exposure_receipt['contaminated_case_id'] == EXPOSED_CASE_ID
+assert exposure_receipt['pre_transition_holdout_sha256'] == EXPOSURE_PRE_HOLDOUT_SHA
+assert exposure_receipt['post_transition_holdout_sha256'] == EXPOSURE_POST_PROMOTION_HOLDOUT_SHA
+assert exposure_receipt['replacement_case_id'] == EXPOSURE_REPLACEMENT_ID
+assert exposure_receipt['replacement_record_sha256'] == EXPOSURE_REPLACEMENT_SHA
+assert digest(EXPOSURE_ARCHIVE / 'contaminated-case-original.jsonl') == EXPOSED_ORIGINAL_SHA
+assert digest(SPEC / 'golden' / 'cases.jsonl') == CURRENT_ACTIVE_SHA
+current_active_record_hashes = {
+    json.loads(line)['id']: hashlib.sha256(line.encode()).hexdigest()
+    for line in (SPEC / 'golden' / 'cases.jsonl').read_text().splitlines(keepends=True)
+}
+assert current_active_record_hashes[EXPOSED_CASE_ID] == EXPOSED_PROMOTED_SHA
+assert EXPOSED_CASE_ID not in {case['id'] for case in holdout}
+assert sealing_receipt['replacement_case_id'] == EXPOSURE_REPLACEMENT_ID
+assert sealing_receipt['replacement_record_sha256'] == EXPOSURE_REPLACEMENT_SHA
+assert sealing_receipt['final_active_sha256'] == EXPOSURE_FINAL_ACTIVE_SHA
+assert sealing_receipt['final_holdout_sha256'] == FAILED_REPLACEMENT_POOL_SHA
+assert sealing_receipt['final_active_count'] == 14
+assert sealing_receipt['final_holdout_count'] == 3
+assert sealing_receipt['prompt_changes_after_sealing'] is False
+assert sealing_receipt['candidate_plaintext_retained_outside_holdout'] is False
+assert not (EXPOSURE_ARCHIVE / 'clean-room-candidate.json').exists()
+
+failed_replacement_receipt = json.loads((FAILED_REPLACEMENT_ARCHIVE / 'burn-receipt.json').read_text())
+assert failed_replacement_receipt['run_id'] == 'run-20260727T002809Z-ac40e6'
+assert failed_replacement_receipt['run_sha256'] == FAILED_REPLACEMENT_RUN_SHA
+assert failed_replacement_receipt['aggregate'] == 0.9412
+assert failed_replacement_receipt['unknown_ratio'] == 0.0
+assert failed_replacement_receipt['failed_case_id'] == EXPOSURE_REPLACEMENT_ID
+assert failed_replacement_receipt['failed_record_sha256'] == EXPOSURE_REPLACEMENT_SHA
+assert failed_replacement_receipt['pre_transition_active_sha256'] == EXPOSURE_FINAL_ACTIVE_SHA
+assert failed_replacement_receipt['pre_transition_holdout_sha256'] == FAILED_REPLACEMENT_POOL_SHA
+assert failed_replacement_receipt['post_transition_active_sha256'] == CURRENT_ACTIVE_SHA
+assert failed_replacement_receipt['post_transition_holdout_sha256'] == EXPOSURE_POST_PROMOTION_HOLDOUT_SHA
+assert failed_replacement_receipt['active_count_after_transition'] == 15
+assert failed_replacement_receipt['sealed_count_after_transition'] == 2
+assert failed_replacement_receipt['output_inspected_before_promotion'] is False
+assert digest(FAILED_REPLACEMENT_ARCHIVE / 'burned-case-original.jsonl') == EXPOSURE_REPLACEMENT_SHA
+
+inspection_receipt = json.loads((INSPECTION_ARCHIVE / 'contamination-receipt.json').read_text())
+assert inspection_receipt['status'] == 'contaminated_and_rotated'
+assert inspection_receipt['content_used_for_prompt_iteration'] is False
+assert inspection_receipt['prompt_changed_from_contaminated_content'] is False
+assert inspection_receipt['contaminated_holdout_sha256'] == EXPOSURE_POST_PROMOTION_HOLDOUT_SHA
+assert inspection_receipt['contaminated_holdout_count'] == 2
+assert inspection_receipt['contaminated_records'] == {
+    'gc-51913b36c1570860': ADR0050_REPLACEMENT_HOLDOUT_RECORDS['gc-51913b36c1570860'],
+    'gc-15d1a422f6b33458': ADR0050_REPLACEMENT_HOLDOUT_RECORDS['gc-15d1a422f6b33458'],
+}
+assert digest(INSPECTION_ARCHIVE / 'contaminated-holdout.jsonl') == EXPOSURE_POST_PROMOTION_HOLDOUT_SHA
+
+final_audit_receipt = json.loads((FAILED_REPLACEMENT_ARCHIVE / 'replacement-audit-receipt.json').read_text())
+final_sealing_receipt = json.loads((FAILED_REPLACEMENT_ARCHIVE / 'replacement-sealing-receipt.json').read_text())
+assert digest(FAILED_REPLACEMENT_ARCHIVE / 'replacement-audit-receipt.json') == FINAL_AUDIT_RECEIPT_SHA
+assert final_audit_receipt['provider'] == 'Anthropic'
+assert final_audit_receipt['model'] == 'opus'
+assert final_audit_receipt['tools'] == []
+assert final_audit_receipt['session_persistence'] is False
+assert final_audit_receipt['sealed_material_available'] is False
+assert final_audit_receipt['verdict'] == 'APPROVE'
+assert final_audit_receipt['candidate_count'] == 3
+assert final_sealing_receipt['status'] == 'resealed_after_failed_holdout_burn_and_inspection_rotation'
+assert final_sealing_receipt['audit']['receipt_sha256'] == FINAL_AUDIT_RECEIPT_SHA
+assert final_sealing_receipt['inspection_rotation_receipt']['sha256'] == INSPECTION_RECEIPT_SHA
+assert final_sealing_receipt['pre_transition_active_sha256'] == CURRENT_ACTIVE_SHA
+assert final_sealing_receipt['pre_transition_holdout_sha256'] == EXPOSURE_POST_PROMOTION_HOLDOUT_SHA
+assert final_sealing_receipt['replacement_record_sha256'] == CURRENT_HOLDOUT_RECORDS
+assert final_sealing_receipt['final_active_sha256'] == CURRENT_ACTIVE_SHA
+assert final_sealing_receipt['final_holdout_sha256'] == CURRENT_HOLDOUT_SHA
+assert final_sealing_receipt['final_active_count'] == 15
+assert final_sealing_receipt['final_holdout_count'] == 3
+assert final_sealing_receipt['prompt_changes_after_sealing'] is False
+assert final_sealing_receipt['candidate_plaintext_retained_outside_holdout'] is False
+assert final_sealing_receipt['novelty']['active_and_burned_exact_duplicates'] == 0
+assert final_sealing_receipt['novelty']['contaminated_definitions_opened_for_comparison'] is False
+for candidate_path in (
+    EXPOSURE_ARCHIVE / 'clean-room-candidate.json',
+    FAILED_REPLACEMENT_ARCHIVE / 'clean-room-candidate.json',
+    ROOT / 'command-cleanroom-candidate.json',
+):
+    assert not candidate_path.exists()
 rotation_archive = SPEC / 'archive' / RUN_3D168B
 assert digest(rotation_archive / 'contaminated-holdout.jsonl') == CONTAMINATED_HOLDOUT_SHA
 contaminated_record_hashes = {
@@ -584,7 +697,7 @@ assert snapshot_eval_files() == before, 'missing target mutated prompt-eval evid
 holdout_before = (SPEC / 'golden' / 'holdout.jsonl').read_bytes()
 targeted_result = run_generator('--prompt-id', 'codex-task-prompt')
 assert targeted_result.returncode == 0, targeted_result.stderr
-assert 'codex-task-prompt: 13 active' in targeted_result.stdout
+assert 'codex-task-prompt: 15 active' in targeted_result.stdout
 assert (SPEC / 'golden' / 'holdout.jsonl').read_bytes() == holdout_before, 'sealed holdout bytes changed'
 assert snapshot_eval_files() == before, 'targeted regeneration was non-idempotent or crossed prompt boundaries'
 

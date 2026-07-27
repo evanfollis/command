@@ -1,0 +1,21 @@
+{
+  "schema_version": "prompteval.sealed-failure-burn.v1",
+  "run_id": "run-20260727T002809Z-ac40e6",
+  "run_sha256": "e508cf56e0d0e0f5ff060af03f8976ebb4b8e73cc481e2d1090c98b96e560bab",
+  "transcript_sha256": "a6829a89be0c9d9c6c948876a8ee6cfbb862e86997797aa00e59aae92b822da6",
+  "provenance_sha256": "1b19ecf2641a6b3cee9b1b262725853979a9f9d4f79b2836c7afb62e9edcc075",
+  "aggregate": 0.9412,
+  "unknown_ratio": 0.0,
+  "failed_case_id": "gc-867525fbdc2c090e",
+  "failed_case_status_when_run": "holdout",
+  "failed_record_sha256": "59ce9e940b330d5f6fd46d33d8b47e6ce7db38a8e7b4a5bfb37d80066ee89ce3",
+  "pre_transition_active_sha256": "bf026f36713100eec66bff30a34fedb978e7fb45968068bddd31402af895d4cd",
+  "pre_transition_holdout_sha256": "029a6b182c2edfe6d45b2529850a8e083270c695f8ce55bc015ee8f6f150550d",
+  "post_transition_active_sha256": "095cdf02f54645262111f4caf3a35f63e2f7e671d9497d5f4f5bc2f010c8ca36",
+  "post_transition_holdout_sha256": "76b852aff6868407a46ad0d9ff5df021b123c34e25041b29d02b61db7e05c99d",
+  "active_count_after_transition": 15,
+  "sealed_count_after_transition": 2,
+  "output_inspected_before_promotion": false,
+  "disposition": "mechanically promoted to active before output/grader inspection; never eligible as sealed replacement",
+  "warranted_prompt_regression": "release credential diagnosis must require runtime-only credentials, exact non-secret artifact canaries, authenticated intended-release and recovery outcomes, atomic restore of a distinct previous immutable release, and retained failed evidence"
+}

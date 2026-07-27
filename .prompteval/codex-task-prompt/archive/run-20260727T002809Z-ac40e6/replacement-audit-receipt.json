@@ -1,0 +1,24 @@
+{
+  "schema_version": "prompteval.clean-room-candidate-audit.v1",
+  "provider": "Anthropic",
+  "model": "opus",
+  "effort": "xhigh",
+  "tools": [],
+  "session_persistence": false,
+  "audited_at": "2026-07-27T05:27:58Z",
+  "sealed_material_available": false,
+  "active_material_available": "high-level coverage summary only",
+  "verdict": "APPROVE",
+  "criteria_passed": [
+    "schema and grounded judge clauses",
+    "read-only execution honesty",
+    "already-correct source acceptance",
+    "dimension-specific discrimination",
+    "clean-room leakage prohibition",
+    "mutual novelty and non-derivativeness"
+  ],
+  "candidate_count": 3,
+  "findings_count": 15,
+  "findings_sha256": "ed5b677881d775120bfc07fac76b8a1ceb43d6349140a955b1f0ae06061f1391",
+  "bounded_wording_change_applied": true
+}
