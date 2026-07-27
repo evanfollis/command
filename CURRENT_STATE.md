@@ -1,6 +1,6 @@
 # Command — Current State
 
-**Updated:** 2026-07-20T09:26Z
+**Updated:** 2026-07-27T01:15Z
 
 Command is the private, authenticated owner observatory for the Synaplex workspace. The legacy remote-operation product has been removed rather than hidden.
 
@@ -9,8 +9,31 @@ Command is the private, authenticated owner observatory for the Synaplex workspa
 - State: clean immutable release; `command.service` active on the configured local port
 - Authoritative identity: `/opt/workspace/runtime/releases/command/current/RELEASE.json`
 - Deployment path: `/opt/workspace/runtime/releases/command/current`
-- Verification: authenticated HTTP smoke passed; Chromium desktop/mobile smoke passed with no JavaScript errors or horizontal overflow
+- Verification: authenticated HTTP smoke passed; Chromium desktop/mobile smoke passed (2026-07-20)
 - Browser receipt: `/opt/workspace/runtime/browser-smoke/2026-07-20T09-24-59/`
+- **Working-tree gate status: FAILING** — `codex-task-prompt` golden hash drifted from accepted baseline. Uncommitted changes to `golden/holdout.jsonl` and `scripts/golden-contract-test.py` need a fresh uncached baseline before the next deploy.
+
+## Working-tree status (2026-07-27)
+
+The `fe3e62c` commit (2026-07-26) performed a major migration:
+
+- Added `AGENTS.md` (canonical charter, now a 5th governed prompt as `repository-instructions`)
+- Added `Makefile`, `repo.toml`, `.github/` (CI, Dependabot, CodeQL), `.node-version`
+- Added full `docs/architecture.md`, updated `docs/product-boundary.md`
+- Renamed `src/middleware.ts` → `src/proxy.ts` (Next.js 16 middleware convention change)
+- Added `deploy/command.service` (versioned complete unit), `deploy/command-canary.service`
+- Added `scripts/install-service-unit.sh`, `scripts/install-node-runtime.sh`, `scripts/service-unit-test.sh`
+- Added 5th governed prompt eval loop: `repository-instructions`
+- Deleted retired operator files: `src/lib/{executive,executor,review,router,taskStore,symphonyStore,environments,metaLearning}.ts`
+
+Subsequent commits (6b0ceec, 56d3a42, 1f4bf4c, 6906e2b, a13c4a4, fe3e62c) quarantined exposed eval evidence, hardened credential boundary, documented root ownership exception.
+
+Uncommitted changes (not yet committed):
+- `.prompteval/codex-task-prompt/archive/exposure-20260726T234755Z/exposure-receipt.json` (modified)
+- `.prompteval/codex-task-prompt/golden/holdout.jsonl` (1 line added — exposure quarantine rotation)
+- `scripts/golden-contract-test.py` (hardened reference search, +55 net lines)
+- `.prompteval/codex-task-prompt/archive/exposure-20260726T234755Z/clean-room-audit-receipt.json` (untracked)
+- `.prompteval/codex-task-prompt/archive/exposure-20260726T234755Z/sealing-receipt.json` (untracked)
 
 ## Product boundary
 
@@ -32,23 +55,24 @@ The home view reports:
 
 Collectors are bounded and isolated. A failed or malformed source degrades its own signal and records a collector error; it does not block the dashboard. Private transcripts remain outside the public projection.
 
-## Prompt and evaluation evidence
+## Prompt and evaluation evidence (5 governed prompts as of fe3e62c)
 
-All four prompt artifacts are governed, release-evaluated without cache, provenance-bound to actual provider routes, and accepted:
+- Codex task: baseline from `run-20260720T083722Z-cbdf26`; **golden hash drifted — needs fresh baseline**
+- Offline synthesis: baseline accepted; 14/14 required
+- Review: baseline accepted; 15/15 required plus 1/1 advisory
+- Thread opening: baseline accepted; 12/12 required; five of six advisory probes intentionally fail
+- Repository instructions (AGENTS.md): baseline accepted (added 2026-07-26)
 
-- Codex task: `run-20260720T083722Z-cbdf26`, 16/16 required, aggregate `1.0`, unknown ratio `0.0`, prompt `pv-0b6adfd6d31abcaa`
-- Offline synthesis: `run-20260720T053721Z-a77b42`, 14/14 required, aggregate `1.0`, unknown ratio `0.0`
-- Review: `run-20260720T053721Z-7adf3b`, 15/15 required plus 1/1 advisory, aggregate `1.0`, unknown ratio `0.0`
-- Thread opening: `run-20260720T053437Z-53294d`, 12/12 required; five of six intentionally non-gating advisory probes failed and remain visible
+## Pending handoff
 
-Full run-scoped model inputs, outputs, diagnostics, and latent execution provenance are retained in owner-only `0700/0600` transcript storage. Aggregate telemetry stays compact and non-blocking. Claude subscription throttling fell back to the Codex subscription during the final run, proving the intended cross-provider circuit without API keys.
+`command-july-2026-profiled-repository-migration-2026-07-26T19-57-29Z.md` — high-priority migration
+task (ADR-0050 full compliance, JWT defect fix, CI, lint/type, eval gate repair, service hardening).
+Depends on the architecture inventory (this tick) completing first. Next tick should execute it.
 
-The final adversarial review at exact evaluated HEAD returned `VERDICT: DEPLOYABLE`. Deployment preflight passes.
+## Next actions
 
-## Remaining maintenance
-
-- Curate the seven-day-old review candidate and rotate saturated review cases into harder or production-derived evidence.
-- Keep thread-opening advisory failures observational until evidence justifies promoting a specific behavior into the required contract.
-- Continue replacing synthetic cases with production regressions while preserving sealed holdout independence.
-
-These are maintenance signals, not deployment blockers.
+1. Commit and accept the golden hash drift resolution (`codex-task-prompt`): commit the three
+   pending files, run `prompteval run --no-cache --update-baseline codex-task-prompt`, accept.
+2. Execute the July 2026 repository migration handoff (`command-july-2026-profiled-repository-migration-2026-07-26T19-57-29Z.md`).
+3. Verify `src/proxy.ts` registers as Next.js 16 middleware on a fresh `make build`.
+4. Clean dead paths from `workspacePaths.ts` (`mentorRoot`, `recruiterRoot`).
