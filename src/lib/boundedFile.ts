@@ -27,14 +27,21 @@ export function readBoundedUtf8File(
     const initial = fstatSync(fd)
     if (!initial.isFile()) throw new Error('source is not a regular file')
     if (initial.size > maxBytes) throw new Error(`source exceeds ${maxBytes} bytes`)
-    const buffer = Buffer.alloc(maxBytes + 1)
+    const buffer = Buffer.alloc(initial.size + 1)
     let offset = 0
     while (offset < buffer.length) {
       const count = readSync(fd, buffer, offset, buffer.length - offset, null)
       if (count === 0) break
       offset += count
     }
-    if (offset > maxBytes) throw new Error(`source grew beyond ${maxBytes} bytes`)
+    const final = fstatSync(fd)
+    if (
+      offset !== initial.size
+      || final.size !== initial.size
+      || final.mtimeMs !== initial.mtimeMs
+    ) {
+      throw new Error('source changed during bounded read')
+    }
     return {
       text: buffer.subarray(0, offset).toString('utf8'),
       size: offset,
