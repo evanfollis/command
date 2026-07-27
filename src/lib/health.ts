@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { readBoundedUtf8File } from './boundedFile'
 import { WORKSPACE_PATHS } from './workspacePaths'
 
 export interface HealthData {
@@ -52,7 +53,7 @@ function readSha(): string {
   const versionFile = join(process.cwd(), 'dist', '.version')
   if (existsSync(versionFile)) {
     try {
-      cachedSha = readFileSync(versionFile, 'utf8').trim()
+      cachedSha = readBoundedUtf8File(versionFile, 128).text.trim()
       return cachedSha
     } catch {
       // Fall through to the development checkout identity.
@@ -106,7 +107,10 @@ export function getHealth(): HealthData {
 
   let lastCheck: string | null = null
   try {
-    lastCheck = readFileSync(WORKSPACE_PATHS.healthStatus, 'utf8').trim() || null
+    lastCheck = readBoundedUtf8File(
+      WORKSPACE_PATHS.healthStatus,
+      64_000,
+    ).text.trim() || null
   } catch {
     issues.push('health-status-unavailable')
   }
