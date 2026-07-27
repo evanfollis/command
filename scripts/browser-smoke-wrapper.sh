@@ -15,7 +15,12 @@ if [ ! -f "$MARKER" ]; then
   exit 1
 fi
 
-CHROMIUM_BIN=$(find node_modules/playwright-core/.local-browsers -name "chrome-headless-shell" -type f 2>/dev/null | head -1)
+CHROMIUM_BIN=$(
+  find node_modules/playwright-core/.local-browsers \
+    -name "chrome-headless-shell" -type f 2>/dev/null \
+    | head -1 \
+    || true
+)
 if [ -z "$CHROMIUM_BIN" ]; then
   echo "Chromium binary not found in node_modules."
   echo "Run: PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium"
