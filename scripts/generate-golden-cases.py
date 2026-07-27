@@ -13,17 +13,16 @@ import argparse
 
 import json
 
+import os
+
 import sys
-
-sys.path.insert(0, '/opt/workspace/supervisor/scripts/lib')
-
-from prompteval.goldens import new_case
-
-from prompteval.core import append_jsonl
 
 from pathlib import Path
 
-REPO = Path('/opt/workspace/projects/command')
+SCRIPT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SCRIPT_ROOT / "scripts"))
+
+from prompteval_portable import append_jsonl, new_case
 
 NOW = "2026-07-12T01:29:03Z"
 
@@ -41,10 +40,18 @@ def parse_args():
                            help='generate only this prompt (repeatable)')
     selection.add_argument('--all', action='store_true',
                            help='explicitly regenerate every prompt set')
+    parser.add_argument(
+        "--repo-root",
+        default=os.environ.get("COMMAND_REPO_ROOT", str(SCRIPT_ROOT)),
+        help="Command checkout to update (defaults to the checkout containing this script)",
+    )
     args = parser.parse_args()
-    return set(PROMPT_IDS if args.all else args.prompt_id)
+    root = Path(args.repo_root).resolve()
+    if not (root / ".prompteval").is_dir() or not (root / "src").is_dir():
+        parser.error(f"not a Command checkout: {root}")
+    return set(PROMPT_IDS if args.all else args.prompt_id), root
 
-SELECTED_PROMPTS = parse_args()
+SELECTED_PROMPTS, REPO = parse_args()
 
 def read_existing(*paths):
     existing = {}

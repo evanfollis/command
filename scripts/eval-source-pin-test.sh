@@ -10,7 +10,8 @@ trap cleanup EXIT
 
 mkdir -p "$ROOT/.prompteval/codex-task-prompt"
 printf 'stable\n' > "$ROOT/source.txt"
-printf '{"run_id":"run-test","release":true,"accepted_from_cache":false,"gate":{"passed":true}}\n' \
+printf '{}\n' > "$ROOT/.prompteval/codex-task-prompt/spec.json"
+printf '{"run_id":"run-test","release":true,"accepted_from_cache":false,"gate":{"passed":true},"prompt_version":"pv-test","spec_hash":"sh-test","golden_hash":"gh-test"}\n' \
   > "$ROOT/.prompteval/codex-task-prompt/baseline.json"
 git -C "$ROOT" init -q
 git -C "$ROOT" config user.email test@example.invalid
@@ -69,6 +70,17 @@ assert receipt["source_tree"] == subprocess.check_output(
 ).strip()
 assert receipt["source_drift_detected"] is False
 assert receipt["gate_passed"] is True
+assert receipt["prompt_version"] == "pv-test"
+assert receipt["spec_hash"] == "sh-test"
+assert receipt["golden_hash"] == "gh-test"
+assert receipt["governed_prompts"] == {
+    "codex-task-prompt": {
+        "run_id": "run-test",
+        "prompt_version": "pv-test",
+        "spec_hash": "sh-test",
+        "golden_hash": "gh-test",
+    }
+}
 PY
 
 echo 'release eval source revision pin detects mid-run drift'

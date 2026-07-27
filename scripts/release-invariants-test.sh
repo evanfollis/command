@@ -83,6 +83,7 @@ ln -sfn "$ROOT/releases/a" "$ROOT/releases/current.tmp"; mv -Tf "$ROOT/releases/
 smoke_runtime_match
 
 grep -q 'sha256sum "$STAGE/package-lock.json"' scripts/release.sh
+grep -q 'python3 "$REPO/scripts/prompteval-check.py"' scripts/release.sh
 grep -q 'ln -s "$DEPS/node_modules" "$STAGE/node_modules"' scripts/release.sh
 grep -q 'SMOKE_BASE="http://127.0.0.1:${SERVICE_PORT}" npm run smoke' scripts/release.sh
 grep -q 'recovered authenticated health' scripts/release.sh

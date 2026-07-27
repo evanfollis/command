@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -715,6 +717,21 @@ assert targeted_result.returncode == 0, targeted_result.stderr
 assert 'codex-task-prompt: 15 active' in targeted_result.stdout
 assert (SPEC / 'golden' / 'holdout.jsonl').read_bytes() == holdout_before, 'sealed holdout bytes changed'
 assert snapshot_eval_files() == before, 'targeted regeneration was non-idempotent or crossed prompt boundaries'
+
+# An explicit checkout root must confine every write to that checkout. This
+# catches the former absolute /opt/workspace/projects/command binding, which
+# made worktree and clean-checkout validation mutate the live repository.
+with tempfile.TemporaryDirectory(prefix='command-golden-root-') as directory:
+    copied_root = Path(directory) / 'command-copy'
+    shutil.copytree(ROOT / '.prompteval', copied_root / '.prompteval')
+    shutil.copytree(ROOT / 'src', copied_root / 'src')
+    copied_before = digest(copied_root / '.prompteval' / 'codex-task-prompt' / 'golden' / 'cases.jsonl')
+    copied_result = run_generator(
+        '--repo-root', str(copied_root), '--prompt-id', 'codex-task-prompt'
+    )
+    assert copied_result.returncode == 0, copied_result.stderr
+    assert digest(copied_root / '.prompteval' / 'codex-task-prompt' / 'golden' / 'cases.jsonl') == copied_before
+    assert snapshot_eval_files() == before, 'explicit copied-tree generation mutated the original checkout'
 
 rewrite_result = run_generator('--prompt-id', 'codex-task-prompt', '--rewrite-holdouts')
 assert rewrite_result.returncode != 0

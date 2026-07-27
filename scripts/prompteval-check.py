@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -96,6 +98,20 @@ spec_ids = {path.parent.name for path in REGISTRY.glob("*/spec.json")}
 if set(governed) != spec_ids:
     errors.append(f"governed inventory/spec mismatch: inventory={sorted(governed)} specs={sorted(spec_ids)}")
 
+identity_by_prompt: dict[str, dict[str, object]] = {}
+for prompt_id in sorted(spec_ids):
+    spec_dir = REGISTRY / prompt_id
+    spec = read_json(spec_dir / "spec.json")
+    baseline_path = spec_dir / "baseline.json"
+    if baseline_path.exists():
+        baseline = read_json(baseline_path)
+        identity_by_prompt[prompt_id] = {
+            "run_id": baseline.get("run_id"),
+            "prompt_version": prompt_version(spec),
+            "spec_hash": spec_hash(spec),
+            "golden_hash": golden_hash(spec_dir, spec.get("gate", {})),
+        }
+
 for prompt_id in sorted(spec_ids):
     spec_dir = REGISTRY / prompt_id
     spec = read_json(spec_dir / "spec.json")
@@ -118,6 +134,60 @@ for prompt_id in sorted(spec_ids):
         errors.append(f"{prompt_id}: baseline was accepted from cache")
     if baseline.get("gate", {}).get("passed") is not True:
         errors.append(f"{prompt_id}: baseline gate did not pass")
+    if prompt_id == "codex-task-prompt":
+        receipt_path = spec_dir / "source-revision.json"
+        if not receipt_path.exists():
+            errors.append(f"{prompt_id}: stable source-revision receipt is missing")
+            continue
+        receipt = read_json(receipt_path)
+        expected_receipt = {
+            "schema_version": "command.prompteval-source-revision.v1",
+            "status": "passed_from_stable_clean_revision",
+            "prompt_id": prompt_id,
+            "run_id": baseline.get("run_id"),
+            "worktree_clean_at_start": True,
+            "source_drift_detected": False,
+            "release": True,
+            "accepted_from_cache": False,
+            "gate_passed": True,
+            **expected,
+            "governed_prompts": identity_by_prompt,
+        }
+        for key, value in expected_receipt.items():
+            if receipt.get(key) != value:
+                errors.append(f"{prompt_id}: source-revision {key} does not match accepted evidence")
+        source_commit = receipt.get("source_commit")
+        source_tree = receipt.get("source_tree")
+        if not isinstance(source_commit, str) or not re.fullmatch(r"[a-f0-9]{40}", source_commit):
+            errors.append(f"{prompt_id}: source-revision commit is invalid")
+        elif not isinstance(source_tree, str) or not re.fullmatch(r"[a-f0-9]{40}", source_tree):
+            errors.append(f"{prompt_id}: source-revision tree is invalid")
+        else:
+            resolved_tree = subprocess.run(
+                ["git", "rev-parse", f"{source_commit}^{{tree}}"],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if resolved_tree.returncode != 0 or resolved_tree.stdout.strip() != source_tree:
+                errors.append(f"{prompt_id}: source-revision commit/tree provenance is invalid")
+            changed = subprocess.run(
+                [
+                    "git", "diff", "--name-only", source_commit, "--", ".",
+                    ":(exclude).prompteval/inventory.json",
+                    f":(exclude).prompteval/{prompt_id}/baseline.json",
+                    f":(exclude).prompteval/{prompt_id}/source-revision.json",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if changed.returncode != 0 or changed.stdout.strip():
+                errors.append(
+                    f"{prompt_id}: repository source changed after evaluated revision"
+                )
 
 if errors:
     for error in errors:

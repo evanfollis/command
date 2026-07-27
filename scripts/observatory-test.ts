@@ -104,6 +104,35 @@ const releaseSha = 'a'.repeat(40)
 writeFileSync(join(releaseRoot, 'RELEASE.json'), JSON.stringify({ releaseId: 'fixture-release', sha: releaseSha, dirty: false, builtAt: new Date().toISOString() }))
 writeFileSync(join(releaseRoot, 'dist', '.version'), `${releaseSha}\n`)
 
+const evalRoot = join(dir, '.prompteval')
+const evalSpecRoot = join(evalRoot, 'codex-task-prompt')
+mkdirSync(evalSpecRoot, { recursive: true })
+process.env.COMMAND_PROMPTEVAL_ROOT = evalRoot
+writeFileSync(join(dir, 'prompt.md'), 'fixture prompt\n')
+const evalSpec = { source: { type: 'whole_file', file: 'prompt.md' }, model: 'fixture-model', params: {}, executor: {}, gate: {} }
+const evalDigest = (value: unknown) => createHash('sha256').update(canonical(value)).digest('hex').slice(0, 16)
+const promptVersion = `pv-${evalDigest({ t: 'fixture prompt\n', m: 'fixture-model', p: {} })}`
+const specHash = `sh-${evalDigest({ source: evalSpec.source, executor: {}, argv_files: {}, dep_files: {}, judge: null, gate: {} })}`
+const goldenHash = 'gh-fixture'
+const evalBaseline = { ...acceptedBaseline, prompt_version: promptVersion, spec_hash: specHash, golden_hash: goldenHash }
+writeFileSync(join(evalRoot, 'inventory.json'), JSON.stringify({ enforce: true, prompts: [{ id: 'codex-task-prompt', file: 'prompt.md', status: 'governed' }] }))
+writeFileSync(join(evalSpecRoot, 'spec.json'), JSON.stringify(evalSpec))
+writeFileSync(join(evalSpecRoot, 'baseline.json'), JSON.stringify(evalBaseline))
+writeFileSync(join(evalSpecRoot, 'source-revision.json'), JSON.stringify({
+  schema_version: 'command.prompteval-source-revision.v1',
+  status: 'passed_from_stable_clean_revision',
+  prompt_id: 'codex-task-prompt',
+  run_id: 'run-1',
+  source_commit: 'b'.repeat(40),
+  source_tree: 'c'.repeat(40),
+  worktree_clean_at_start: true,
+  source_drift_detected: false,
+  release: true,
+  accepted_from_cache: false,
+  gate_passed: true,
+  governed_prompts: { 'codex-task-prompt': { run_id: 'run-1', prompt_version: promptVersion, spec_hash: specHash, golden_hash: goldenHash } },
+}))
+
 async function main() {
   const freshProjection = makeFreshProjection()
   writeFileSync(join(projectionRoot, 'projection.json'), JSON.stringify(freshProjection))
@@ -119,6 +148,12 @@ async function main() {
   assert.equal(isolated.currentCycles.find((item) => item.id === 'cycle-cycle-1')?.details?.owner, 'command')
   assert.equal(isolated.durability[0]?.state, 'healthy')
   assert.equal(isolated.deployment[0]?.state, 'healthy')
+  assert.equal(isolated.evalSummary !== undefined, true)
+
+  writeFileSync(join(dir, 'prompt.md'), 'drifted prompt\n')
+  const evalDrift = await getObservatorySnapshot({ bypassCache: true })
+  assert.equal(evalDrift.posture, 'blocked', 'prompt identity drift must block observatory posture')
+  writeFileSync(join(dir, 'prompt.md'), 'fixture prompt\n')
   // handoff-pressure is hardcoded unknown and must not appear in postureSignals — verified by
   // checking that the automation section contains it but posture is not 'unknown' solely due to it.
   assert.ok(isolated.automation.some((s) => s.id === 'handoff-pressure'), 'handoff-pressure must appear in automation for display')

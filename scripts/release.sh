@@ -73,6 +73,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 echo "==> preflight checks"
+python3 "$REPO/scripts/prompteval-check.py"
 "$WORKSPACE_ROOT/supervisor/scripts/lib/preflight-deploy.sh" "$REPO"
 
 TS=$(date -u +%Y%m%dT%H%M%SZ)

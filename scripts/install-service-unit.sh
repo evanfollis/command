@@ -79,6 +79,26 @@ if [ -d "$PROMPTEVAL_ROOT" ]; then
     done < <(find "$project_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0)
   done < <(find "$PROMPTEVAL_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0)
 fi
+
+# Sealed definitions are evaluator-only. Deny the service identity both file
+# reads and directory traversal before systemd adds its independent namespace
+# denial. Baselines, inventory, specs, and the declassified identity receipt
+# remain readable for observability.
+while IFS= read -r -d '' golden_dir; do
+  chown root:root "$golden_dir"
+  chmod 0700 "$golden_dir"
+  find "$golden_dir" -maxdepth 1 -type f -name 'holdout.jsonl' \
+    -exec chown root:root {} + -exec chmod 0600 {} +
+  if runuser -u "$SERVICE_USER" -- test -x "$golden_dir"; then
+    echo "command service account must not traverse sealed eval directory: $golden_dir" >&2
+    exit 1
+  fi
+  holdout="$golden_dir/holdout.jsonl"
+  if [ -e "$holdout" ] && runuser -u "$SERVICE_USER" -- test -r "$holdout"; then
+    echo "command service account must not read sealed eval definitions: $holdout" >&2
+    exit 1
+  fi
+done < <(find "$ROOT/.prompteval" -mindepth 2 -maxdepth 2 -type d -name golden -print0)
 bash "$ROOT/scripts/install-node-runtime.sh"
 NODE_RUNTIME="$RUNTIME_ROOT/toolchains/node-24-current"
 NODE_RUNTIME_REAL=$(readlink -f "$NODE_RUNTIME")

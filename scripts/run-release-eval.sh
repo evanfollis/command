@@ -38,7 +38,7 @@ EMPTY_STATE=$(printf '' | sha256sum | cut -d' ' -f1)
   exit 1
 }
 
-setsid "$EVAL_RUNNER" run "$ROOT" --id "$PROMPT_ID" \
+setsid --wait "$EVAL_RUNNER" run "$ROOT" --id "$PROMPT_ID" \
   --release --update-baseline --no-cache --yes &
 EVAL_PID=$!
 
@@ -88,6 +88,15 @@ from pathlib import Path
 root = Path.cwd()
 prompt_id = os.environ["COMMAND_EVAL_PROMPT_ID"]
 baseline = json.loads((root / ".prompteval" / prompt_id / "baseline.json").read_text())
+governed_prompts = {}
+for spec_path in sorted((root / ".prompteval").glob("*/spec.json")):
+    governed_baseline = json.loads((spec_path.parent / "baseline.json").read_text())
+    governed_prompts[spec_path.parent.name] = {
+        "run_id": governed_baseline["run_id"],
+        "prompt_version": governed_baseline["prompt_version"],
+        "spec_hash": governed_baseline["spec_hash"],
+        "golden_hash": governed_baseline["golden_hash"],
+    }
 receipt = {
     "schema_version": "command.prompteval-source-revision.v1",
     "status": "passed_from_stable_clean_revision",
@@ -102,6 +111,10 @@ receipt = {
     "release": baseline["release"],
     "accepted_from_cache": baseline["accepted_from_cache"],
     "gate_passed": baseline["gate"]["passed"],
+    "prompt_version": baseline["prompt_version"],
+    "spec_hash": baseline["spec_hash"],
+    "golden_hash": baseline["golden_hash"],
+    "governed_prompts": governed_prompts,
 }
 Path(os.environ["COMMAND_EVAL_RECEIPT_TMP"]).write_text(
     json.dumps(receipt, indent=2) + "\n"

@@ -8,6 +8,9 @@ Rotating it without an agreed secure handoff would lock out the owner, so the
 existing value is a documented temporary exception rather than an implicit
 claim that it meets the desired strength.
 
+Exception owner: Evan Follis. Review no later than 2026-08-15, and close the
+exception immediately when an owner-coordinated secure handoff is available.
+
 Compensating controls are:
 
 - the service listens on loopback and is reached through the Cloudflare tunnel;

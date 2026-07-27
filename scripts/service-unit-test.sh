@@ -7,7 +7,12 @@ set -euo pipefail
 }
 
 for unit in deploy/command.service deploy/command-canary.service; do
-  systemd-analyze verify "$unit"
+  # Full executable resolution belongs to the host install gate. A clean
+  # checkout has no workspace-pinned Node tree yet, so its repository contract
+  # validates the unit text without coupling CI to host runtime state.
+  if [ -x /opt/workspace/runtime/toolchains/node-24-current/bin/node ]; then
+    systemd-analyze verify "$unit"
+  fi
   grep -q '^NoNewPrivileges=yes$' "$unit"
   grep -q '^CapabilityBoundingSet=$' "$unit"
   grep -q '^ProtectSystem=strict$' "$unit"
@@ -31,10 +36,12 @@ for unit in deploy/command.service deploy/command-canary.service; do
   grep -q '^InaccessiblePaths=.*runtime/.secrets' "$unit"
   grep -q '^InaccessiblePaths=.*prompteval/.provenance.*prompteval/.transcripts' "$unit"
   grep -q '^InaccessiblePaths=.*projects/command/.env.local' "$unit"
+  grep -q '^InaccessiblePaths=.*codex-task-prompt/golden.*offline-synthesis-prompt/golden.*repository-instructions/golden.*review-prompt/golden.*thread-opening-frame/golden' "$unit"
   grep -q '^InaccessiblePaths=.*root/.claude.json.*root/.claude/.credentials.json' "$unit"
   grep -q '^ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js$' "$unit"
   grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/projects/command/.env.local$' "$unit"
   grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval/.provenance$' "$unit"
+  test "$(grep -c '^ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/.*/golden$' "$unit")" -eq 5
   grep -q '^User=command$' "$unit"
   grep -q '^Group=command$' "$unit"
 done
@@ -55,6 +62,9 @@ grep -Fq 'find "$PROMPTEVAL_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name '\''.*
 grep -Fq 'find "$runs_dir" -maxdepth 1 -type f -name '\''*.json'\''' scripts/install-service-unit.sh
 grep -q 'd:u:$SERVICE_USER:r-x" "$runs_dir"' scripts/install-service-unit.sh
 grep -q 'command service account must not read eval provenance' scripts/install-service-unit.sh
+grep -q 'command service account must not traverse sealed eval directory' scripts/install-service-unit.sh
+grep -q 'command service account must not read sealed eval definitions' scripts/install-service-unit.sh
+grep -Fq 'find "$ROOT/.prompteval" -mindepth 2 -maxdepth 2 -type d -name golden -print0' scripts/install-service-unit.sh
 grep -q 'setfacl -R -m "u:$SERVICE_USER:r-X" "$NODE_RUNTIME_REAL" "$CURRENT_RELEASE"' scripts/install-service-unit.sh
 grep -q 'setfacl -R -m "u:$SERVICE_USER:r-X" "$CURRENT_DEPS"' scripts/install-service-unit.sh
 if grep -Eq 'server-access|/tmp/tmux-0|COMMAND_TMUX_SOCKET' scripts/install-service-unit.sh deploy/command.service deploy/command-canary.service; then

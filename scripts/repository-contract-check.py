@@ -130,6 +130,36 @@ for baseline_path in sorted((ROOT / ".prompteval").glob("*/baseline.json")):
     except (OSError, json.JSONDecodeError, AttributeError, TypeError) as error:
         errors.append(f"{baseline_path.relative_to(ROOT)} baseline safety check failed: {error}")
 
+source_receipt_path = ROOT / ".prompteval" / "codex-task-prompt" / "source-revision.json"
+source_receipt_keys = {
+    "schema_version",
+    "status",
+    "prompt_id",
+    "run_id",
+    "source_commit",
+    "source_tree",
+    "worktree_clean_at_start",
+    "source_drift_detected",
+    "started_at",
+    "completed_at",
+    "release",
+    "accepted_from_cache",
+    "gate_passed",
+    "prompt_version",
+    "spec_hash",
+    "golden_hash",
+    "governed_prompts",
+}
+if source_receipt_path.exists():
+    try:
+        source_receipt = json.loads(source_receipt_path.read_text(encoding="utf-8"))
+        if set(source_receipt) != source_receipt_keys:
+            errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unapproved receipt schema")
+        if nested_payload_keys(source_receipt):
+            errors.append(f"{source_receipt_path.relative_to(ROOT)} contains case payload keys")
+    except (OSError, json.JSONDecodeError, AttributeError, TypeError) as error:
+        errors.append(f"{source_receipt_path.relative_to(ROOT)} safety check failed: {error}")
+
 sealed_search_rules = {
     ".prompteval/**/golden/holdout.jsonl",
     ".prompteval/**/archive/**/*.jsonl",

@@ -139,6 +139,47 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value)
 }
 
+function evalDigest(value: unknown): string {
+  return createHash('sha256').update(canonicalJson(value)).digest('hex').slice(0, 16)
+}
+
+function currentEvalIdentity(
+  root: string,
+  spec: Record<string, unknown>,
+): { prompt_version: string; spec_hash: string } {
+  const source = spec.source as Record<string, unknown> | undefined
+  if (source?.type !== 'whole_file' || typeof source.file !== 'string') {
+    throw new Error('prompt eval source is not a whole tracked file')
+  }
+  const promptText = readBounded(join(root, '..', source.file), MAX_JSON_BYTES)
+  const executor = (spec.executor ?? {}) as Record<string, unknown>
+  const argvFiles: Record<string, string> = {}
+  for (const argument of Array.isArray(executor.argv) ? executor.argv : []) {
+    if (typeof argument !== 'string') continue
+    const path = argument.startsWith('/') ? argument : join(root, '..', argument)
+    if (existsSync(path) && statSync(path).isFile()) argvFiles[argument] = evalDigest(readBounded(path, MAX_JSON_BYTES))
+  }
+  const depFiles: Record<string, string> = {}
+  for (const relative of Array.isArray(executor.deps) ? executor.deps : []) {
+    if (typeof relative !== 'string') continue
+    const path = relative.startsWith('/') ? relative : join(root, '..', relative)
+    depFiles[relative] = existsSync(path) && statSync(path).isFile()
+      ? evalDigest(readBounded(path, MAX_JSON_BYTES))
+      : 'missing'
+  }
+  return {
+    prompt_version: `pv-${evalDigest({ t: promptText, m: spec.model ?? '', p: spec.params ?? {} })}`,
+    spec_hash: `sh-${evalDigest({
+      source: spec.source,
+      executor,
+      argv_files: argvFiles,
+      dep_files: depFiles,
+      judge: spec.judge ?? null,
+      gate: spec.gate,
+    })}`,
+  }
+}
+
 function hasExactKeys(value: Record<string, unknown>, required: string[], optional: string[] = []): boolean {
   const keys = Object.keys(value)
   return required.every((key) => keys.includes(key)) && keys.every((key) => required.includes(key) || optional.includes(key))
@@ -471,18 +512,46 @@ export function validateAcceptedBaselineEvidence(parsed: Record<string, unknown>
 }
 
 function collectEvalState(): ObservatorySignal[] {
-  const root = join(WORKSPACE_PATHS.commandRoot, '.prompteval')
+  const root = process.env.COMMAND_PROMPTEVAL_ROOT || join(WORKSPACE_PATHS.commandRoot, '.prompteval')
   const inventoryPath = join(root, 'inventory.json')
   if (!existsSync(inventoryPath)) return [signal({ id: 'eval-governance', title: 'Prompt eval release gate', state: 'unknown', sourceRef: inventoryPath, reason: 'Prompt eval inventory is missing.' })]
   const inventory = JSON.parse(readBounded(inventoryPath, 128_000)) as { enforce?: boolean; prompts?: Array<{ id?: string | null; status?: string }> }
   if (!Array.isArray(inventory.prompts) || typeof inventory.enforce !== 'boolean') throw new Error('prompt eval inventory is invalid')
   const ids = inventory.prompts.filter((item) => item.status === 'governed' && typeof item.id === 'string').map((item) => String(item.id))
+  const receiptPath = join(root, 'codex-task-prompt', 'source-revision.json')
+  const receipt = existsSync(receiptPath)
+    ? JSON.parse(readBounded(receiptPath, 256_000)) as Record<string, unknown>
+    : null
+  const governedReceipt = receipt?.governed_prompts as Record<string, Record<string, unknown>> | undefined
+  const receiptValid = receipt?.schema_version === 'command.prompteval-source-revision.v1'
+    && receipt?.status === 'passed_from_stable_clean_revision'
+    && receipt?.prompt_id === 'codex-task-prompt'
+    && receipt?.worktree_clean_at_start === true
+    && receipt?.source_drift_detected === false
+    && receipt?.release === true
+    && receipt?.accepted_from_cache === false
+    && receipt?.gate_passed === true
+    && typeof receipt?.source_commit === 'string'
+    && /^[a-f0-9]{40}$/.test(String(receipt.source_commit))
+    && typeof receipt?.source_tree === 'string'
+    && /^[a-f0-9]{40}$/.test(String(receipt.source_tree))
+    && governedReceipt !== undefined
   const baselines = ids.flatMap((id) => {
     const path = join(root, id, 'baseline.json')
-    if (!existsSync(path)) return []
+    const specPath = join(root, id, 'spec.json')
+    if (!existsSync(path) || !existsSync(specPath) || !receiptValid) return []
     const parsed = JSON.parse(readBounded(path, 1_000_000)) as Record<string, unknown>
     const evidence = validateAcceptedBaselineEvidence(parsed)
-    return evidence ? [evidence] : []
+    const spec = JSON.parse(readBounded(specPath, 256_000)) as Record<string, unknown>
+    const current = currentEvalIdentity(root, spec)
+    const accepted = governedReceipt?.[id]
+    const identityValid = accepted?.run_id === parsed.run_id
+      && accepted?.prompt_version === parsed.prompt_version
+      && accepted?.spec_hash === parsed.spec_hash
+      && accepted?.golden_hash === parsed.golden_hash
+      && current.prompt_version === parsed.prompt_version
+      && current.spec_hash === parsed.spec_hash
+    return evidence && identityValid ? [evidence] : []
   })
   const statusRoot = join(WORKSPACE_PATHS.runtimeRoot, 'prompteval')
   const commandStatus = existsSync(statusRoot) ? readdirSync(statusRoot).find((name) => name.startsWith('command-') && existsSync(join(statusRoot, name, 'status.json'))) : undefined
@@ -493,7 +562,7 @@ function collectEvalState(): ObservatorySignal[] {
   const advisoryCases = baselines.reduce((sum, baseline) => sum + baseline.advisoryTotal, 0)
   const advisoryFailures = baselines.reduce((sum, baseline) => sum + baseline.advisoryFailed, 0)
   const advisoryReason = `${advisoryFailures}/${advisoryCases} advisory cases failed (non-blocking).`
-  return [signal({ id: 'eval-governance', title: 'Prompt eval release gate', state: complete ? 'healthy' : 'blocked', observedAt: statusPath ? statSync(statusPath).mtime.toISOString() : undefined, sourceRef: statusPath ?? inventoryPath, artifactHref: '/lineage', reason: complete ? `${baselines.length}/${ids.length} governed prompts have structurally valid uncached release baselines and enforcement is enabled; ${advisoryReason}` : `${baselines.length}/${ids.length} governed prompts have structurally valid uncached release baselines; inventory enforcement is ${inventory.enforce ? 'enabled' : 'disabled'}; ${advisoryReason}`, details: { governed: ids.length, acceptedFreshBaselines: baselines.length, advisoryCases, advisoryFailures, enforce: inventory.enforce, decayFlags: flagged.join(', ') || 'none' } })]
+  return [signal({ id: 'eval-governance', title: 'Prompt eval release gate', state: complete ? 'healthy' : 'blocked', observedAt: statusPath ? statSync(statusPath).mtime.toISOString() : undefined, sourceRef: statusPath ?? receiptPath, artifactHref: '/lineage', reason: complete ? `${baselines.length}/${ids.length} governed prompts match current prompt/spec identity and the sealed-golden source receipt; enforcement is enabled; ${advisoryReason}` : `${baselines.length}/${ids.length} governed prompts match current prompt/spec identity and the sealed-golden source receipt; inventory enforcement is ${inventory.enforce ? 'enabled' : 'disabled'}; ${advisoryReason}`, details: { governed: ids.length, acceptedFreshBaselines: baselines.length, advisoryCases, advisoryFailures, enforce: inventory.enforce, sourceReceiptValid: receiptValid, decayFlags: flagged.join(', ') || 'none' } })]
 }
 
 function collectDeployment(): ObservatorySignal[] {

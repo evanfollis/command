@@ -146,9 +146,13 @@ new_preserve_rubric = next(
 assert new_preserve_rubric == old_preserve_rubric
 
 release_source = (ROOT / 'scripts' / 'release.sh').read_text()
-preflight_source = Path('/opt/workspace/supervisor/scripts/lib/preflight-deploy.sh').read_text()
+assert release_source.index('python3 "$REPO/scripts/prompteval-check.py"') < release_source.index('git worktree add --detach')
 assert release_source.index('$WORKSPACE_ROOT/supervisor/scripts/lib/preflight-deploy.sh') < release_source.index('git worktree add --detach')
-assert '/opt/workspace/supervisor/scripts/prompteval check .' in preflight_source
+portable_check = (ROOT / 'scripts' / 'prompteval-check.py').read_text()
+assert 'Portable fail-closed prompt baseline drift check' in portable_check
+host_preflight = Path('/opt/workspace/supervisor/scripts/lib/preflight-deploy.sh')
+if host_preflight.exists():
+    assert '/opt/workspace/supervisor/scripts/prompteval check .' in host_preflight.read_text()
 
 # Regeneration must preserve the sealed holdout and every accepted/untracked
 # baseline, and must be byte-idempotent for the corrected active contract.

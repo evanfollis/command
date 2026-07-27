@@ -1,6 +1,6 @@
 # Command — Current State
 
-**Updated:** 2026-07-27T04:22Z
+**Updated:** 2026-07-27T07:10Z
 
 Command is the private, authenticated owner observatory for the Synaplex
 workspace. The legacy remote-operation product has been removed rather than
@@ -41,6 +41,10 @@ repository and agentic-system profile:
 - bounded, no-follow, change-detecting evidence readers with typed degradation
   for inaccessible or malformed sources;
 - five versioned prompt-evaluation loops and a payload-free run metadata reader.
+- portable clean-checkout prompt contracts, worktree-confined golden
+  generation, stable-source release-eval receipts consumed by preflight and
+  observability, and evaluator-only sealed definitions denied to the service
+  identity by both filesystem mode and systemd namespace policy.
 
 The current owner password remains unchanged. Its eight-character length is a
 dated, controlled exception pending secure owner handoff; the value has not
@@ -71,8 +75,11 @@ metadata-inspection command exposed the two surviving sealed definitions.
 Those records are preserved as contaminated evidence. An independent
 Anthropic Opus clean-room author and separate no-tool auditor have approved and
 sealed three fresh, non-derivative replacements from public coverage gaps.
-Production remains pinned while the full 18-case run and opposing-review
-remediation continue, until:
+Two independent opposing-review passes have driven remediation; the second
+pass's portability, identity-receipt, observability, and holdout-isolation
+blockers are implemented and locally verified. Production remains pinned while
+that code receives a fresh independent re-review and the full stable-source
+18-case run completes, until:
 
 1. a full uncached 18-case release evaluation passes with no unknown verdicts;
 2. the complete branch receives an independent opposing Anthropic review and

@@ -83,6 +83,7 @@ const webEntries = [
   ...walk(APP),
   ...walk(join(ROOT, 'src', 'components')),
   join(ROOT, 'server.ts'),
+  join(ROOT, 'src', 'proxy.ts'),
 ].filter((file) => ['.ts', '.tsx'].includes(extname(file)))
 
 function resolveLocalModule(importer: string, specifier: string): string | null {

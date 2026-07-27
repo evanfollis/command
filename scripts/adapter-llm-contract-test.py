@@ -3,10 +3,58 @@
 
 import re
 import sys
+import types
+from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts' / 'prompteval-adapters'))
+
+# Keep this repository contract runnable without the host-only evaluator. The
+# adapter's import boundary receives a deterministic fake with the same payload
+# record shape; no provider process can be started from this test.
+if 'prompteval.llm' not in sys.modules:
+    package = types.ModuleType('prompteval')
+    llm = types.ModuleType('prompteval.llm')
+
+    class AllProvidersThrottled(Exception):
+        pass
+
+    class LLMCallError(Exception):
+        pass
+
+    @dataclass
+    class CliCall:
+        provider: str
+        model: str
+        cmd: list[str]
+        stdin_text: str | None = None
+        input_text: str = ''
+        cwd: str | None = None
+        fallback_from: str = ''
+
+    def provider_for_model(model: str, default: str = 'claude') -> str:
+        normalized = model.lower()
+        return 'codex' if normalized.startswith('gpt') or 'codex' in normalized else default
+
+    def fallback_model(provider: str) -> str:
+        return 'sonnet' if provider == 'claude' else ''
+
+    def unavailable(*_args, **_kwargs):
+        raise AssertionError('provider execution is forbidden in the contract test')
+
+    for name, value in {
+        'AllProvidersThrottled': AllProvidersThrottled,
+        'CliCall': CliCall,
+        'LLMCallError': LLMCallError,
+        'fallback_model': fallback_model,
+        'provider_for_model': provider_for_model,
+        'run_with_fallback': unavailable,
+    }.items():
+        setattr(llm, name, value)
+    package.llm = llm
+    sys.modules['prompteval'] = package
+    sys.modules['prompteval.llm'] = llm
 
 import adapter_llm  # noqa: E402
 

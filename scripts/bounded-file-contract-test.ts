@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -12,17 +12,21 @@ try {
   const small = join(root, 'small.txt')
   const large = join(root, 'large.txt')
   const link = join(root, 'link.txt')
+  const directory = join(root, 'directory')
   writeFileSync(small, 'bounded evidence\n')
   writeFileSync(large, 'x'.repeat(65))
   symlinkSync(small, link)
+  mkdirSync(directory)
 
   assert.equal(readBoundedUtf8File(small, 64).text, 'bounded evidence\n')
   assert.throws(() => readBoundedUtf8File(large, 64), /exceeds 64 bytes/)
   assert.throws(() => readBoundedUtf8File(link, 64), /ELOOP/)
+  assert.throws(() => readBoundedUtf8File(directory, 64), /not a regular file/)
   assert.throws(() => readBoundedUtf8File(small, 0), /positive safe integer/)
   writeFileSync(large, 'discarded\nsecond\nthird\n')
   assert.equal(readBoundedUtf8Tail(large, 13).text, 'second\nthird\n')
   assert.throws(() => readBoundedUtf8Tail(link, 64), /ELOOP/)
+  assert.throws(() => readBoundedUtf8Tail(directory, 64), /not a regular file/)
   assert.deepEqual(parseContextUsageJsonl([
     JSON.stringify({ type: 'user' }),
     JSON.stringify({

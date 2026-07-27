@@ -12,6 +12,11 @@ Environment=NODE_ENV=production
 EnvironmentFile=/opt/workspace/projects/command/.env.local
 ExecStartPre=/usr/bin/test ! -r /opt/workspace/projects/command/.env.local
 ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval/.provenance
+ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/codex-task-prompt/golden
+ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/offline-synthesis-prompt/golden
+ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/repository-instructions/golden
+ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/review-prompt/golden
+ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/thread-opening-frame/golden
 ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js
 Restart=on-failure
 RestartSec=5
@@ -49,7 +54,7 @@ IPAddressDeny=any
 IPAddressAllow=localhost
 ReadOnlyPaths=/opt/workspace
 ReadWritePaths=/opt/workspace/runtime/.telemetry
-InaccessiblePaths=-/root/.ssh -/root/.gnupg -/root/.aws -/root/.config/gh -/root/.claude.json -/root/.claude/.credentials.json -/opt/workspace/runtime/.secrets -/opt/workspace/runtime/prompteval/.provenance -/opt/workspace/runtime/prompteval/.transcripts /opt/workspace/projects/command/.env.local
+InaccessiblePaths=-/root/.ssh -/root/.gnupg -/root/.aws -/root/.config/gh -/root/.claude.json -/root/.claude/.credentials.json -/opt/workspace/runtime/.secrets -/opt/workspace/runtime/prompteval/.provenance -/opt/workspace/runtime/prompteval/.transcripts /opt/workspace/projects/command/.env.local /opt/workspace/projects/command/.prompteval/codex-task-prompt/golden /opt/workspace/projects/command/.prompteval/offline-synthesis-prompt/golden /opt/workspace/projects/command/.prompteval/repository-instructions/golden /opt/workspace/projects/command/.prompteval/review-prompt/golden /opt/workspace/projects/command/.prompteval/thread-opening-frame/golden
 
 [Install]
 WantedBy=multi-user.target
