@@ -172,8 +172,8 @@ from pathlib import Path
 
 receipt = json.loads(Path(sys.argv[1]).read_text())
 assert receipt["evaluation_profile"] == "test-only"
-assert receipt["harness_revision"] == "c642f112b6b87d5c5965aa00aef9ffa1fc5e154f"
-assert receipt["harness_library_tree"] == "c435eccb82b4baff4f3efc87a22eacf3e1699bb8"
+assert receipt["harness_revision"] == "8a0c0e329d67f6be2cd248acf028406fb53927b7"
+assert receipt["harness_library_tree"] == "7ddfbbd2de03ee419272bedcf0089321ecd3ac86"
 assert receipt["harness_entry_blob"] == "5606220807dc51c6c84be92afe7f2de3c3acc302"
 assert receipt["expected_release_cases"] == 18
 assert len(receipt["baseline_sha256"]) == 64

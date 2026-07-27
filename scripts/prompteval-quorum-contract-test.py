@@ -16,8 +16,8 @@ if not __debug__:
     raise SystemExit("prompteval quorum contract requires assertions enabled")
 
 ROOT = Path(__file__).resolve().parents[1]
-HARNESS_REVISION = "c642f112b6b87d5c5965aa00aef9ffa1fc5e154f"
-HARNESS_TREE = "c435eccb82b4baff4f3efc87a22eacf3e1699bb8"
+HARNESS_REVISION = "8a0c0e329d67f6be2cd248acf028406fb53927b7"
+HARNESS_TREE = "7ddfbbd2de03ee419272bedcf0089321ecd3ac86"
 HARNESS_LIB = Path(
     os.environ.get(
         "PROMPTEVAL_HARNESS_LIB",
