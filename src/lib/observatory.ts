@@ -525,12 +525,24 @@ function collectEvalState(): ObservatorySignal[] {
   const governedReceipt = receipt?.governed_prompts as Record<string, Record<string, unknown>> | undefined
   const receiptValid = receipt?.schema_version === 'command.prompteval-source-revision.v1'
     && receipt?.status === 'passed_from_stable_clean_revision'
+    && receipt?.evaluation_profile === 'authoritative-claude-only'
     && receipt?.prompt_id === 'codex-task-prompt'
     && receipt?.worktree_clean_at_start === true
     && receipt?.source_drift_detected === false
     && receipt?.release === true
     && receipt?.accepted_from_cache === false
     && receipt?.gate_passed === true
+    && receipt?.harness_revision === 'c642f112b6b87d5c5965aa00aef9ffa1fc5e154f'
+    && receipt?.harness_library_tree === 'c435eccb82b4baff4f3efc87a22eacf3e1699bb8'
+    && receipt?.harness_entry_blob === '5606220807dc51c6c84be92afe7f2de3c3acc302'
+    && receipt?.expected_release_cases === 18
+    && receipt?.release_contract_status === 'passed'
+    && typeof receipt?.baseline_sha256 === 'string'
+    && /^[a-f0-9]{64}$/.test(String(receipt.baseline_sha256))
+    && typeof receipt?.raw_report_sha256 === 'string'
+    && /^[a-f0-9]{64}$/.test(String(receipt.raw_report_sha256))
+    && typeof receipt?.attempt_log_sha256 === 'string'
+    && /^[a-f0-9]{64}$/.test(String(receipt.attempt_log_sha256))
     && typeof receipt?.source_commit === 'string'
     && /^[a-f0-9]{40}$/.test(String(receipt.source_commit))
     && typeof receipt?.source_tree === 'string'

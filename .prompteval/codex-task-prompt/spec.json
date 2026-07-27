@@ -12,6 +12,9 @@
     "type": "command",
     "argv": [
       "python3",
+      "-B",
+      "-I",
+      "-P",
       "scripts/prompteval-adapters/codex-task-prompt-adapter.py"
     ],
     "timeout": 900,
@@ -29,7 +32,7 @@
   "gate": {
     "aggregate_floor_delta": 0.02,
     "trials": 1,
-    "max_unknown_ratio": 0.2
+    "max_unknown_ratio": 0.0
   },
   "created": "2026-07-12T01:29:03Z"
 }

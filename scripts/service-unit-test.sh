@@ -75,7 +75,8 @@ grep -Fq '\( -name golden -o -name archive -o -name judge \)' scripts/install-se
 grep -q 'grant_repo_read "$ROOT/.prompteval/inventory.json"' scripts/install-service-unit.sh
 grep -q 'runuser -u "$SERVICE_USER" -- test -r "$ROOT/.prompteval/inventory.json"' scripts/install-service-unit.sh
 grep -q 'runuser -u "$SERVICE_USER" -- test -r "$identity_input"' scripts/install-service-unit.sh
-grep -q 'chmod 0644 "$RECEIPT_TMP"' scripts/run-release-eval.sh
+grep -q 'temporary.chmod(0o644)' scripts/prompteval_source_receipt.py
+grep -q 'os.replace(temporary, receipt_path)' scripts/prompteval_source_receipt.py
 grep -q 'setfacl -R -m "u:$SERVICE_USER:r-X" "$NODE_RUNTIME_REAL" "$CURRENT_RELEASE"' scripts/install-service-unit.sh
 grep -q 'setfacl -R -m "u:$SERVICE_USER:r-X" "$CURRENT_DEPS"' scripts/install-service-unit.sh
 if grep -Eq 'server-access|/tmp/tmux-0|COMMAND_TMUX_SOCKET' scripts/install-service-unit.sh deploy/command.service deploy/command-canary.service; then

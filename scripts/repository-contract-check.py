@@ -134,6 +134,7 @@ source_receipt_path = ROOT / ".prompteval" / "codex-task-prompt" / "source-revis
 source_receipt_keys = {
     "schema_version",
     "status",
+    "evaluation_profile",
     "prompt_id",
     "run_id",
     "source_commit",
@@ -145,6 +146,14 @@ source_receipt_keys = {
     "release",
     "accepted_from_cache",
     "gate_passed",
+    "harness_revision",
+    "harness_library_tree",
+    "harness_entry_blob",
+    "expected_release_cases",
+    "baseline_sha256",
+    "raw_report_sha256",
+    "attempt_log_sha256",
+    "release_contract_status",
     "prompt_version",
     "spec_hash",
     "golden_hash",
@@ -155,6 +164,18 @@ if source_receipt_path.exists():
         source_receipt = json.loads(source_receipt_path.read_text(encoding="utf-8"))
         if set(source_receipt) != source_receipt_keys:
             errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unapproved receipt schema")
+        if source_receipt.get("evaluation_profile") != "authoritative-claude-only":
+            errors.append(f"{source_receipt_path.relative_to(ROOT)} has a non-authoritative profile")
+        if source_receipt.get("harness_revision") != "c642f112b6b87d5c5965aa00aef9ffa1fc5e154f":
+            errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unreviewed harness revision")
+        if source_receipt.get("harness_library_tree") != "c435eccb82b4baff4f3efc87a22eacf3e1699bb8":
+            errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unreviewed harness tree")
+        if source_receipt.get("harness_entry_blob") != "5606220807dc51c6c84be92afe7f2de3c3acc302":
+            errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unreviewed harness entrypoint")
+        if source_receipt.get("expected_release_cases") != 18:
+            errors.append(f"{source_receipt_path.relative_to(ROOT)} has the wrong release case count")
+        if source_receipt.get("release_contract_status") != "passed":
+            errors.append(f"{source_receipt_path.relative_to(ROOT)} lacks a passed release contract")
         if nested_payload_keys(source_receipt):
             errors.append(f"{source_receipt_path.relative_to(ROOT)} contains case payload keys")
     except (OSError, json.JSONDecodeError, AttributeError, TypeError) as error:

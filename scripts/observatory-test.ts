@@ -126,6 +126,7 @@ writeFileSync(join(evalSpecRoot, 'baseline.json'), JSON.stringify(evalBaseline))
 writeFileSync(join(evalSpecRoot, 'source-revision.json'), JSON.stringify({
   schema_version: 'command.prompteval-source-revision.v1',
   status: 'passed_from_stable_clean_revision',
+  evaluation_profile: 'authoritative-claude-only',
   prompt_id: 'codex-task-prompt',
   run_id: 'run-1',
   source_commit: 'b'.repeat(40),
@@ -135,6 +136,14 @@ writeFileSync(join(evalSpecRoot, 'source-revision.json'), JSON.stringify({
   release: true,
   accepted_from_cache: false,
   gate_passed: true,
+  harness_revision: 'c642f112b6b87d5c5965aa00aef9ffa1fc5e154f',
+  harness_library_tree: 'c435eccb82b4baff4f3efc87a22eacf3e1699bb8',
+  harness_entry_blob: '5606220807dc51c6c84be92afe7f2de3c3acc302',
+  expected_release_cases: 18,
+  baseline_sha256: 'd'.repeat(64),
+  raw_report_sha256: 'e'.repeat(64),
+  attempt_log_sha256: 'f'.repeat(64),
+  release_contract_status: 'passed',
   governed_prompts: { 'codex-task-prompt': { run_id: 'run-1', prompt_version: promptVersion, spec_hash: specHash, golden_hash: goldenHash } },
 }))
 

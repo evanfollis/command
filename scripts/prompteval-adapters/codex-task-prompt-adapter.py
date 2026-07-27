@@ -9,7 +9,11 @@ re-implementing substitution here. See adapter_llm.render_via_runtime.
 """
 import json
 import sys
+from pathlib import Path
 
+# The release executor starts Python with -I -P. Admit only this reviewed
+# adapter directory so its sibling support module remains importable.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from adapter_llm import print_result, render_via_runtime, run_prompt
 
 

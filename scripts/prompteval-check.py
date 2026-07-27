@@ -135,6 +135,39 @@ for prompt_id in sorted(spec_ids):
     if baseline.get("gate", {}).get("passed") is not True:
         errors.append(f"{prompt_id}: baseline gate did not pass")
     if prompt_id == "codex-task-prompt":
+        cases = baseline.get("cases")
+        if not isinstance(cases, dict) or len(cases) != 18:
+            errors.append(f"{prompt_id}: release baseline must contain exactly 18 cases")
+        elif any(result.get("pass") is not True for result in cases.values()):
+            errors.append(f"{prompt_id}: every release baseline case must pass")
+        if baseline.get("all_cases_passed") is not True:
+            errors.append(f"{prompt_id}: release baseline is not all-case green")
+        if baseline.get("judge_unknown_ratio") != 0:
+            errors.append(f"{prompt_id}: release baseline contains unknown judge checks")
+        provider = baseline.get("provider_provenance") or {}
+        if provider.get("providers") != ["claude"]:
+            errors.append(f"{prompt_id}: Claude is not the sole successful provider")
+        if provider.get("fallback_successes") != 0:
+            errors.append(f"{prompt_id}: fallback-provider success is forbidden")
+        routes = provider.get("routes") if isinstance(provider.get("routes"), list) else []
+        executor_success = sum(
+            route.get("calls", 0)
+            for route in routes
+            if route.get("role") == "executor-adapter"
+            and route.get("provider") == "claude"
+            and route.get("status") == "success"
+        )
+        judge_success = sum(
+            route.get("calls", 0)
+            for route in routes
+            if route.get("role") == "judge"
+            and route.get("provider") == "claude"
+            and route.get("status") == "success"
+        )
+        if executor_success < 18:
+            errors.append(f"{prompt_id}: release baseline lacks Claude executor coverage")
+        if judge_success < 54:
+            errors.append(f"{prompt_id}: release baseline lacks minimum Claude judge coverage")
         receipt_path = spec_dir / "source-revision.json"
         if not receipt_path.exists():
             errors.append(f"{prompt_id}: stable source-revision receipt is missing")
@@ -143,6 +176,7 @@ for prompt_id in sorted(spec_ids):
         expected_receipt = {
             "schema_version": "command.prompteval-source-revision.v1",
             "status": "passed_from_stable_clean_revision",
+            "evaluation_profile": "authoritative-claude-only",
             "prompt_id": prompt_id,
             "run_id": baseline.get("run_id"),
             "worktree_clean_at_start": True,
@@ -150,12 +184,23 @@ for prompt_id in sorted(spec_ids):
             "release": True,
             "accepted_from_cache": False,
             "gate_passed": True,
+            "harness_revision": "c642f112b6b87d5c5965aa00aef9ffa1fc5e154f",
+            "harness_library_tree": "c435eccb82b4baff4f3efc87a22eacf3e1699bb8",
+            "harness_entry_blob": "5606220807dc51c6c84be92afe7f2de3c3acc302",
+            "expected_release_cases": 18,
+            "baseline_sha256": hashlib.sha256(baseline_path.read_bytes()).hexdigest(),
+            "release_contract_status": "passed",
             **expected,
             "governed_prompts": identity_by_prompt,
         }
         for key, value in expected_receipt.items():
             if receipt.get(key) != value:
                 errors.append(f"{prompt_id}: source-revision {key} does not match accepted evidence")
+        for key in ("raw_report_sha256", "attempt_log_sha256"):
+            if not isinstance(receipt.get(key), str) or not re.fullmatch(
+                r"[a-f0-9]{64}", receipt[key]
+            ):
+                errors.append(f"{prompt_id}: source-revision {key} is invalid")
         source_commit = receipt.get("source_commit")
         source_tree = receipt.get("source_tree")
         if not isinstance(source_commit, str) or not re.fullmatch(r"[a-f0-9]{40}", source_commit):
