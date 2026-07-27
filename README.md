@@ -39,6 +39,7 @@ deploying. Deployment remains the explicit immutable `npm run deploy` path.
 - `AGENTS.md` — canonical repository instructions
 - `CURRENT_STATE.md` — current operational and delivery state
 - `docs/architecture.md` — composition, artifact roles, deployment, and safety
+- `docs/credential-rotation.md` — current credential exception and secure rotation
 - `docs/product-boundary.md` — authoritative human web boundary
 - `docs/observatory-contracts.md` — typed collector contracts
 - `.prompteval/` — governed prompt evaluation loops

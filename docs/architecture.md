@@ -80,6 +80,9 @@ parsed and rejected if dynamic runtime reads retain repository files outside
 the runtime package boundary.
 The systemd environment file is root-owned and has no group/other access; the
 service installer refuses to proceed when that ownership boundary is weaker.
+The dated owner-password strength exception and the owner-coordinated,
+non-logging rotation/recovery procedure are recorded in
+`docs/credential-rotation.md`.
 
 The cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, and path-scoped to `/`.
 Proxy redirects are relative or use the pinned public origin.
