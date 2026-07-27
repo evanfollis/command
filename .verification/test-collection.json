@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "collectors": [
+    {
+      "id": "command-runnable-test-files",
+      "mode": "files",
+      "roots": [
+        "scripts"
+      ],
+      "include": [
+        "*-test.py",
+        "*-test.sh",
+        "*-test.ts"
+      ],
+      "files": [
+        "scripts/adapter-llm-contract-test.py",
+        "scripts/artifacts-contract-test.ts",
+        "scripts/auth-contract-test.ts",
+        "scripts/claude-session-contract-test.ts",
+        "scripts/codex-task-builder-test.ts",
+        "scripts/eval-telemetry-test.ts",
+        "scripts/golden-contract-test.py",
+        "scripts/health-contract-test.ts",
+        "scripts/observatory-test.ts",
+        "scripts/offline-synthesis-contract-test.py",
+        "scripts/product-boundary-test.ts",
+        "scripts/prompteval-config-test.ts",
+        "scripts/release-invariants-test.sh",
+        "scripts/repository-instructions-contract-test.py",
+        "scripts/review-prompt-contract-test.py",
+        "scripts/service-unit-test.sh",
+        "scripts/symphony-projection-test.ts",
+        "scripts/thread-opening-contract-test.py"
+      ]
+    }
+  ]
+}
