@@ -1,6 +1,6 @@
 # Command — Current State
 
-**Updated:** 2026-07-27T09:35Z
+**Updated:** 2026-07-27T17:57Z
 
 Command is the private, authenticated owner observatory for the Synaplex
 workspace. The legacy remote-operation product has been removed rather than
@@ -69,23 +69,28 @@ the observatory is not an alternate operator surface.
 
 ## Current gate
 
-The migration is not yet releasable. A failed sealed Codex-task case was
-mechanically promoted to active before its output was inspected, and a later
-metadata-inspection command exposed the two surviving sealed definitions.
-Those records are preserved as contaminated evidence. An independent
-Anthropic Opus clean-room author and separate no-tool auditor have approved and
-sealed three fresh, non-derivative replacements from public coverage gaps.
-Five independent opposing-review passes have driven remediation. The latest
-pass identified a second sealed-data path through raw runtime run reports and
-a legacy-canary incompatibility in the new receipt smoke; a follow-up caught
-the remaining decay-status read after that runtime tree was closed. Raw
-evaluator runtime evidence is now wholly absent from observatory code and
-inaccessible to the service identity; the UI projects only payload-free
-accepted baselines, and the exact pinned predecessor has a named,
-version-scoped smoke allowance. Production remains pinned while those changes
-receive a fresh independent re-review and the full stable-source 18-case run
-completes, until:
+The migration is not yet releasable. The branch is now code-complete with all
+harness revision pins updated (commits `c0e9fe0`, `e6139c8` on 2026-07-27).
+`make check` passes 19 of 20 gates; only `eval:check` is blocked.
 
+The single remaining blocker is Claude API congestion preventing the 18-case
+release eval from completing. Case 3 (`gc-beeffc8ebf868689`, t-fix-03) has
+timed out on every afternoon attempt since ~12:30 UTC; earlier runs at 07:22
+and 09:12 UTC passed. The codex shim correctly blocks fallback, so the eval
+fails closed. Retry is needed when API congestion clears (expected early
+morning UTC 2026-07-28). Escalation at
+`runtime/.handoff/general-command-tick-escalation-2026-07-27T17-22-20Z.md`.
+
+Retry command (must run from clean worktree on this branch):
+```
+COMMAND_EVAL_CODEX_SHIM=/opt/workspace/runtime/prompteval/.provider-shims/claude-only/codex \
+  npm run eval:release
+```
+
+After eval succeeds, commit baseline.json + source-revision.json, then proceed
+to independent opposing review, GitHub CI, CodeQL, canary, and rollback gates.
+
+Remaining gates before production:
 1. a full uncached 18-case release evaluation passes with no unknown verdicts;
 2. the complete branch receives an independent opposing Anthropic review and
    all findings are resolved;
