@@ -8,12 +8,14 @@ PROJECTS_ROOT=${PROJECTS_ROOT:-"$WORKSPACE_ROOT/projects"}
 RUNTIME_ROOT=${RUNTIME_ROOT:-"$WORKSPACE_ROOT/runtime"}
 RELEASES=${COMMAND_RELEASE_ROOT:-"$RUNTIME_ROOT/releases/command"}
 REPO=${COMMAND_REPO_ROOT:-"$PROJECTS_ROOT/command"}
+[ "$(id -u)" -eq 0 ] || { echo "rollback requires root" >&2; exit 1; }
+acquire_command_deploy_lock "$RUNTIME_ROOT/deploy-locks/command.lock"
 SERVICE_PORT=$(resolve_command_port "$REPO/.env.local")
 [ -L "$RELEASES/previous" ] || { echo "no previous release to roll back to" >&2; exit 1; }
 PREV=$(readlink -f "$RELEASES/previous")
 CUR=$(readlink -f "$RELEASES/current")
-ln -sfn "$PREV" "$RELEASES/current.tmp"; mv -Tf "$RELEASES/current.tmp" "$RELEASES/current"
-ln -sfn "$CUR"  "$RELEASES/previous.tmp"; mv -Tf "$RELEASES/previous.tmp" "$RELEASES/previous"
+set_command_release_link "$RELEASES" current "$PREV"
+set_command_release_link "$RELEASES" previous "$CUR"
 systemctl restart command
 for _ in $(seq 1 15); do
   if systemctl is-active --quiet command && [ "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${SERVICE_PORT}/login" 2>/dev/null || true)" = "200" ]; then

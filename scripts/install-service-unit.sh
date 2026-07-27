@@ -25,6 +25,7 @@ SERVICE_USER=command
   || { echo '.env.local must be owned by root:root' >&2; exit 1; }
 [ $((8#$(stat -c '%a' "$ROOT/.env.local") & 8#077)) -eq 0 ] \
   || { echo '.env.local must not be accessible by group or other users' >&2; exit 1; }
+acquire_command_deploy_lock "$RUNTIME_ROOT/deploy-locks/command.lock"
 
 if ! getent passwd "$SERVICE_USER" >/dev/null; then
   useradd --system --user-group --home-dir /nonexistent --shell /usr/sbin/nologin "$SERVICE_USER"

@@ -41,6 +41,7 @@ getent passwd "$SERVICE_USER" >/dev/null || {
   echo "ERROR: dedicated service identity is missing; run npm run service:install" >&2
   exit 1
 }
+acquire_command_deploy_lock "$RUNTIME_ROOT/deploy-locks/command.lock"
 [ "$("$NODE_RUNTIME/bin/node" --version 2>/dev/null || true)" = "v24.18.0" ] || {
   echo "ERROR: supported Node runtime missing; run npm run runtime:setup" >&2
   exit 1
@@ -133,12 +134,13 @@ setfacl -m "u:$SERVICE_USER:--x" "$RELEASES" "$DEPS"
 setfacl -R -m "u:$SERVICE_USER:r-X" "$RELEASE" "$DEPS/node_modules"
 
 PREV=""
+PREVIOUS_BEFORE=""
 [ -L "$RELEASES/current" ] && PREV=$(readlink -f "$RELEASES/current")
+[ -L "$RELEASES/previous" ] && PREVIOUS_BEFORE=$(readlink -f "$RELEASES/previous")
 
 echo "==> pointing current -> $RELEASE_ID and restarting"
-ln -sfn "$RELEASE" "$RELEASES/current.tmp"
-mv -Tf "$RELEASES/current.tmp" "$RELEASES/current"   # rename(2): atomic
-[ -n "$PREV" ] && ln -sfn "$PREV" "$RELEASES/previous.tmp" && mv -Tf "$RELEASES/previous.tmp" "$RELEASES/previous"
+set_command_release_link "$RELEASES" current "$RELEASE"
+[ -n "$PREV" ] && set_command_release_link "$RELEASES" previous "$PREV"
 systemctl restart "$SERVICE"
 
 wait_for_service() {
@@ -161,7 +163,7 @@ else
     > "$FAILURE_RECEIPTS/$RELEASE_ID.json"
   chmod a-w "$FAILURE_RECEIPTS/$RELEASE_ID.json"
   if [ -n "$PREV" ]; then
-    ln -sfn "$PREV" "$RELEASES/current.tmp"; mv -Tf "$RELEASES/current.tmp" "$RELEASES/current"
+    restore_command_release_links "$RELEASES" "$PREV" "$PREVIOUS_BEFORE"
     systemctl restart "$SERVICE"
     if wait_for_service \
       && ( cd "$REPO" && SMOKE_BASE="http://127.0.0.1:${SERVICE_PORT}" npm run smoke ); then
