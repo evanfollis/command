@@ -30,6 +30,8 @@ for unit in deploy/command.service deploy/command-canary.service; do
   grep -q '^InaccessiblePaths=.*projects/command/.env.local' "$unit"
   grep -q '^InaccessiblePaths=.*root/.claude.json.*root/.claude/.credentials.json' "$unit"
   grep -q '^ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js$' "$unit"
+  grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/projects/command/.env.local$' "$unit"
+  grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval/.provenance$' "$unit"
   grep -q '^User=command$' "$unit"
   grep -q '^Group=command$' "$unit"
 done

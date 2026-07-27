@@ -11,6 +11,8 @@ WorkingDirectory=/opt/workspace/runtime/releases/command/current
 Environment=NODE_ENV=production
 EnvironmentFile=/opt/workspace/projects/command/.env.local
 EnvironmentFile=/run/command-hardening-canary.env
+ExecStartPre=/usr/bin/test ! -r /opt/workspace/projects/command/.env.local
+ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval/.provenance
 ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js
 Restart=no
 UMask=0077
