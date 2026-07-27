@@ -71,11 +71,17 @@ export function readClaudeSessions(): ClaudeSessionState[] {
   return out
 }
 
-function processAlive(pid: number): boolean {
+export function processAlive(
+  pid: number,
+  probe: (pid: number, signal: 0) => boolean = process.kill,
+): boolean {
   try {
-    process.kill(pid, 0)
+    probe(pid, 0)
     return true
-  } catch {
+  } catch (error) {
+    // The dedicated observatory identity cannot signal root-owned agent
+    // processes. EPERM proves the PID exists while preserving that boundary.
+    if ((error as NodeJS.ErrnoException).code === 'EPERM') return true
     return false
   }
 }

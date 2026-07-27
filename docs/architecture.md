@@ -96,21 +96,26 @@ The complete versioned unit is `deploy/command.service`. The installed unit is
 changed through a canary comparison and daemon reload; the release script does
 not silently rewrite service policy.
 
-## Current containment exception
+## Dedicated service identity
 
-As of 2026-07-26, the web service still runs as root because two retained
-session-observation APIs read root-owned Claude session records and the tmux
-socket. The unit removes Linux capabilities, blocks secret-bearing paths,
-makes the host and workspace read-only except the telemetry directory, and
-applies systemd kernel/device/process hardening. This is a bounded transition,
-not full conformance: direct tmux-socket reach and the root identity remain
-open.
+The web service runs as the system nologin `command` user with no Linux
+capabilities or privileged supplementary groups. systemd loads the root-owned
+runtime environment before applying the service identity; the process cannot
+open the environment file itself. The workspace is read-only except for the
+telemetry directory.
 
-Owner: workspace supervisor. Milestone: replace direct session/tmux inspection
-with a typed, sanitized supervisor-owned projection, then canary a dedicated
-`command-observatory` identity with `PrivateTmp=yes` and no `/root` access.
-Target review date: 2026-08-31. Until that cutover is outcome-tested, tightening
-the unit must not silently degrade project-status or context evidence.
+Two legacy observation sources still require narrow grants until the supervisor
+emits a complete typed projection. The installer applies read/default ACLs only
+to `/root/.claude/sessions` and uses tmux's native `server-access` facility to
+grant `command` read-only socket access. It grants a write/default ACL only to
+the telemetry directory. The service is deliberately not added to the Docker
+group: container evidence that cannot be obtained without the root-equivalent
+Docker socket remains typed `unknown`.
+
+`PrivateTmp=yes` remains incompatible with direct tmux observation, but this no
+longer requires a root process. Owner: workspace supervisor. Projection
+milestone: replace both legacy grants with a sanitized supervisor-owned
+evidence file, then remove `/root` traversal and tmux access entirely.
 
 ## Verification
 

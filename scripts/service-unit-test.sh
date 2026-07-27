@@ -13,12 +13,22 @@ for unit in deploy/command.service deploy/command-canary.service; do
   grep -q '^ProtectSystem=strict$' "$unit"
   grep -q '^ProtectKernelModules=yes$' "$unit"
   grep -q '^PrivateDevices=yes$' "$unit"
+  grep -q '^PrivateMounts=yes$' "$unit"
   grep -q '^RestrictNamespaces=yes$' "$unit"
+  grep -q '^KeyringMode=private$' "$unit"
+  grep -q '^IPAddressDeny=any$' "$unit"
+  grep -q '^IPAddressAllow=localhost$' "$unit"
   grep -q '^UMask=0077$' "$unit"
   grep -q '^ReadOnlyPaths=/opt/workspace$' "$unit"
   grep -q '^ReadWritePaths=/opt/workspace/runtime/.telemetry$' "$unit"
   grep -q '^InaccessiblePaths=.*runtime/.secrets' "$unit"
+  grep -q '^InaccessiblePaths=.*projects/command/.env.local' "$unit"
+  grep -q '^InaccessiblePaths=.*root/.claude.json.*root/.claude/.credentials.json' "$unit"
   grep -q '^ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js$' "$unit"
+  grep -q '^User=command$' "$unit"
+  grep -q '^Group=command$' "$unit"
+  grep -q '^ExecStartPre=-+/usr/bin/tmux server-access -a command$' "$unit"
+  grep -q '^ExecStartPre=-+/usr/bin/tmux server-access -r command$' "$unit"
 done
 
 grep -q '^WorkingDirectory=/opt/workspace/runtime/releases/command/current$' deploy/command.service
@@ -28,13 +38,25 @@ grep -q 'property=DropInPaths' scripts/install-service-unit.sh
 grep -q 'node-24-current/bin/node' scripts/install-service-unit.sh
 grep -q '.env.local must be owned by root:root' scripts/install-service-unit.sh
 grep -q '.env.local must not be accessible by group or other users' scripts/install-service-unit.sh
+grep -q 'useradd --system --user-group --home-dir /nonexistent --shell /usr/sbin/nologin' scripts/install-service-unit.sh
+grep -q 'setfacl -m "u:$SERVICE_USER:--x" /root' scripts/install-service-unit.sh
+grep -q 'd:u:$SERVICE_USER:r-x" /root/.claude/sessions' scripts/install-service-unit.sh
+grep -q 'd:u:$SERVICE_USER:rwx" "$RUNTIME_ROOT/.telemetry"' scripts/install-service-unit.sh
+grep -q 'runuser -u "$SERVICE_USER" -- /usr/bin/tmux list-sessions' scripts/install-service-unit.sh
+grep -q 'runuser -u "$SERVICE_USER" -- test -r "$RUNTIME_ROOT/releases/command/current/dist/server.js"' scripts/install-service-unit.sh
+grep -q 'runuser -u "$SERVICE_USER" -- test -w "$RUNTIME_ROOT/.telemetry"' scripts/install-service-unit.sh
+grep -q 'runuser -u "$SERVICE_USER" -- test -r "$ROOT/.env.local"' scripts/install-service-unit.sh
+if grep -Eq 'usermod.*docker|SupplementaryGroups=.*(docker|root)' scripts/install-service-unit.sh deploy/command.service; then
+  echo 'dedicated observatory identity gained a privileged group' >&2
+  exit 1
+fi
 grep -q 'tar --no-same-owner' scripts/install-node-runtime.sh
 grep -q 'chown -R root:root "$TARGET"' scripts/install-node-runtime.sh
 grep -q '"version": "24.18.0"' deploy/node-runtime-v24.18.0.json
 grep -q '"sha256": "55aa7153f9d88f28d765fcdad5ae6945b5c0f98a36881703817e4c450fa76742"' deploy/node-runtime-v24.18.0.json
-if grep -Eq '^PrivateTmp=yes$|^User=(command|command-observatory)$' deploy/command.service; then
-  echo 'root/session-observation exception changed without projection cutover evidence' >&2
+if grep -q '^User=root$' deploy/command.service deploy/command-canary.service; then
+  echo 'observatory units must not retain root identity' >&2
   exit 1
 fi
 
-echo 'versioned systemd unit and bounded containment-exception contracts passed'
+echo 'versioned dedicated-identity systemd and bounded evidence ACL contracts passed'

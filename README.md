@@ -5,11 +5,12 @@ Command is the active, private owner observatory for the Synaplex workspace at
 deployment, durability, and artifact lineage. Remote operation belongs in the
 Codex and Claude applications, not this web product.
 
-Verified today: the hosted product uses authenticated read-only routes,
-runtime-only JWT signing, typed evidence with explicit `unknown` states, and
-immutable lockfile-bound releases with smoke rollback. It does not claim to be
-an agent runtime. The dated root-service containment exception and remediation
-milestone are documented in `docs/architecture.md`.
+The release candidate uses authenticated read-only routes, runtime-only JWT
+signing, typed evidence with explicit `unknown` states, immutable
+lockfile-bound releases with smoke rollback, and a dedicated nologin service
+identity. It does not claim to be an agent runtime. Narrow legacy evidence ACLs
+and their projection-removal milestone are documented in
+`docs/architecture.md`.
 
 ## Product boundary
 

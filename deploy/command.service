@@ -5,12 +5,13 @@ After=network-online.target
 
 [Service]
 Type=simple
-# Dated exception: see docs/architecture.md "Current containment exception".
-User=root
-Group=root
+User=command
+Group=command
 WorkingDirectory=/opt/workspace/runtime/releases/command/current
 Environment=NODE_ENV=production
 EnvironmentFile=/opt/workspace/projects/command/.env.local
+ExecStartPre=-+/usr/bin/tmux server-access -a command
+ExecStartPre=-+/usr/bin/tmux server-access -r command
 ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js
 Restart=on-failure
 RestartSec=5
@@ -26,16 +27,22 @@ ProtectKernelModules=yes
 ProtectKernelLogs=yes
 ProtectControlGroups=yes
 ProtectClock=yes
+ProtectHostname=yes
 PrivateDevices=yes
+PrivateMounts=yes
 RestrictNamespaces=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
 LockPersonality=yes
+KeyringMode=private
+RemoveIPC=yes
 SystemCallArchitectures=native
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
 ReadOnlyPaths=/opt/workspace
 ReadWritePaths=/opt/workspace/runtime/.telemetry
-InaccessiblePaths=/root/.ssh /root/.gnupg /root/.aws /root/.config/gh /opt/workspace/runtime/.secrets
+InaccessiblePaths=/root/.ssh /root/.gnupg /root/.aws /root/.config/gh /root/.claude.json /root/.claude/.credentials.json /opt/workspace/runtime/.secrets /opt/workspace/projects/command/.env.local
 
 [Install]
 WantedBy=multi-user.target
