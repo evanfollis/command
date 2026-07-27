@@ -46,6 +46,7 @@ grep -q 'property=DropInPaths' scripts/install-service-unit.sh
 grep -q 'node-24-current/bin/node' scripts/install-service-unit.sh
 grep -q '.env.local must be owned by root:root' scripts/install-service-unit.sh
 grep -q '.env.local must not be accessible by group or other users' scripts/install-service-unit.sh
+grep -q 'for required_key in COMMAND_ORIGIN JWT_SECRET COMMAND_PASSWORD' scripts/install-service-unit.sh
 grep -q 'useradd --system --user-group --home-dir /nonexistent --shell /usr/sbin/nologin' scripts/install-service-unit.sh
 grep -q 'setfacl -m "u:$SERVICE_USER:--x" /root' scripts/install-service-unit.sh
 grep -q 'd:u:$SERVICE_USER:r-x" /root/.claude/sessions' scripts/install-service-unit.sh
@@ -68,12 +69,14 @@ grep -q 'CANARY_ONLY:-0' scripts/install-service-unit.sh
 grep -q "CURRENT_VERSION.*CURRENT_RELEASE/dist/.version" scripts/install-service-unit.sh
 grep -q "CURRENT_VERSION.*fde91bef34827c18572465b37557201fe7535eb1" scripts/install-service-unit.sh
 grep -q 'SMOKE_ALLOW_LEGACY_EVAL_ACL_FAILURE=1' scripts/install-service-unit.sh
+grep -q 'SMOKE_ALLOW_PRE_CSP_RELEASE=1' scripts/install-service-unit.sh
+grep -q 'ALLOW_PRE_CSP_RELEASE' scripts/smoke.ts
 grep -q "path === '/api/evals/summary'" scripts/smoke.ts
 grep -q "response.status === 500" scripts/smoke.ts
 grep -Fq "printf 'PORT=3310\\n' > \"\$CANARY_ENV\"" scripts/install-service-unit.sh
 grep -q 'rm -f "$CANARY_ENV"' scripts/install-service-unit.sh
 grep -q 'production unit unchanged' scripts/install-service-unit.sh
-if grep -Eq 'usermod.*docker|SupplementaryGroups=.*(docker|root)' scripts/install-service-unit.sh deploy/command.service; then
+if grep -Eq 'usermod.*docker|SupplementaryGroups=.*(docker|root)' scripts/install-service-unit.sh deploy/command.service deploy/command-canary.service; then
   echo 'dedicated observatory identity gained a privileged group' >&2
   exit 1
 fi

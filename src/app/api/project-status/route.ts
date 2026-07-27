@@ -4,7 +4,7 @@ import { join } from 'path'
 import { NextResponse } from 'next/server'
 
 import { readBoundedUtf8File } from '@/lib/boundedFile'
-import { correlateSession } from '@/lib/claudeSessions'
+import { correlateSession, observeClaudeSessions } from '@/lib/claudeSessions'
 import { observeSessions, observeSupervisedPids } from '@/lib/tmux'
 import { WORKSPACE_PATHS } from '@/lib/workspacePaths'
 
@@ -125,6 +125,7 @@ export async function GET() {
   const declared = parseSessionsConf()
   const liveSessions = observeSessions()
   const supervisedPids = observeSupervisedPids()
+  const claudeSessions = observeClaudeSessions()
   const liveNames = new Set(liveSessions.value.map((s) => s.name))
 
   const rows = declared.value.map((row) => {
@@ -135,6 +136,7 @@ export async function GET() {
       row.cwd,
       row.role,
       supervisedPids.value[row.name] ?? null,
+      claudeSessions.value,
     )
     return {
       name: row.name,
@@ -161,6 +163,7 @@ export async function GET() {
     ...(declared.status === 'unknown' ? ['sessions-config-unavailable'] : []),
     ...(liveSessions.status === 'unknown' ? ['tmux-sessions-unavailable'] : []),
     ...(supervisedPids.status === 'unknown' ? ['tmux-pids-unavailable'] : []),
+    ...(claudeSessions.status === 'unknown' ? ['claude-sessions-unavailable'] : []),
   ]
   return NextResponse.json({ status: issues.length ? 'unknown' : 'healthy', issues, sessions: rows })
 }

@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'fs'
 import { sign } from 'jsonwebtoken'
+import { NextRequest } from 'next/server'
 
 import { checkPassword, createToken, verifyToken } from '../src/lib/auth'
 import { resolveJwtSecret } from '../src/lib/authKey'
@@ -12,10 +13,13 @@ import {
   recordLoginFailure,
   resetLoginThrottleForTest,
 } from '../src/lib/loginThrottle'
+import { proxy } from '../src/proxy'
 
 const originalSecret = process.env.JWT_SECRET
 const originalPassword = process.env.COMMAND_PASSWORD
+const originalOrigin = process.env.COMMAND_ORIGIN
 
+async function main() {
 try {
   delete process.env.JWT_SECRET
   assert.throws(
@@ -41,6 +45,25 @@ try {
   )
   const second = createToken()
   assert.equal(verifyToken(second), true, 'signing must use the rotated runtime secret')
+  process.env.COMMAND_ORIGIN = 'https://command.synaplex.ai'
+  const absentCookie = await proxy(new NextRequest('https://attacker.example/api/health'))
+  assert.equal(absentCookie.status, 307)
+  assert.equal(absentCookie.headers.get('location'), 'https://command.synaplex.ai/login')
+  const foreignIssuer = sign(
+    { role: 'owner' },
+    process.env.JWT_SECRET,
+    { algorithm: 'HS256', issuer: 'foreign.example', audience: 'command-owner' },
+  )
+  const rejectedForeignIssuer = await proxy(new NextRequest('https://attacker.example/api/health', {
+    headers: { cookie: `command_token=${foreignIssuer}` },
+  }))
+  assert.equal(rejectedForeignIssuer.status, 307)
+  assert.equal(rejectedForeignIssuer.headers.get('location'), 'https://command.synaplex.ai/login')
+  const acceptedOwner = await proxy(new NextRequest('https://attacker.example/api/health', {
+    headers: { cookie: `command_token=${second}` },
+  }))
+  assert.equal(acceptedOwner.status, 200)
+  assert.equal(acceptedOwner.headers.get('x-middleware-next'), '1')
   assert.equal(
     verifyToken(sign({ role: 'admin' }, 'not-the-runtime-secret')),
     false,
@@ -169,6 +192,14 @@ try {
   else process.env.JWT_SECRET = originalSecret
   if (originalPassword === undefined) delete process.env.COMMAND_PASSWORD
   else process.env.COMMAND_PASSWORD = originalPassword
+  if (originalOrigin === undefined) delete process.env.COMMAND_ORIGIN
+  else process.env.COMMAND_ORIGIN = originalOrigin
 }
 
 console.log('JWT runtime resolution and fail-closed contracts passed')
+}
+
+main().catch((error) => {
+  console.error(error)
+  process.exit(1)
+})

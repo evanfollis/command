@@ -126,6 +126,8 @@ FAILED_REPLACEMENT_RUN_SHA = 'e508cf56e0d0e0f5ff060af03f8976ebb4b8e73cc481e2d109
 INSPECTION_ARCHIVE = SPEC / 'archive' / 'inspection-20260727T041105Z'
 INSPECTION_RECEIPT_SHA = '12f0d6d8812a5b2cee513987106619e2f7c6061c730630aae26383c26715a81f'
 FINAL_AUDIT_RECEIPT_SHA = 'f8c4ddeed40e0d30a9c9e76547a4cd74c575a21b489f6f9d0009119abeefbeb5'
+INTERRUPTED_RUN_ARCHIVE = SPEC / 'archive' / 'run-20260727T052802Z-97d384-interrupted'
+INTERRUPTED_ATTEMPT_SHA = '8e0a1de1c5dc3bc22ca1b508a0d796c95121e1c561f69ac3c8acd9e30b202a34'
 ADR0050_ROTATION_ARCHIVE = SPEC / 'archive' / 'adr-0050-20260726'
 NEXT16_PROXY_ARCHIVE = SPEC / 'archive' / 'next16-proxy-20260726'
 ADR0050_CONTAMINATED_ID = 'gc-6e4d655c2e0f8997'
@@ -362,6 +364,19 @@ for candidate_path in (
     ROOT / 'command-cleanroom-candidate.json',
 ):
     assert not candidate_path.exists()
+
+interruption_receipt = json.loads((INTERRUPTED_RUN_ARCHIVE / 'interruption-receipt.json').read_text())
+assert interruption_receipt['status'] == 'interrupted_not_eligible_as_release_evidence'
+assert interruption_receipt['start_commit'] == '4f387b11c4f23d59ed6953671f568ff2a667f4fb'
+assert interruption_receipt['prompt_changed_during_run'] is False
+assert interruption_receipt['sealed_holdout_changed_during_run'] is False
+assert interruption_receipt['source_tree_changed_during_run'] is True
+assert interruption_receipt['baseline_updated'] is False
+assert interruption_receipt['completed_cache_boundaries'] == 3
+assert interruption_receipt['outputs_inspected'] is False
+assert interruption_receipt['sealed_case_content_inspected'] is False
+assert interruption_receipt['attempt_log']['sha256'] == INTERRUPTED_ATTEMPT_SHA
+assert digest(INTERRUPTED_RUN_ARCHIVE / 'attempt-log.jsonl') == INTERRUPTED_ATTEMPT_SHA
 rotation_archive = SPEC / 'archive' / RUN_3D168B
 assert digest(rotation_archive / 'contaminated-holdout.jsonl') == CONTAMINATED_HOLDOUT_SHA
 contaminated_record_hashes = {

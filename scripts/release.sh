@@ -92,8 +92,9 @@ if [ "$DIRTY" = true ]; then
   # Incident builds must reproduce what is actually in the tree, not just HEAD.
   git diff HEAD | (cd "$STAGE" && git apply --allow-empty -)
 fi
-cp "$REPO/.env.local" "$STAGE/.env.local" 2>/dev/null || true
-SERVICE_PORT=$(resolve_command_port "$STAGE/.env.local")
+# Read only the non-secret listener field from the root-owned runtime file.
+# Never copy the credential-bearing environment into the build worktree.
+SERVICE_PORT=$(resolve_command_port "$REPO/.env.local")
 
 # Compute from the staged release source, never the mutable working tree. The
 # cache contains full dependencies because this exact tree must build and run
@@ -183,10 +184,16 @@ fi
 
 # Keep the last KEEP releases; never reap current/previous.
 cd "$RELEASES"
-ls -1dt */ 2>/dev/null | tail -n +$((KEEP + 1)) | while read -r old; do
-  old=${old%/}
+release_count=0
+while IFS= read -r -d '' candidate; do
+  old=${candidate#* }
+  release_count=$((release_count + 1))
+  [ "$release_count" -le "$KEEP" ] && continue
   [ "$RELEASES/$old" = "$(readlink -f current)" ] && continue
   [ -L previous ] && [ "$RELEASES/$old" = "$(readlink -f previous)" ] && continue
   chmod -R u+w "$old" 2>/dev/null || true
   rm -rf "$old"
-done
+done < <(
+  find . -mindepth 1 -maxdepth 1 -type d -name '20*T*-*' \
+    -printf '%T@ %f\0' | sort -z -nr
+)

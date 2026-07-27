@@ -5,11 +5,15 @@ import { WORKSPACE_PATHS } from '../src/lib/workspacePaths'
 
 const BASE = process.env.SMOKE_BASE || 'http://localhost:3100'
 const ALLOW_LEGACY_EVAL_ACL_FAILURE = process.env.SMOKE_ALLOW_LEGACY_EVAL_ACL_FAILURE === '1'
-const PASSWORD = process.env.COMMAND_PASSWORD ||
-  readFileSync(WORKSPACE_PATHS.envLocal, 'utf8').match(/COMMAND_PASSWORD=(.*)/)?.[1]?.trim()
+const ALLOW_PRE_CSP_RELEASE = process.env.SMOKE_ALLOW_PRE_CSP_RELEASE === '1'
+const RUNTIME_ENV = readFileSync(WORKSPACE_PATHS.envLocal, 'utf8')
+const COMMAND_ORIGIN = process.env.COMMAND_ORIGIN
+  || RUNTIME_ENV.match(/^COMMAND_ORIGIN=(.*)$/m)?.[1]?.trim()
+const PASSWORD = process.env.COMMAND_PASSWORD
+  || RUNTIME_ENV.match(/^COMMAND_PASSWORD=(.*)$/m)?.[1]?.trim()
 
-if (!PASSWORD) {
-  console.error('FAIL: COMMAND_PASSWORD not set and not in .env.local')
+if (!PASSWORD || !COMMAND_ORIGIN) {
+  console.error('FAIL: COMMAND_PASSWORD and COMMAND_ORIGIN must be set at runtime or in .env.local')
   process.exit(1)
 }
 
@@ -24,7 +28,7 @@ async function main() {
   const loginBody = await loginRes.text()
   check('GET /login returns 200', loginRes.status === 200, `status=${loginRes.status}`)
   check('login page has password field', loginBody.includes('type="password"'))
-  if (!ALLOW_LEGACY_EVAL_ACL_FAILURE) {
+  if (!ALLOW_PRE_CSP_RELEASE) {
     const csp = loginRes.headers.get('content-security-policy') || ''
     check('login denies framing', loginRes.headers.get('x-frame-options') === 'DENY')
     check('login disables MIME sniffing', loginRes.headers.get('x-content-type-options') === 'nosniff')
@@ -32,9 +36,25 @@ async function main() {
     check('login constrains script and connection origins', csp.includes("default-src 'self'") && csp.includes("connect-src 'self'") && csp.includes("frame-src 'none'"))
   }
 
-  const ownerUnauth = await fetch(`${BASE}/`, { redirect: 'manual' })
-  check('GET / unauthed redirects to login', [302, 307].includes(ownerUnauth.status), `status=${ownerUnauth.status}`)
-  check('unauthenticated response omits private paths', !(await ownerUnauth.text()).includes('/opt/workspace'))
+  const authRequiredPaths = [
+    '/', '/lineage', '/artifacts', '/artifacts/eval/example.md', '/symphony',
+    '/api/health', '/api/metrics', '/api/metrics/summary',
+    '/api/evals/summary', '/api/project-status',
+    '/api/context-usage/general', '/api/symphony', '/api/symphony/example',
+  ]
+  for (const path of authRequiredPaths) {
+    const response = await fetch(`${BASE}${path}`, { redirect: 'manual' })
+    const location = response.headers.get('location')
+    check(
+      `GET ${path} rejects an unauthenticated request`,
+      [302, 307].includes(response.status) && location === `${COMMAND_ORIGIN}/login`,
+      `status=${response.status} location=${location}`,
+    )
+    check(
+      `GET ${path} unauthenticated response omits private paths`,
+      !(await response.text()).includes('/opt/workspace'),
+    )
+  }
 
   const cssMatch = loginBody.match(/\/_next\/static\/(?:css|chunks)\/[^"']+\.css/)
   if (cssMatch) {
@@ -60,7 +80,7 @@ async function main() {
   })
   check('form login returns 303', goodAuth.status === 303, `status=${goodAuth.status}`)
   const location = goodAuth.headers.get('location') || ''
-  check('login redirect is relative', location === '/' || location.startsWith('/'), `location=${location}`)
+  check('login redirect is the exact relative owner root', location === '/', `location=${location}`)
   const cookie = goodAuth.headers.get('set-cookie') || ''
   const token = cookie.match(/command_token=([^;]+)/)?.[1]
   check('auth cookie is HttpOnly, Secure, SameSite=Lax', Boolean(token && /HttpOnly/i.test(cookie) && /Secure/i.test(cookie) && /SameSite=Lax/i.test(cookie)))

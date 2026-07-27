@@ -33,6 +33,12 @@ export interface CorrelatedSession {
   conflictingPids: number[]
 }
 
+export interface ClaudeSessionObservation {
+  status: 'observed' | 'unknown'
+  value: ClaudeSessionState[]
+  issue: string | null
+}
+
 export function parseClaudeSessionState(value: unknown): ClaudeSessionState | null {
   if (!value || typeof value !== 'object') return null
   const parsed = value as Record<string, unknown>
@@ -75,20 +81,25 @@ export function parseClaudeSessionState(value: unknown): ClaudeSessionState | nu
   }
 }
 
-export function readClaudeSessions(): ClaudeSessionState[] {
-  if (!existsSync(CLAUDE_SESSIONS_DIR)) return []
+export function observeClaudeSessions(
+  directory = CLAUDE_SESSIONS_DIR,
+  readEntries: (path: string) => string[] = readdirSync,
+): ClaudeSessionObservation {
+  if (!existsSync(directory)) {
+    return { status: 'unknown', value: [], issue: 'claude-sessions-unavailable' }
+  }
   let entries: string[] = []
   try {
-    entries = readdirSync(CLAUDE_SESSIONS_DIR)
+    entries = readEntries(directory)
       .filter((name) => name.endsWith('.json'))
       .sort()
       .slice(-MAX_SESSION_METADATA_FILES)
   } catch {
-    return []
+    return { status: 'unknown', value: [], issue: 'claude-sessions-unavailable' }
   }
   const out: ClaudeSessionState[] = []
   for (const name of entries) {
-    const abs = join(CLAUDE_SESSIONS_DIR, name)
+    const abs = join(directory, name)
     let raw: string
     try {
       raw = readBoundedUtf8File(abs, MAX_SESSION_METADATA_BYTES).text
@@ -105,7 +116,11 @@ export function readClaudeSessions(): ClaudeSessionState[] {
     if (!processAlive(parsed.pid)) continue
     out.push(parsed)
   }
-  return out
+  return { status: 'observed', value: out, issue: null }
+}
+
+export function readClaudeSessions(): ClaudeSessionState[] {
+  return observeClaudeSessions().value
 }
 
 export function processAlive(
@@ -132,9 +147,9 @@ export function correlateSession(
   cwd: string,
   role: string,
   supervisedPid: number | null,
+  all: ClaudeSessionState[] = readClaudeSessions(),
 ): CorrelatedSession {
   const normalizedCwd = cwd.replace(/\/$/, '')
-  const all = readClaudeSessions()
   const matches = all.filter((s) => s.cwd === normalizedCwd)
   // Prefer the supervised PID if the caller knows it; otherwise pick the
   // oldest match (supervised is usually the first one started).

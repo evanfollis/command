@@ -7,5 +7,5 @@ canonical_repository = "https://github.com/evanfollis/command"
 
 [artifacts]
 authoritative = ["src/", "scripts/", "docs/", "deploy/", ".prompteval/"]
-generated = [".next/", "dist/"]
+generated = [".next/", "dist/", "tsconfig.tsbuildinfo"]
 historical = [".reviews/"]

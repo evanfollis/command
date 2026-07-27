@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
-import { extname, join, relative } from 'path'
+import { dirname, extname, join, normalize, relative, resolve } from 'path'
 
 const ROOT = join(__dirname, '..')
 const APP = join(ROOT, 'src', 'app')
@@ -79,11 +79,41 @@ for (const file of allowedRouteSources) {
   if (!actualRouteSources.includes(file)) errors.push(`documented route source is missing: ${file}`)
 }
 
-const webFiles = [
+const webEntries = [
   ...walk(APP),
   ...walk(join(ROOT, 'src', 'components')),
   join(ROOT, 'server.ts'),
 ].filter((file) => ['.ts', '.tsx'].includes(extname(file)))
+
+function resolveLocalModule(importer: string, specifier: string): string | null {
+  let base: string
+  if (specifier.startsWith('@/')) base = join(ROOT, 'src', specifier.slice(2))
+  else if (specifier.startsWith('.')) base = resolve(dirname(importer), specifier)
+  else return null
+  for (const candidate of [
+    base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx'),
+  ]) {
+    const normalized = normalize(candidate)
+    if (normalized.startsWith(`${ROOT}/`) && existsSync(normalized) && !statSync(normalized).isDirectory()) {
+      return normalized
+    }
+  }
+  return null
+}
+
+const webGraph = new Set<string>()
+const pending = [...webEntries]
+while (pending.length) {
+  const file = pending.pop()!
+  if (webGraph.has(file)) continue
+  webGraph.add(file)
+  const source = readFileSync(file, 'utf8')
+  for (const match of source.matchAll(/(?:from\s+|import\s*\()\s*['"]([^'"]+)['"]/g)) {
+    const dependency = resolveLocalModule(file, match[1])
+    if (dependency && !webGraph.has(dependency)) pending.push(dependency)
+  }
+}
+const webFiles = [...webGraph].sort()
 
 const forbiddenWebPatterns: Array<[RegExp, string]> = [
   [/['"`]\/operator-tools(?:[/'"`]|$)/, 'operator-tools link'],
@@ -93,14 +123,41 @@ const forbiddenWebPatterns: Array<[RegExp, string]> = [
   [/WebSocketServer|new WebSocket\(/, 'interactive WebSocket runtime'],
   [/attachLock/, 'retired attach-lock import'],
   [/\bsendKeys\b|\bsendNamedKeys\b/, 'tmux mutation import'],
-  [/\b(?:writeFileSync|appendFileSync|rmSync|renameSync|unlinkSync|mkdirSync)\b/, 'filesystem mutation import'],
-  [/\b(?:spawn|spawnSync)\s*\(/, 'process-spawn import'],
 ]
+
+const processAuthorityAllowlist = new Set([
+  'src/lib/health.ts',
+  'src/lib/observatory.ts',
+  'src/lib/tmux.ts',
+  'src/app/api/project-status/route.ts',
+])
+const filesystemMutationAllowlist = new Set([
+  'src/lib/telemetry.ts',
+])
 
 for (const file of webFiles) {
   const source = readFileSync(file, 'utf8')
+  const relativeFile = relative(ROOT, file)
   for (const [pattern, label] of forbiddenWebPatterns) {
-    if (pattern.test(source)) errors.push(`${relative(ROOT, file)} contains ${label}`)
+    if (pattern.test(source)) errors.push(`${relativeFile} contains ${label}`)
+  }
+  if (
+    /\b(?:writeFileSync|appendFileSync|rmSync|renameSync|unlinkSync|mkdirSync)\b/.test(source)
+    && !filesystemMutationAllowlist.has(relativeFile)
+  ) {
+    errors.push(`${relativeFile} contains non-allowlisted filesystem mutation authority`)
+  }
+  if (
+    /(?:from\s+['"](?:node:)?child_process['"]|\b(?:exec|execSync|execFile|execFileSync|spawn|spawnSync)\s*\()/.test(source)
+    && !processAuthorityAllowlist.has(relativeFile)
+  ) {
+    errors.push(`${relativeFile} contains non-allowlisted process authority`)
+  }
+  if (
+    processAuthorityAllowlist.has(relativeFile)
+    && (/\bshell\s*:\s*true\b/.test(source) || /['"]\/bin\/(?:ba)?sh['"]/.test(source))
+  ) {
+    errors.push(`${relativeFile} escapes the fixed-argv process boundary through a shell`)
   }
 }
 

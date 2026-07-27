@@ -82,6 +82,14 @@ export function readBoundedUtf8Tail(
       if (count === 0) break
       offset += count
     }
+    const final = fstatSync(fd)
+    if (
+      offset !== length
+      || final.size !== initial.size
+      || final.mtimeMs !== initial.mtimeMs
+    ) {
+      throw new Error('source changed during bounded read')
+    }
     let text = buffer.subarray(0, offset).toString('utf8')
     if (truncated) {
       if (buffer[0] === 0x0a) text = text.slice(1)

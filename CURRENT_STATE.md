@@ -68,14 +68,14 @@ the observatory is not an alternate operator surface.
 The migration is not yet releasable. A failed sealed Codex-task case was
 mechanically promoted to active before its output was inspected, and a later
 metadata-inspection command exposed the two surviving sealed definitions.
-Those records are being preserved as contaminated evidence and the complete
-three-case sealed pool is being independently regenerated from public coverage
-gaps. Production remains pinned until:
+Those records are preserved as contaminated evidence. An independent
+Anthropic Opus clean-room author and separate no-tool auditor have approved and
+sealed three fresh, non-derivative replacements from public coverage gaps.
+Production remains pinned while the full 18-case run and opposing-review
+remediation continue, until:
 
-1. an independent Anthropic clean-room author and separate auditor approve
-   three fresh, non-derivative holdouts;
-2. a full uncached 18-case release evaluation passes with no unknown verdicts;
-3. the complete branch receives an independent opposing Anthropic review and
+1. a full uncached 18-case release evaluation passes with no unknown verdicts;
+2. the complete branch receives an independent opposing Anthropic review and
    all findings are resolved;
-4. local gates, GitHub CI, CodeQL, dedicated-identity canary, immutable release,
+3. local gates, GitHub CI, CodeQL, dedicated-identity canary, immutable release,
    authenticated HTTP/Chromium verification, and rollback proof pass.

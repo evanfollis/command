@@ -25,6 +25,10 @@ SERVICE_USER=command
   || { echo '.env.local must be owned by root:root' >&2; exit 1; }
 [ $((8#$(stat -c '%a' "$ROOT/.env.local") & 8#077)) -eq 0 ] \
   || { echo '.env.local must not be accessible by group or other users' >&2; exit 1; }
+for required_key in COMMAND_ORIGIN JWT_SECRET COMMAND_PASSWORD; do
+  grep -Eq "^${required_key}=.+" "$ROOT/.env.local" \
+    || { echo ".env.local must define non-empty ${required_key}" >&2; exit 1; }
+done
 acquire_command_deploy_lock "$RUNTIME_ROOT/deploy-locks/command.lock"
 
 if ! getent passwd "$SERVICE_USER" >/dev/null; then
@@ -139,10 +143,11 @@ for _ in $(seq 1 15); do
 done
 if [ "$CURRENT_VERSION" = 'fde91bef34827c18572465b37557201fe7535eb1' ]; then
   # This immutable predecessor scans hidden eval provenance before the
-  # dedicated-identity projection boundary existed. Do not grant that access:
-  # permit only its known eval-summary 500 while exercising every other
-  # authenticated canary assertion. All newer releases must return 200.
+  # dedicated-identity projection boundary existed and predates the complete
+  # response-header contract. Do not grant broader evidence access. Name both
+  # predecessor exceptions explicitly; all newer releases receive neither.
   SMOKE_ALLOW_LEGACY_EVAL_ACL_FAILURE=1 \
+    SMOKE_ALLOW_PRE_CSP_RELEASE=1 \
     SMOKE_BASE=http://127.0.0.1:3310 npm --prefix "$ROOT" run smoke
 else
   SMOKE_BASE=http://127.0.0.1:3310 npm --prefix "$ROOT" run smoke

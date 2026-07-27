@@ -1,0 +1,29 @@
+{
+  "schema_version": "prompteval.interrupted-run.v1",
+  "run_id": "run-20260727T052802Z-97d384",
+  "status": "interrupted_not_eligible_as_release_evidence",
+  "started_at": "2026-07-27T05:28:02Z",
+  "interrupted_at": "2026-07-27T05:55:02Z",
+  "reason": "Independent opposing-review remediation changed the live repository source inspected by read-only executor probes after the run began, so continuing would mix source revisions.",
+  "start_commit": "4f387b11c4f23d59ed6953671f568ff2a667f4fb",
+  "prompt_changed_during_run": false,
+  "sealed_holdout_changed_during_run": false,
+  "source_tree_changed_during_run": true,
+  "baseline_updated": false,
+  "completed_cache_boundaries": 3,
+  "attempts": {
+    "total": 34,
+    "success": 32,
+    "unavailable": 1,
+    "error": 1,
+    "executor_adapter": 5,
+    "judge": 29
+  },
+  "attempt_log": {
+    "file": "attempt-log.jsonl",
+    "sha256": "8e0a1de1c5dc3bc22ca1b508a0d796c95121e1c561f69ac3c8acd9e30b202a34"
+  },
+  "outputs_inspected": false,
+  "sealed_case_content_inspected": false,
+  "required_next_gate": "commit and independently re-review the complete source, then run a fresh uncached 18-case release evaluation from one immutable commit"
+}

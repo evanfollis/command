@@ -35,7 +35,13 @@ Every API except authentication requires the Command JWT. Non-GET methods on obs
 
 The following are intentionally absent, not hidden: operator-tools navigation, terminal/tmux attaches, WebSocket streams, session panes, message send, browser client-report ingestion, executive ensure/recover/thread actions, adversarial-review dispatch, conversational threads, and Symphony create/transition controls.
 
-`scripts/product-boundary-test.ts` prevents route files, links, WebSocket runtime imports, tmux mutation imports, and retired terminal dependencies from returning to the web surface. HTTP and Chromium smoke tests prove the removed routes are unavailable to an authenticated user.
+`scripts/product-boundary-test.ts` resolves the transitive local import graph
+from every page, route, component, and server entry point. It prevents links,
+WebSocket runtime imports, non-allowlisted process or filesystem authority,
+tmux mutation imports, and retired terminal dependencies from returning to the
+web surface. HTTP smoke exercises every documented private page/API without a
+cookie; authenticated HTTP and Chromium smoke prove the retained surface and
+removed-route boundary.
 
 ## Internal machinery
 

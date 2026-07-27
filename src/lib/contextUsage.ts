@@ -1,8 +1,11 @@
-import { createReadStream, existsSync, statSync } from 'fs'
+import { existsSync, lstatSync } from 'fs'
 import { join } from 'path'
-import { createInterface } from 'readline'
-import { readClaudeSessions } from './claudeSessions'
+import { readBoundedUtf8Tail } from './boundedFile'
+import { observeClaudeSessions } from './claudeSessions'
 import { WORKSPACE_PATHS } from './workspacePaths'
+
+const MAX_TRANSCRIPT_BYTES = 2 * 1024 * 1024
+const MAX_TRANSCRIPT_LINES = 10_000
 
 export interface ContextUsage {
   available: boolean
@@ -57,8 +60,9 @@ export async function getContextUsage(
   if (agent === 'codex') return UNKNOWN
 
   const normalized = cwd.replace(/\/$/, '')
-  const allSessions = readClaudeSessions()
-  const matches = allSessions.filter((s) => s.cwd === normalized)
+  const sessionObservation = observeClaudeSessions()
+  if (sessionObservation.status === 'unknown') return UNKNOWN
+  const matches = sessionObservation.value.filter((s) => s.cwd === normalized)
   if (matches.length === 0) return UNKNOWN
 
   const encodedCwd = encodeCwd(normalized)
@@ -68,7 +72,9 @@ export async function getContextUsage(
     const p = join(WORKSPACE_PATHS.claudeStateRoot, 'projects', encodedCwd, `${s.sessionId}.jsonl`)
     if (!existsSync(p)) continue
     try {
-      const mtime = statSync(p).mtimeMs
+      const stat = lstatSync(p)
+      if (!stat.isFile() || stat.isSymbolicLink()) continue
+      const mtime = stat.mtimeMs
       // Prefer the session whose PID matches the supervised tmux pane PID.
       // This avoids picking a tick/ad-hoc Claude process that shares the cwd
       // and happens to have a more recent JSONL.
@@ -82,15 +88,24 @@ export async function getContextUsage(
   const best = supervised ?? candidates.sort((a, b) => b.mtime - a.mtime)[0]
   const { sessionId, path: jsonlPath } = best
 
+  let text: string
+  try {
+    text = readBoundedUtf8Tail(jsonlPath, MAX_TRANSCRIPT_BYTES).text
+  } catch {
+    return UNKNOWN
+  }
+  return parseContextUsageJsonl(text, sessionId)
+}
+
+export function parseContextUsageJsonl(text: string, sessionId: string): ContextUsage {
   let model: string | null = null
   let lastUsage: { input_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number } | null = null
   let userTurns = 0
   let assistantTurns = 0
   let toolUses = 0
 
-  const rl = createInterface({ input: createReadStream(jsonlPath), crlfDelay: Infinity })
-
-  for await (const line of rl) {
+  const lines = text.split('\n').slice(-MAX_TRANSCRIPT_LINES)
+  for (const line of lines) {
     if (!line.trim()) continue
     let obj: Record<string, unknown>
     try {

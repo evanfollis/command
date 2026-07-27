@@ -31,6 +31,8 @@ models or dispatch agents.
 - External UTF-8 evidence uses one no-follow bounded-file primitive. Metrics
   and Symphony files cap at two million bytes, current-state documents at one
   million, session configuration at 128,000, and session metadata at 64,000;
+  context-usage transcript tails cap at two million bytes and 10,000 parsed
+  lines;
   oversize, symlinked, missing, or malformed inputs fail closed per projection.
   Claude session metadata is reduced to a typed allowlist before correlation;
   identifiers cannot become filesystem traversal or unencoded URL segments.
@@ -51,8 +53,10 @@ release CLI  -> preflight/build/smoke -> systemd service
 UI and route code may depend on read-only collectors. Collectors do not depend
 on UI or deployment code. The web dependency graph must not contain agent
 dispatch, tmux mutation, Symphony transition, task-store mutation, or arbitrary
-process-spawn capabilities. `scripts/product-boundary-test.ts` enforces the
-negative boundary and the route/method allowlist.
+process-spawn capabilities. `scripts/product-boundary-test.ts` resolves the
+transitive local import closure from every web entry point, then enforces the
+negative boundary, the narrow fixed-argv collector allowlist, and the
+route/method allowlist.
 
 The former operator runtime was deleted from current source after remote
 operation moved to Codex and Claude applications. Git history preserves its
@@ -149,7 +153,11 @@ obtained without the root-equivalent Docker socket remains `unknown`.
 
 Owner: workspace supervisor. Projection milestone: replace both unavailable
 privileged sources with a sanitized supervisor-owned evidence file, then remove
-the remaining `/root` traversal ACL.
+the remaining `/root` traversal ACL. Review this exception by 2026-08-15, or
+immediately if the Claude session producer changes its file mode/ACL behavior.
+`ProtectProc=invisible` and `ProcSubset=pid` also make host memory and uptime
+signals intentionally `unknown`; widening `/proc` visibility is not an
+acceptable observability shortcut.
 
 ## Verification
 

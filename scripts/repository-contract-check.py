@@ -74,6 +74,62 @@ try:
 except (OSError, json.JSONDecodeError, AttributeError, TypeError) as error:
     errors.append(f"test-collection witness invalid: {error}")
 
+baseline_keys = {
+    "accepted_from_cache",
+    "advisory_cases",
+    "aggregate",
+    "all_cases_passed",
+    "all_pass_streak",
+    "cases",
+    "gate",
+    "gate_policy",
+    "golden_hash",
+    "judge_model",
+    "judge_unknown_ratio",
+    "model",
+    "params",
+    "passed",
+    "prompt_version",
+    "provider_provenance",
+    "release",
+    "required_aggregate",
+    "required_cases",
+    "run_id",
+    "spec_hash",
+    "ts",
+}
+payload_keys = {"input", "output", "checks", "rubric", "detail", "trial_results"}
+
+
+def nested_payload_keys(value: object) -> set[str]:
+    found: set[str] = set()
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in payload_keys:
+                found.add(key)
+            found |= nested_payload_keys(child)
+    elif isinstance(value, list):
+        for child in value:
+            found |= nested_payload_keys(child)
+    return found
+
+
+for baseline_path in sorted((ROOT / ".prompteval").glob("*/baseline.json")):
+    try:
+        baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+        if set(baseline) != baseline_keys:
+            errors.append(f"{baseline_path.relative_to(ROOT)} has an unapproved baseline schema")
+        if nested_payload_keys(baseline):
+            errors.append(f"{baseline_path.relative_to(ROOT)} contains case payload keys")
+        cases = baseline.get("cases", {})
+        if not isinstance(cases, dict) or any(
+            not isinstance(result, dict) or set(result) != {"must_pass", "pass"}
+            for result in cases.values()
+        ):
+            errors.append(f"{baseline_path.relative_to(ROOT)} cases are not payload-free pass summaries")
+    except (OSError, json.JSONDecodeError, AttributeError, TypeError) as error:
+        errors.append(f"{baseline_path.relative_to(ROOT)} baseline safety check failed: {error}")
+
 sealed_search_rules = {
     ".prompteval/**/golden/holdout.jsonl",
     ".prompteval/**/archive/**/*.jsonl",
@@ -91,18 +147,26 @@ except OSError as error:
 if not sealed_search_rules <= ignore_lines:
     errors.append(".ignore must exclude sealed and raw eval payloads from broad repository search")
 else:
+    unignored = subprocess.run(
+        ["rg", "--no-ignore", "--files", "--hidden", str(ROOT / ".prompteval")],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
     search = subprocess.run(
         ["rg", "--files", "--hidden", str(ROOT)],
         check=False,
         text=True,
         capture_output=True,
     )
-    if search.returncode not in (0, 1):
+    if unignored.returncode not in (0, 1):
+        errors.append(f"ripgrep raw eval inventory failed with exit {unignored.returncode}")
+    elif search.returncode not in (0, 1):
         errors.append(f"ripgrep sealed-search regression failed with exit {search.returncode}")
     else:
-        exposed = [
+        protected = {
             path
-            for path in search.stdout.splitlines()
+            for path in unignored.stdout.splitlines()
             if (
                 path.endswith("/golden/holdout.jsonl")
                 or (
@@ -110,8 +174,9 @@ else:
                     and (path.endswith(".jsonl") or path.endswith("/failed-run.json"))
                 )
             )
-        ]
-        if exposed:
+        }
+        visible = set(search.stdout.splitlines())
+        if protected & visible:
             errors.append("default broad repository search exposes sealed or raw eval payloads")
 
 for role in ("generated", "runtime"):

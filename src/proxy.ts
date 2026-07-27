@@ -26,7 +26,8 @@ export async function proxy(req: NextRequest) {
   }
 
   const token = req.cookies.get('command_token')?.value
-  const origin = process.env.COMMAND_ORIGIN || 'http://localhost:3100'
+  const origin = process.env.COMMAND_ORIGIN
+  if (!origin) throw new Error('COMMAND_ORIGIN is required')
   if (!token) {
     return NextResponse.redirect(new URL('/login', origin))
   }
