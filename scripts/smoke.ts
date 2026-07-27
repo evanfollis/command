@@ -25,9 +25,11 @@ async function main() {
   check('GET /login returns 200', loginRes.status === 200, `status=${loginRes.status}`)
   check('login page has password field', loginBody.includes('type="password"'))
   if (!ALLOW_LEGACY_EVAL_ACL_FAILURE) {
+    const csp = loginRes.headers.get('content-security-policy') || ''
     check('login denies framing', loginRes.headers.get('x-frame-options') === 'DENY')
     check('login disables MIME sniffing', loginRes.headers.get('x-content-type-options') === 'nosniff')
     check('login emits a restrictive browser capability policy', loginRes.headers.get('permissions-policy')?.includes('camera=()') === true)
+    check('login constrains script and connection origins', csp.includes("default-src 'self'") && csp.includes("connect-src 'self'") && csp.includes("frame-src 'none'"))
   }
 
   const ownerUnauth = await fetch(`${BASE}/`, { redirect: 'manual' })

@@ -110,6 +110,14 @@ try {
   ]) {
     assert.ok(config.includes(header), `next.config.js must set ${header}`)
   }
+  for (const directive of [
+    "default-src 'self'",
+    "connect-src 'self'",
+    "frame-src 'none'",
+    "script-src 'self' 'unsafe-inline'",
+  ]) {
+    assert.ok(config.includes(directive), `the CSP must constrain ${directive}`)
+  }
   for (const path of ['src/lib/auth.ts', 'src/lib/jwt.ts', 'src/lib/authKey.ts', 'src/proxy.ts']) {
     assert.doesNotMatch(
       readFileSync(path, 'utf8'),

@@ -88,8 +88,10 @@ a bounded in-process window. Untrusted forwarded headers cannot select a
 bucket, the client map is capped, successful authentication clears the bucket,
 and no durable identity or session store is introduced.
 All routes emit framing, MIME-sniffing, referrer, transport, and browser
-capability restrictions; CSP fixes the base, form, frame, and object boundary
-without relying on unstable generated script hashes.
+capability restrictions. CSP defaults scripts, connections, fonts, frames, and
+styles to the application origin, permits only HTTPS/data artifact images, and
+keeps the inline script/style allowances that Next hydration currently needs;
+it does not rely on unstable generated script hashes.
 
 ## Deployment and rollback
 
