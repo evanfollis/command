@@ -72,9 +72,19 @@ try {
     'the login route must return a bounded client error for malformed request bodies',
   )
   const packageJson = readFileSync('package.json', 'utf8')
+  const productionBuild = readFileSync('scripts/build-production.sh', 'utf8')
   const boundaryScan = readFileSync('scripts/assert-build-credential-boundary.sh', 'utf8')
-  assert.ok(packageJson.includes('rm -f .next/trace'), 'build-only trace output must not ship in releases')
-  assert.ok(packageJson.includes('rm -rf .next/cache'), 'build cache output must not ship in releases')
+  assert.ok(packageJson.includes('bash scripts/build-production.sh'), 'production builds must use the credential boundary wrapper')
+  assert.ok(productionBuild.includes('rm -f .next/trace'), 'build-only trace output must not ship in releases')
+  assert.ok(productionBuild.includes('rm -rf .next/cache'), 'build cache output must not ship in releases')
+  assert.ok(productionBuild.includes('JWT_SECRET="$JWT_CANARY"'), 'builds must use a non-secret JWT canary')
+  assert.ok(productionBuild.includes('COMMAND_PASSWORD="$PASSWORD_CANARY"'), 'builds must use a non-secret password canary')
+  assert.ok(boundaryScan.includes('base64 encoding'), 'the boundary must scan encoded canary values')
+  assert.ok(boundaryScan.includes('hex encoding'), 'the boundary must scan encoded canary values')
+  assert.ok(
+    boundaryScan.includes('assert-artifact-trace-boundary.mjs'),
+    'the production build must reject artifact traces that retain project files',
+  )
   assert.doesNotMatch(
     boundaryScan,
     /--exclude(?:-dir)?=/,

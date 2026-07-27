@@ -1,4 +1,4 @@
-import { existsSync, globSync, readdirSync, readFileSync, realpathSync, statSync } from 'fs'
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'fs'
 import path from 'path'
 
 import { WORKSPACE_PATHS } from './workspacePaths'
@@ -47,6 +47,9 @@ const SOURCES: SourceDef[] = [
   },
 ]
 
+const MAX_RECURSIVE_ARTIFACTS = 1_000
+const MAX_ARTIFACT_DEPTH = 12
+
 export function listSources(): Array<{ id: string; label: string; description: string }> {
   return SOURCES.map((s) => ({ id: s.id, label: s.label, description: s.description }))
 }
@@ -77,7 +80,7 @@ function resolveSafe(sourceRoot: string, relativePath: string): string | null {
   const candidate = path.join(/*turbopackIgnore: true*/ rootReal, relativePath)
   let resolved: string
   try {
-    resolved = realpathSync(candidate)
+    resolved = realpathSync(path.join(/*turbopackIgnore: true*/ candidate))
   } catch {
     return null
   }
@@ -87,19 +90,39 @@ function resolveSafe(sourceRoot: string, relativePath: string): string | null {
   return resolved
 }
 
-function listRecursive(source: SourceDef): ArtifactEntry[] {
-  let paths: string[]
+function collectMarkdownPaths(
+  root: string,
+  relative = '',
+  depth = 0,
+  out: string[] = [],
+): string[] {
+  if (depth > MAX_ARTIFACT_DEPTH || out.length >= MAX_RECURSIVE_ARTIFACTS) return out
+  let entries
   try {
-    paths = globSync('**/*.md', { cwd: source.root })
+    entries = readdirSync(
+      path.join(/*turbopackIgnore: true*/ root, relative),
+      { withFileTypes: true },
+    )
   } catch {
-    return []
+    return out
   }
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    if (out.length >= MAX_RECURSIVE_ARTIFACTS) break
+    if (entry.name.startsWith('.')) continue
+    const next = relative ? path.join(relative, entry.name) : entry.name
+    if (entry.isDirectory()) collectMarkdownPaths(root, next, depth + 1, out)
+    else if (entry.isFile() && entry.name.endsWith('.md')) out.push(next)
+  }
+  return out
+}
+
+function listRecursive(source: SourceDef): ArtifactEntry[] {
+  const paths = collectMarkdownPaths(source.root)
   return paths.flatMap((relativePath) => {
-    if (relativePath.split('/').some((segment) => segment.startsWith('.'))) return []
     const abs = path.join(/*turbopackIgnore: true*/ source.root, relativePath)
     let stat
     try {
-      stat = statSync(abs)
+      stat = statSync(path.join(/*turbopackIgnore: true*/ abs))
     } catch {
       return []
     }
@@ -127,7 +150,7 @@ function listFlat(source: SourceDef): ArtifactEntry[] {
     const abs = path.join(/*turbopackIgnore: true*/ source.root, name)
     let stat
     try {
-      stat = statSync(abs)
+      stat = statSync(path.join(/*turbopackIgnore: true*/ abs))
     } catch {
       continue
     }

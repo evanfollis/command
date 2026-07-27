@@ -6,11 +6,16 @@ set -euo pipefail
 # printed. This scans the Next proxy/server output and custom server build
 # after every production build, including isolated releases.
 
-forbidden_name='command-jwt-secret-change-in-production'
-if grep -RFl -- "$forbidden_name" .next dist >/dev/null 2>&1; then
-  echo 'ERROR: production output contains the historical JWT fallback' >&2
-  exit 1
-fi
+scan_exact() {
+  local label=$1
+  local value=$2
+  if [ -n "$value" ] && grep -RFl -- "$value" .next dist >/dev/null 2>&1; then
+    echo "ERROR: production output contains $label" >&2
+    exit 1
+  fi
+}
+
+scan_exact 'the historical JWT fallback' 'command-jwt-secret-change-in-production'
 
 read_env_value() {
   local key=$1
@@ -30,10 +35,21 @@ read_env_value() {
 
 for key in JWT_SECRET COMMAND_PASSWORD; do
   value=$(read_env_value "$key")
-  if [ -n "$value" ] && grep -RFl -- "$value" .next dist >/dev/null 2>&1; then
-    echo "ERROR: production output contains $key" >&2
+  scan_exact "$key" "$value"
+done
+
+# Fixed non-secret canaries make absence measurable without exposing live
+# credentials to the build. Scan common exact transformations that bundlers or
+# serializers could retain while still making the original value recoverable.
+for canary_key in BUILD_JWT_CANARY BUILD_PASSWORD_CANARY; do
+  canary_value=${!canary_key:-}
+  [ -n "$canary_value" ] || {
+    echo "ERROR: $canary_key is required for the production boundary scan" >&2
     exit 1
-  fi
+  }
+  scan_exact "$canary_key" "$canary_value"
+  scan_exact "$canary_key base64 encoding" "$(printf '%s' "$canary_value" | base64 -w0)"
+  scan_exact "$canary_key hex encoding" "$(printf '%s' "$canary_value" | od -An -tx1 | tr -d ' \n')"
 done
 
 while IFS= read -r -d '' manifest; do
@@ -49,5 +65,7 @@ while IFS= read -r -d '' manifest; do
     fi
   fi
 done < <(find .next/server/app/artifacts -name '*.nft.json' -type f -print0 2>/dev/null)
+
+node scripts/assert-artifact-trace-boundary.mjs
 
 echo 'production output contains no configured authentication secrets or historical fallback'

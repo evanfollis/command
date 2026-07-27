@@ -6,13 +6,22 @@ const artifactTraceExcludes = [
   './docs/**/*',
   './scripts/**/*',
   './src/**/*',
+  './test/**/*',
+  './.reviews/**/*',
   './AGENTS.md',
   './CLAUDE.md',
   './CURRENT_STATE.md',
   './Makefile',
   './README.md',
+  './next-env.d.ts',
   './next.config.js',
+  './package-lock.json',
+  './postcss.config.js',
   './repo.toml',
+  './server.ts',
+  './tailwind.config.ts',
+  './tsconfig*.json',
+  './tsconfig*.tsbuildinfo',
 ]
 
 const nextConfig = {
@@ -36,6 +45,15 @@ const nextConfig = {
   outputFileTracingExcludes: {
     '/artifacts': artifactTraceExcludes,
     '/artifacts/**': artifactTraceExcludes,
+  },
+  // Dynamic reads intentionally target authenticated, external runtime
+  // projections. The artifact NFT contract below proves project files were
+  // removed, so suppress only Turbopack's pre-exclusion next.config warning.
+  turbopack: {
+    ignoreIssue: [{
+      path: /next\.config\.js$/,
+      title: /unexpected file in NFT list/i,
+    }],
   },
 }
 module.exports = nextConfig
