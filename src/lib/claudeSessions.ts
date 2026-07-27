@@ -7,6 +7,8 @@ import { WORKSPACE_PATHS } from './workspacePaths'
 const CLAUDE_SESSIONS_DIR = join(WORKSPACE_PATHS.claudeStateRoot, 'sessions')
 const MAX_SESSION_METADATA_BYTES = 64_000
 const MAX_SESSION_METADATA_FILES = 1_000
+const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+const BRIDGE_ID = /^[A-Za-z0-9_-]{1,256}$/
 
 export interface ClaudeSessionState {
   pid: number
@@ -31,6 +33,48 @@ export interface CorrelatedSession {
   conflictingPids: number[]
 }
 
+export function parseClaudeSessionState(value: unknown): ClaudeSessionState | null {
+  if (!value || typeof value !== 'object') return null
+  const parsed = value as Record<string, unknown>
+  if (
+    !Number.isSafeInteger(parsed.pid)
+    || Number(parsed.pid) < 1
+    || typeof parsed.sessionId !== 'string'
+    || !SESSION_ID.test(parsed.sessionId)
+    || typeof parsed.cwd !== 'string'
+    || !parsed.cwd.startsWith('/')
+    || parsed.cwd.includes('\0')
+    || typeof parsed.startedAt !== 'number'
+    || !Number.isFinite(parsed.startedAt)
+    || parsed.startedAt < 0
+    || typeof parsed.version !== 'string'
+    || typeof parsed.kind !== 'string'
+    || (
+      parsed.bridgeSessionId !== undefined
+      && (
+        typeof parsed.bridgeSessionId !== 'string'
+        || !BRIDGE_ID.test(parsed.bridgeSessionId)
+      )
+    )
+  ) {
+    return null
+  }
+  return {
+    pid: Number(parsed.pid),
+    sessionId: parsed.sessionId,
+    cwd: parsed.cwd === '/' ? '/' : parsed.cwd.replace(/\/$/, ''),
+    startedAt: parsed.startedAt,
+    version: parsed.version,
+    kind: parsed.kind,
+    ...(typeof parsed.bridgeSessionId === 'string'
+      ? {
+          bridgeSessionId: parsed.bridgeSessionId,
+          bridgeUrl: `https://claude.ai/code/${encodeURIComponent(parsed.bridgeSessionId)}`,
+        }
+      : {}),
+  }
+}
+
 export function readClaudeSessions(): ClaudeSessionState[] {
   if (!existsSync(CLAUDE_SESSIONS_DIR)) return []
   let entries: string[] = []
@@ -51,27 +95,15 @@ export function readClaudeSessions(): ClaudeSessionState[] {
     } catch {
       continue
     }
-    let parsed: Partial<ClaudeSessionState>
+    let parsed: ClaudeSessionState | null
     try {
-      parsed = JSON.parse(raw)
+      parsed = parseClaudeSessionState(JSON.parse(raw))
     } catch {
       continue
     }
-    if (!parsed.pid || !parsed.cwd || !parsed.sessionId) continue
+    if (!parsed) continue
     if (!processAlive(parsed.pid)) continue
-    const bridgeUrl = parsed.bridgeSessionId
-      ? `https://claude.ai/code/${parsed.bridgeSessionId}`
-      : undefined
-    out.push({
-      pid: parsed.pid,
-      sessionId: parsed.sessionId,
-      cwd: parsed.cwd.replace(/\/$/, ''),
-      startedAt: parsed.startedAt ?? 0,
-      version: parsed.version ?? '',
-      kind: parsed.kind ?? 'unknown',
-      bridgeSessionId: parsed.bridgeSessionId,
-      bridgeUrl,
-    })
+    out.push(parsed)
   }
   return out
 }

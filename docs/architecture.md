@@ -32,6 +32,8 @@ models or dispatch agents.
   and Symphony files cap at two million bytes, current-state documents at one
   million, session configuration at 128,000, and session metadata at 64,000;
   oversize, symlinked, missing, or malformed inputs fail closed per projection.
+  Claude session metadata is reduced to a typed allowlist before correlation;
+  identifiers cannot become filesystem traversal or unencoded URL segments.
 - `scripts/render-prompt.ts` renders historical governed prompts offline
   through pure builders. It is not reachable from the web application.
 - `scripts/release.sh` builds a clean detached worktree into an immutable
