@@ -69,6 +69,8 @@ cutover.
 
 `JWT_SECRET` is read lazily at request time and has no fallback. Token signing,
 server verification, and Next proxy verification use the same resolver.
+Sessions pin HS256 plus a Command-specific issuer, owner audience, and owner
+role; a same-key token minted for another purpose is not a Command session.
 `next.config.js` does not expose the secret through the build-time environment
 map. Every production build scans `.next` and `dist` for configured auth values
 and the retired fallback without printing secret values. The build itself uses

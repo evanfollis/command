@@ -39,6 +39,20 @@ try {
     false,
     'a token signed by a different secret must fail',
   )
+  assert.equal(
+    verifyToken(sign({ role: 'owner' }, process.env.JWT_SECRET)),
+    false,
+    'a same-key token without the Command issuer and audience must fail',
+  )
+  assert.equal(
+    verifyToken(sign(
+      { role: 'owner' },
+      process.env.JWT_SECRET,
+      { algorithm: 'HS512', issuer: 'command.synaplex.ai', audience: 'command-owner' },
+    )),
+    false,
+    'a same-key token using an unapproved algorithm must fail',
+  )
 
   delete process.env.COMMAND_PASSWORD
   assert.equal(checkPassword('anything'), false, 'a missing password must fail closed')

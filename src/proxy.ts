@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose/jwt/verify'
 
 import { resolveJwtSecret } from '@/lib/authKey'
+import { COMMAND_JWT } from '@/lib/authContract'
 
 const PUBLIC_PATHS = ['/login', '/api/auth']
 
@@ -35,7 +36,12 @@ export async function proxy(req: NextRequest) {
   // secret is delivered at runtime via the systemd EnvironmentFile.
   const secret = new TextEncoder().encode(resolveJwtSecret())
   try {
-    await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, secret, {
+      algorithms: [COMMAND_JWT.algorithm],
+      issuer: COMMAND_JWT.issuer,
+      audience: COMMAND_JWT.audience,
+    })
+    if (payload.role !== COMMAND_JWT.role) throw new Error('invalid Command role')
     return NextResponse.next()
   } catch {
     return NextResponse.redirect(new URL('/login', origin))

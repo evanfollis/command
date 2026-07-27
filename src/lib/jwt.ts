@@ -1,13 +1,18 @@
 import { verify } from 'jsonwebtoken'
 
 import { resolveJwtSecret } from './authKey'
+import { COMMAND_JWT } from './authContract'
 
 const COOKIE_NAME = 'command_token'
 
 export function verifyToken(token: string): boolean {
   try {
-    verify(token, resolveJwtSecret())
-    return true
+    const payload = verify(token, resolveJwtSecret(), {
+      algorithms: [COMMAND_JWT.algorithm],
+      issuer: COMMAND_JWT.issuer,
+      audience: COMMAND_JWT.audience,
+    })
+    return typeof payload !== 'string' && payload.role === COMMAND_JWT.role
   } catch {
     return false
   }

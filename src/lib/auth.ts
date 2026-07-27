@@ -4,11 +4,17 @@ import { cookies } from 'next/headers'
 
 import { verifyToken } from './jwt'
 import { resolveJwtSecret } from './authKey'
+import { COMMAND_JWT } from './authContract'
 
 const COOKIE_NAME = 'command_token'
 
 export function createToken(): string {
-  return sign({ role: 'admin' }, resolveJwtSecret(), { expiresIn: '7d' })
+  return sign({ role: COMMAND_JWT.role }, resolveJwtSecret(), {
+    algorithm: COMMAND_JWT.algorithm,
+    issuer: COMMAND_JWT.issuer,
+    audience: COMMAND_JWT.audience,
+    expiresIn: '7d',
+  })
 }
 
 export { verifyToken }
