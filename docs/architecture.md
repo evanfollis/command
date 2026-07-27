@@ -98,7 +98,10 @@ The service runs from
 assembly happens in a detached Git worktree with dependencies keyed by the
 staged lockfile digest. A release directory becomes immutable before the
 `current` symlink changes atomically. Failed service/login or authenticated
-smoke checks restore `previous` and re-check health.
+smoke checks restore both the prior `current` and prior `previous` pointers,
+then re-check health. Deploy, rollback, and service-policy installation share
+one non-blocking host lock so concurrent operators or agents cannot interleave
+release state.
 
 Build and runtime use the checksum-pinned official Node 24 LTS toolchain at
 `${RUNTIME_ROOT}/toolchains/node-24-current`; Command does not inherit the
