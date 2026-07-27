@@ -19,6 +19,7 @@
         "scripts/bounded-file-contract-test.ts",
         "scripts/claude-session-contract-test.ts",
         "scripts/codex-task-builder-test.ts",
+        "scripts/eval-source-pin-test.sh",
         "scripts/eval-telemetry-test.ts",
         "scripts/golden-contract-test.py",
         "scripts/health-contract-test.ts",

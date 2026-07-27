@@ -175,3 +175,9 @@ allowlisted aggregate summary. Broad JSON rendering of a run document is not
 an accepted metadata-inspection path. Default repository search also excludes
 sealed definitions, archived case bodies, raw run payloads, transcripts, and
 provenance JSONL.
+
+The authoritative Codex-task release evaluation is `npm run eval:release`.
+It requires a clean Git worktree, pins the exact commit and tree, continuously
+monitors the non-evidence worktree during the run, terminates on drift, and
+records the accepted run's source revision. A run that mixes source revisions
+cannot become release evidence.
