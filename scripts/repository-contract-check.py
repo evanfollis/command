@@ -166,9 +166,9 @@ if source_receipt_path.exists():
             errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unapproved receipt schema")
         if source_receipt.get("evaluation_profile") != "authoritative-claude-only":
             errors.append(f"{source_receipt_path.relative_to(ROOT)} has a non-authoritative profile")
-        if source_receipt.get("harness_revision") != "c642f112b6b87d5c5965aa00aef9ffa1fc5e154f":
+        if source_receipt.get("harness_revision") != "8a0c0e329d67f6be2cd248acf028406fb53927b7":
             errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unreviewed harness revision")
-        if source_receipt.get("harness_library_tree") != "c435eccb82b4baff4f3efc87a22eacf3e1699bb8":
+        if source_receipt.get("harness_library_tree") != "7ddfbbd2de03ee419272bedcf0089321ecd3ac86":
             errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unreviewed harness tree")
         if source_receipt.get("harness_entry_blob") != "5606220807dc51c6c84be92afe7f2de3c3acc302":
             errors.append(f"{source_receipt_path.relative_to(ROOT)} has an unreviewed harness entrypoint")

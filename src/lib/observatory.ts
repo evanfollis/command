@@ -532,8 +532,8 @@ function collectEvalState(): ObservatorySignal[] {
     && receipt?.release === true
     && receipt?.accepted_from_cache === false
     && receipt?.gate_passed === true
-    && receipt?.harness_revision === 'c642f112b6b87d5c5965aa00aef9ffa1fc5e154f'
-    && receipt?.harness_library_tree === 'c435eccb82b4baff4f3efc87a22eacf3e1699bb8'
+    && receipt?.harness_revision === '8a0c0e329d67f6be2cd248acf028406fb53927b7'
+    && receipt?.harness_library_tree === '7ddfbbd2de03ee419272bedcf0089321ecd3ac86'
     && receipt?.harness_entry_blob === '5606220807dc51c6c84be92afe7f2de3c3acc302'
     && receipt?.expected_release_cases === 18
     && receipt?.release_contract_status === 'passed'
