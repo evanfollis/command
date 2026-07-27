@@ -38,6 +38,7 @@ LockPersonality=yes
 KeyringMode=private
 RemoveIPC=yes
 SystemCallArchitectures=native
+SystemCallFilter=~@clock @cpu-emulation @debug @module @mount @privileged @raw-io @reboot @swap
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 IPAddressDeny=any
 IPAddressAllow=localhost

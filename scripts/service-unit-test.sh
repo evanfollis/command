@@ -19,6 +19,7 @@ for unit in deploy/command.service deploy/command-canary.service; do
   grep -q '^PrivateTmp=yes$' "$unit"
   grep -q '^RestrictNamespaces=yes$' "$unit"
   grep -q '^KeyringMode=private$' "$unit"
+  grep -q '^SystemCallFilter=~@clock @cpu-emulation @debug @module @mount @privileged @raw-io @reboot @swap$' "$unit"
   grep -q '^IPAddressDeny=any$' "$unit"
   grep -q '^IPAddressAllow=localhost$' "$unit"
   grep -q '^UMask=0077$' "$unit"
