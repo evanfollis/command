@@ -53,22 +53,24 @@ try:
         (ROOT / ".verification" / "test-collection.json").read_text(encoding="utf-8")
     )
     collectors = witness.get("collectors", [])
-    if witness.get("schema_version") != 1 or len(collectors) != 1:
-        errors.append("test-collection witness must declare exactly one schema-v1 collector")
+    if witness.get("schema_version") != 1 or not collectors:
+        errors.append("test-collection witness must declare schema-v1 collectors")
     else:
-        collector = collectors[0]
-        expected = collector.get("files", [])
-        discovered = sorted(
-            {
-                path.relative_to(ROOT).as_posix()
-                for pattern in collector.get("include", [])
-                for root in collector.get("roots", [])
-                for path in (ROOT / root).rglob(pattern)
-                if path.is_file() and not path.is_symlink()
-            }
-        )
-        if collector.get("mode") != "files" or expected != discovered:
-            errors.append("test-collection witness differs from runnable *-test files")
+        for collector in collectors:
+            expected = collector.get("files", [])
+            discovered = sorted(
+                {
+                    path.relative_to(ROOT).as_posix()
+                    for pattern in collector.get("include", [])
+                    for root in collector.get("roots", [])
+                    for path in (ROOT / root).rglob(pattern)
+                    if path.is_file() and not path.is_symlink()
+                }
+            )
+            if collector.get("mode") != "files" or expected != discovered:
+                errors.append(
+                    f"test-collection witness differs for {collector.get('id', 'unknown')}"
+                )
 except (OSError, json.JSONDecodeError, AttributeError, TypeError) as error:
     errors.append(f"test-collection witness invalid: {error}")
 

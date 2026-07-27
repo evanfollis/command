@@ -32,6 +32,21 @@
         "scripts/symphony-projection-test.ts",
         "scripts/thread-opening-contract-test.py"
       ]
+    },
+    {
+      "id": "command-post-release-smoke-files",
+      "mode": "files",
+      "roots": [
+        "scripts"
+      ],
+      "include": [
+        "browser-smoke.ts",
+        "smoke.ts"
+      ],
+      "files": [
+        "scripts/browser-smoke.ts",
+        "scripts/smoke.ts"
+      ]
     }
   ]
 }
