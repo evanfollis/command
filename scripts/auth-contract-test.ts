@@ -68,6 +68,16 @@ try {
     /JWT_SECRET\s*:/,
     'next.config.js must not expose JWT_SECRET through the build-time env map',
   )
+  for (const header of [
+    'Content-Security-Policy',
+    'Permissions-Policy',
+    'Referrer-Policy',
+    'Strict-Transport-Security',
+    'X-Content-Type-Options',
+    'X-Frame-Options',
+  ]) {
+    assert.ok(config.includes(header), `next.config.js must set ${header}`)
+  }
   for (const path of ['src/lib/auth.ts', 'src/lib/jwt.ts', 'src/lib/authKey.ts', 'src/proxy.ts']) {
     assert.doesNotMatch(
       readFileSync(path, 'utf8'),

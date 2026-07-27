@@ -83,6 +83,9 @@ service installer refuses to proceed when that ownership boundary is weaker.
 
 The cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, and path-scoped to `/`.
 Proxy redirects are relative or use the pinned public origin.
+All routes emit framing, MIME-sniffing, referrer, transport, and browser
+capability restrictions; CSP fixes the base, form, frame, and object boundary
+without relying on unstable generated script hashes.
 
 ## Deployment and rollback
 

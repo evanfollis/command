@@ -24,6 +24,15 @@ const artifactTraceExcludes = [
   './tsconfig*.tsbuildinfo',
 ]
 
+const securityHeaders = [
+  { key: 'Content-Security-Policy', value: "base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'" },
+  { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), microphone=(), payment=()' },
+  { key: 'Referrer-Policy', value: 'no-referrer' },
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+]
+
 const nextConfig = {
   // JWT_SECRET is intentionally NOT declared here. next.config `env` inlines
   // values into the compiled build at build time; a signing secret must stay a
@@ -36,6 +45,9 @@ const nextConfig = {
   // libvips-backed optional image path outside the deployed attack surface.
   images: {
     unoptimized: true,
+  },
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }]
   },
   // Artifact browsing reads allowlisted external runtime roots. Turbopack
   // cannot infer that dynamic recursion boundary and otherwise traces the
