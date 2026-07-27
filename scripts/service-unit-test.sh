@@ -23,6 +23,7 @@ for unit in deploy/command.service deploy/command-canary.service; do
   grep -q '^ReadOnlyPaths=/opt/workspace$' "$unit"
   grep -q '^ReadWritePaths=/opt/workspace/runtime/.telemetry$' "$unit"
   grep -q '^InaccessiblePaths=.*runtime/.secrets' "$unit"
+  grep -q '^InaccessiblePaths=.*prompteval/.provenance.*prompteval/.transcripts' "$unit"
   grep -q '^InaccessiblePaths=.*projects/command/.env.local' "$unit"
   grep -q '^InaccessiblePaths=.*root/.claude.json.*root/.claude/.credentials.json' "$unit"
   grep -q '^ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js$' "$unit"
@@ -43,6 +44,7 @@ grep -q 'd:u:$SERVICE_USER:r-x" /root/.claude/sessions' scripts/install-service-
 grep -q 'd:u:$SERVICE_USER:rwx" "$RUNTIME_ROOT/.telemetry"' scripts/install-service-unit.sh
 grep -Fq 'find "$PROMPTEVAL_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name '\''.*'\'' -print0' scripts/install-service-unit.sh
 grep -Fq 'find "$runs_dir" -maxdepth 1 -type f -name '\''*.json'\''' scripts/install-service-unit.sh
+grep -q 'd:u:$SERVICE_USER:r-x" "$runs_dir"' scripts/install-service-unit.sh
 grep -q 'command service account must not read eval provenance' scripts/install-service-unit.sh
 grep -q 'setfacl -R -m "u:$SERVICE_USER:r-X" "$NODE_RUNTIME_REAL" "$CURRENT_RELEASE"' scripts/install-service-unit.sh
 grep -q 'setfacl -R -m "u:$SERVICE_USER:r-X" "$CURRENT_DEPS"' scripts/install-service-unit.sh

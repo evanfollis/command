@@ -65,7 +65,10 @@ if [ -d "$PROMPTEVAL_ROOT" ]; then
       setfacl -m "u:$SERVICE_USER:r-x" "$prompt_dir"
       runs_dir="$prompt_dir/runs"
       [ -d "$runs_dir" ] || continue
-      setfacl -m "u:$SERVICE_USER:r-x" "$runs_dir"
+      # Reports created later in this already-approved projection inherit the
+      # same read-only service ACL. No default is placed on the eval root,
+      # project, or prompt directory, so novel trees remain fail-closed.
+      setfacl -m "u:$SERVICE_USER:r-x,d:u:$SERVICE_USER:r-x" "$runs_dir"
       find "$runs_dir" -maxdepth 1 -type f -name '*.json' \
         -exec setfacl -m "u:$SERVICE_USER:r--" {} +
     done < <(find "$project_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0)

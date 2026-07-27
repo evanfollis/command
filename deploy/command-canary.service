@@ -41,4 +41,4 @@ IPAddressDeny=any
 IPAddressAllow=localhost
 ReadOnlyPaths=/opt/workspace
 ReadWritePaths=/opt/workspace/runtime/.telemetry
-InaccessiblePaths=-/root/.ssh -/root/.gnupg -/root/.aws -/root/.config/gh -/root/.claude.json -/root/.claude/.credentials.json -/opt/workspace/runtime/.secrets /opt/workspace/projects/command/.env.local
+InaccessiblePaths=-/root/.ssh -/root/.gnupg -/root/.aws -/root/.config/gh -/root/.claude.json -/root/.claude/.credentials.json -/opt/workspace/runtime/.secrets -/opt/workspace/runtime/prompteval/.provenance -/opt/workspace/runtime/prompteval/.transcripts /opt/workspace/projects/command/.env.local

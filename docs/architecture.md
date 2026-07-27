@@ -104,12 +104,15 @@ runtime environment before applying the service identity; the process cannot
 open the environment file itself. The workspace is read-only except for the
 telemetry directory.
 
-The installer applies read/default ACLs only to `/root/.claude/sessions` and a
-write/default ACL only to the telemetry directory. tmux's server ACL makes
-read-only clients unable to issue even observation commands; writable clients
-could mutate sessions. The web service therefore receives no tmux socket,
-runs with `PrivateTmp=yes`, and reports tmux-derived fields as typed `unknown`.
-It is likewise not added to the Docker group: container evidence that cannot be
+The installer applies read/default ACLs only to `/root/.claude/sessions`,
+read-only ACLs to already-approved eval `runs/` projections, and a
+write/default ACL only to the telemetry directory. Eval provenance,
+transcripts, caches, and repository holdouts remain inaccessible; novel eval
+trees fail closed until explicitly projected. tmux's server ACL makes read-only
+clients unable to issue even observation commands; writable clients could
+mutate sessions. The web service therefore receives no tmux socket, runs with
+`PrivateTmp=yes`, and reports tmux-derived fields as typed `unknown`. It is
+likewise not added to the Docker group: container evidence that cannot be
 obtained without the root-equivalent Docker socket remains `unknown`.
 
 Owner: workspace supervisor. Projection milestone: replace both unavailable
