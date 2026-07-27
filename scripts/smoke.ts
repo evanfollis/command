@@ -92,6 +92,11 @@ async function main() {
   check('authenticated observatory returns 200', homeRes.status === 200, `status=${homeRes.status}`)
   check('home identifies the owner observatory', homeHtml.includes('What changed, what is stuck'))
   check('home omits legacy operator navigation', !/Operator tools|Executive recovery attach|Live pane/.test(homeHtml))
+  check(
+    'eval governance consumes a valid stable-source receipt',
+    /data-signal-id="eval-governance" data-signal-state="(?:healthy|blocked|degraded)"/.test(homeHtml)
+      && /sourceReceiptValid[\s\S]{0,500}>true</.test(homeHtml),
+  )
 
   const assets = [...new Set(homeHtml.match(/\/_next\/static\/[^"']+?\.(?:js|css)/g) || [])]
   const broken: string[] = []

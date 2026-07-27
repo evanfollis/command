@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createToken, checkPassword, COOKIE_NAME } from '@/lib/auth'
 import {
   clearLoginFailures,
+  loginGlobalThrottleStatus,
   loginClientKey,
-  loginThrottleStatus,
+  loginClientThrottleStatus,
   recordLoginFailure,
 } from '@/lib/loginThrottle'
 import { recordTelemetry } from '@/lib/telemetry'
@@ -28,8 +29,15 @@ function redirect(location: string, setCookie?: string): Response {
 
 export async function POST(req: NextRequest) {
   const clientKey = loginClientKey(req.headers)
-  const throttle = loginThrottleStatus(clientKey)
+  const throttle = loginClientThrottleStatus(clientKey)
   if (!throttle.allowed) {
+    recordTelemetry({
+      project: 'command',
+      source: 'command.api.auth',
+      eventType: 'throttled',
+      level: 'warn',
+      sourceType: 'user',
+    })
     return NextResponse.json(
       { error: 'Too many login attempts' },
       {
@@ -64,6 +72,26 @@ export async function POST(req: NextRequest) {
   }
 
   if (!checkPassword(password)) {
+    const globalThrottle = loginGlobalThrottleStatus()
+    if (!globalThrottle.allowed) {
+      recordTelemetry({
+        project: 'command',
+        source: 'command.api.auth',
+        eventType: 'throttled',
+        level: 'warn',
+        sourceType: 'user',
+      })
+      return NextResponse.json(
+        { error: 'Too many login attempts' },
+        {
+          status: 429,
+          headers: {
+            'Cache-Control': 'no-store',
+            'Retry-After': String(globalThrottle.retryAfterSeconds),
+          },
+        },
+      )
+    }
     // Only emit a failure event for non-empty passwords — empty submissions are
     // password-manager autofill races, not meaningful security events.
     if (password.trim().length > 0) {

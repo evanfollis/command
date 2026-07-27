@@ -120,6 +120,6 @@ Path(os.environ["COMMAND_EVAL_RECEIPT_TMP"]).write_text(
     json.dumps(receipt, indent=2) + "\n"
 )
 PY
-chmod 0600 "$RECEIPT_TMP"
+chmod 0644 "$RECEIPT_TMP"
 mv -T "$RECEIPT_TMP" "$RECEIPT"
 echo "release eval source revision recorded: commit=$SOURCE_COMMIT run=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["run_id"])' "$RECEIPT")"

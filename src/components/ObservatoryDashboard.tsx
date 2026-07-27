@@ -16,7 +16,7 @@ function StateBadge({ state }: { state: ObservatoryState }) {
 function SignalCard({ item }: { item: ObservatorySignal }) {
   const details = Object.entries(item.details ?? {})
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+    <article data-signal-id={item.id} data-signal-state={item.state} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
       <div className="flex items-start justify-between gap-3"><h3 className="font-medium text-neutral-100">{item.title}</h3><StateBadge state={item.state} /></div>
       <p className="mt-3 text-sm leading-6 text-neutral-400">{item.reason}</p>
       <dl className="mt-4 grid gap-2 text-xs text-neutral-500">

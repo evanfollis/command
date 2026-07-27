@@ -80,25 +80,85 @@ if [ -d "$PROMPTEVAL_ROOT" ]; then
   done < <(find "$PROMPTEVAL_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0)
 fi
 
-# Sealed definitions are evaluator-only. Deny the service identity both file
-# reads and directory traversal before systemd adds its independent namespace
-# denial. Baselines, inventory, specs, and the declassified identity receipt
-# remain readable for observability.
-while IFS= read -r -d '' golden_dir; do
-  chown root:root "$golden_dir"
-  chmod 0700 "$golden_dir"
-  find "$golden_dir" -maxdepth 1 -type f -name 'holdout.jsonl' \
+# Grant the declassified identity surface needed by collectEvalState. Resolve
+# every prompt source and executor dependency from the specs, keep it inside
+# this checkout, and grant only read/traverse access along its path.
+grant_repo_read() {
+  readable=$(realpath -e "$1")
+  case "$readable" in
+    "$ROOT"|"$ROOT"/*) ;;
+    *) echo "eval identity input escaped the Command checkout: $readable" >&2; exit 1 ;;
+  esac
+  setfacl -m "u:$SERVICE_USER:r--" "$readable"
+  parent=$(dirname "$readable")
+  while [ "$parent" != "$ROOT" ]; do
+    setfacl -m "u:$SERVICE_USER:r-x" "$parent"
+    parent=$(dirname "$parent")
+  done
+  setfacl -m "u:$SERVICE_USER:r-x" "$ROOT"
+}
+
+setfacl -m "u:$SERVICE_USER:r-x" "$ROOT/.prompteval"
+grant_repo_read "$ROOT/.prompteval/inventory.json"
+while IFS= read -r -d '' prompt_dir; do
+  setfacl -m "u:$SERVICE_USER:r-x" "$prompt_dir"
+  for metadata in spec.json baseline.json source-revision.json; do
+    [ ! -f "$prompt_dir/$metadata" ] || grant_repo_read "$prompt_dir/$metadata"
+  done
+done < <(find "$ROOT/.prompteval" -mindepth 1 -maxdepth 1 -type d -print0)
+while IFS= read -r -d '' identity_input; do
+  grant_repo_read "$identity_input"
+  runuser -u "$SERVICE_USER" -- test -r "$identity_input"
+done < <(python3 - "$ROOT" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+paths = set()
+for spec_path in sorted((root / ".prompteval").glob("*/spec.json")):
+    spec = json.loads(spec_path.read_text())
+    source = spec.get("source") or {}
+    if isinstance(source.get("file"), str):
+        paths.add(source["file"])
+    executor = spec.get("executor") or {}
+    for value in [*(executor.get("argv") or []), *(executor.get("deps") or [])]:
+        if isinstance(value, str) and (root / value).is_file():
+            paths.add(value)
+for relative in sorted(paths):
+    path = (root / relative).resolve(strict=True)
+    if path != root and root not in path.parents:
+        raise SystemExit(f"eval identity input escaped checkout: {relative}")
+    sys.stdout.buffer.write(os.fsencode(path) + b"\0")
+PY
+)
+
+# Sealed and raw definitions are evaluator-only. Deny the service identity
+# directory traversal before systemd adds its independent namespace denial.
+while IFS= read -r -d '' sealed_dir; do
+  chown root:root "$sealed_dir"
+  chmod 0700 "$sealed_dir"
+  find "$sealed_dir" -type f \
     -exec chown root:root {} + -exec chmod 0600 {} +
-  if runuser -u "$SERVICE_USER" -- test -x "$golden_dir"; then
-    echo "command service account must not traverse sealed eval directory: $golden_dir" >&2
+  if runuser -u "$SERVICE_USER" -- test -x "$sealed_dir"; then
+    echo "command service account must not traverse sealed eval directory: $sealed_dir" >&2
     exit 1
   fi
-  holdout="$golden_dir/holdout.jsonl"
-  if [ -e "$holdout" ] && runuser -u "$SERVICE_USER" -- test -r "$holdout"; then
-    echo "command service account must not read sealed eval definitions: $holdout" >&2
-    exit 1
-  fi
-done < <(find "$ROOT/.prompteval" -mindepth 2 -maxdepth 2 -type d -name golden -print0)
+  while IFS= read -r -d '' sealed_file; do
+    if runuser -u "$SERVICE_USER" -- test -r "$sealed_file"; then
+      echo "command service account must not read sealed eval definition: $sealed_file" >&2
+      exit 1
+    fi
+  done < <(find "$sealed_dir" -type f -print0)
+done < <(find "$ROOT/.prompteval" -mindepth 2 -maxdepth 2 -type d \
+  \( -name golden -o -name archive -o -name judge \) -print0)
+
+runuser -u "$SERVICE_USER" -- test -r "$ROOT/.prompteval/inventory.json"
+while IFS= read -r -d '' metadata; do
+  runuser -u "$SERVICE_USER" -- test -r "$metadata"
+done < <(find "$ROOT/.prompteval" -mindepth 2 -maxdepth 2 -type f \
+  \( -name spec.json -o -name baseline.json -o -name source-revision.json \) -print0)
 bash "$ROOT/scripts/install-node-runtime.sh"
 NODE_RUNTIME="$RUNTIME_ROOT/toolchains/node-24-current"
 NODE_RUNTIME_REAL=$(readlink -f "$NODE_RUNTIME")

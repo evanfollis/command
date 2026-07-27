@@ -8,7 +8,9 @@ import { checkPassword, createToken, verifyToken } from '../src/lib/auth'
 import { resolveJwtSecret } from '../src/lib/authKey'
 import {
   clearLoginFailures,
+  loginGlobalThrottleStatus,
   loginClientKey,
+  loginClientThrottleStatus,
   loginThrottleStatus,
   recordLoginFailure,
   resetLoginThrottleForTest,
@@ -121,11 +123,25 @@ try {
     recordLoginFailure(`203.0.113.${attempt}`, 500000)
   }
   assert.deepEqual(loginThrottleStatus('198.51.100.7', 500000), {
+    allowed: true,
+  }, 'distributed failures must never lock a new client out before credential verification')
+  assert.deepEqual(loginGlobalThrottleStatus(500000), {
     allowed: false,
     retryAfterSeconds: 300,
-  }, 'distributed failures must reach a bounded global ceiling')
+  }, 'distributed invalid credentials must still reach a bounded global ceiling')
   clearLoginFailures('198.51.100.7')
-  assert.deepEqual(loginThrottleStatus('198.51.100.7', 500000), { allowed: true })
+  assert.deepEqual(loginClientThrottleStatus('198.51.100.7', 500000), { allowed: true })
+  assert.deepEqual(loginGlobalThrottleStatus(500000), {
+    allowed: false,
+    retryAfterSeconds: 300,
+  }, 'a successful client clear must not reset distributed failure evidence')
+
+  const authRouteSource = readFileSync('src/app/api/auth/route.ts', 'utf8')
+  assert.ok(
+    authRouteSource.indexOf('if (!checkPassword(password))') < authRouteSource.indexOf('loginGlobalThrottleStatus()'),
+    'the distributed ceiling may be consulted only after a credential is known invalid',
+  )
+  assert.match(authRouteSource, /eventType: 'throttled'/)
 
   const config = readFileSync('next.config.js', 'utf8')
   assert.doesNotMatch(

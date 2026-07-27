@@ -37,11 +37,12 @@ for unit in deploy/command.service deploy/command-canary.service; do
   grep -q '^InaccessiblePaths=.*prompteval/.provenance.*prompteval/.transcripts' "$unit"
   grep -q '^InaccessiblePaths=.*projects/command/.env.local' "$unit"
   grep -q '^InaccessiblePaths=.*codex-task-prompt/golden.*offline-synthesis-prompt/golden.*repository-instructions/golden.*review-prompt/golden.*thread-opening-frame/golden' "$unit"
+  grep -q '^InaccessiblePaths=.*codex-task-prompt/archive.*codex-task-prompt/judge.*offline-synthesis-prompt/archive.*repository-instructions/archive.*repository-instructions/judge.*review-prompt/archive.*review-prompt/judge.*thread-opening-frame/archive.*thread-opening-frame/judge' "$unit"
   grep -q '^InaccessiblePaths=.*root/.claude.json.*root/.claude/.credentials.json' "$unit"
   grep -q '^ExecStart=/opt/workspace/runtime/toolchains/node-24-current/bin/node dist/server.js$' "$unit"
   grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/projects/command/.env.local$' "$unit"
   grep -q '^ExecStartPre=/usr/bin/test ! -r /opt/workspace/runtime/prompteval/.provenance$' "$unit"
-  test "$(grep -c '^ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/.*/golden$' "$unit")" -eq 5
+  test "$(grep -Ec '^ExecStartPre=/usr/bin/test ! -x /opt/workspace/projects/command/.prompteval/.*/(golden|archive|judge)$' "$unit")" -eq 14
   grep -q '^User=command$' "$unit"
   grep -q '^Group=command$' "$unit"
 done
@@ -63,8 +64,12 @@ grep -Fq 'find "$runs_dir" -maxdepth 1 -type f -name '\''*.json'\''' scripts/ins
 grep -q 'd:u:$SERVICE_USER:r-x" "$runs_dir"' scripts/install-service-unit.sh
 grep -q 'command service account must not read eval provenance' scripts/install-service-unit.sh
 grep -q 'command service account must not traverse sealed eval directory' scripts/install-service-unit.sh
-grep -q 'command service account must not read sealed eval definitions' scripts/install-service-unit.sh
-grep -Fq 'find "$ROOT/.prompteval" -mindepth 2 -maxdepth 2 -type d -name golden -print0' scripts/install-service-unit.sh
+grep -q 'command service account must not read sealed eval definition' scripts/install-service-unit.sh
+grep -Fq '\( -name golden -o -name archive -o -name judge \)' scripts/install-service-unit.sh
+grep -q 'grant_repo_read "$ROOT/.prompteval/inventory.json"' scripts/install-service-unit.sh
+grep -q 'runuser -u "$SERVICE_USER" -- test -r "$ROOT/.prompteval/inventory.json"' scripts/install-service-unit.sh
+grep -q 'runuser -u "$SERVICE_USER" -- test -r "$identity_input"' scripts/install-service-unit.sh
+grep -q 'chmod 0644 "$RECEIPT_TMP"' scripts/run-release-eval.sh
 grep -q 'setfacl -R -m "u:$SERVICE_USER:r-X" "$NODE_RUNTIME_REAL" "$CURRENT_RELEASE"' scripts/install-service-unit.sh
 grep -q 'setfacl -R -m "u:$SERVICE_USER:r-X" "$CURRENT_DEPS"' scripts/install-service-unit.sh
 if grep -Eq 'server-access|/tmp/tmux-0|COMMAND_TMUX_SOCKET' scripts/install-service-unit.sh deploy/command.service deploy/command-canary.service; then

@@ -45,8 +45,19 @@ export function loginThrottleStatus(
   key: string,
   now = Date.now(),
 ): { allowed: true } | { allowed: false; retryAfterSeconds: number } {
-  const client = throttleWindowStatus(key, FAILURE_LIMIT, now)
-  if (!client.allowed) return client
+  return loginClientThrottleStatus(key, now)
+}
+
+export function loginClientThrottleStatus(
+  key: string,
+  now = Date.now(),
+): { allowed: true } | { allowed: false; retryAfterSeconds: number } {
+  return throttleWindowStatus(key, FAILURE_LIMIT, now)
+}
+
+export function loginGlobalThrottleStatus(
+  now = Date.now(),
+): { allowed: true } | { allowed: false; retryAfterSeconds: number } {
   return throttleWindowStatus(GLOBAL_CLIENT, GLOBAL_FAILURE_LIMIT, now)
 }
 
@@ -92,7 +103,6 @@ export function recordLoginFailure(key: string, now = Date.now()): void {
 
 export function clearLoginFailures(key: string): void {
   failures.delete(key)
-  failures.delete(GLOBAL_CLIENT)
 }
 
 export function resetLoginThrottleForTest(): void {

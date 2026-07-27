@@ -53,6 +53,7 @@ bash scripts/run-release-eval.sh >/dev/null
 
 python3 - "$ROOT" <<'PY'
 import json
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -81,6 +82,9 @@ assert receipt["governed_prompts"] == {
         "golden_hash": "gh-test",
     }
 }
+assert stat.S_IMODE(
+    (root / ".prompteval/codex-task-prompt/source-revision.json").stat().st_mode
+) == 0o644
 PY
 
 echo 'release eval source revision pin detects mid-run drift'
