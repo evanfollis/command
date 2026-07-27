@@ -74,7 +74,11 @@ try:
 except (OSError, json.JSONDecodeError, AttributeError, TypeError) as error:
     errors.append(f"test-collection witness invalid: {error}")
 
-sealed_search_rule = ".prompteval/**/golden/holdout.jsonl"
+sealed_search_rules = {
+    ".prompteval/**/golden/holdout.jsonl",
+    ".prompteval/**/archive/**/*.jsonl",
+    ".prompteval/**/archive/**/failed-run.json",
+}
 try:
     ignore_lines = {
         line.strip()
@@ -84,8 +88,8 @@ try:
 except OSError as error:
     errors.append(f".ignore could not be read: {error}")
     ignore_lines = set()
-if sealed_search_rule not in ignore_lines:
-    errors.append(".ignore must exclude sealed holdout definitions from broad repository search")
+if not sealed_search_rules <= ignore_lines:
+    errors.append(".ignore must exclude sealed and raw eval payloads from broad repository search")
 else:
     search = subprocess.run(
         ["rg", "--files", "--hidden", str(ROOT)],
@@ -95,8 +99,20 @@ else:
     )
     if search.returncode not in (0, 1):
         errors.append(f"ripgrep sealed-search regression failed with exit {search.returncode}")
-    elif any(path.endswith("/golden/holdout.jsonl") for path in search.stdout.splitlines()):
-        errors.append("default broad repository search exposes a sealed holdout path")
+    else:
+        exposed = [
+            path
+            for path in search.stdout.splitlines()
+            if (
+                path.endswith("/golden/holdout.jsonl")
+                or (
+                    "/archive/" in path
+                    and (path.endswith(".jsonl") or path.endswith("/failed-run.json"))
+                )
+            )
+        ]
+        if exposed:
+            errors.append("default broad repository search exposes sealed or raw eval payloads")
 
 for role in ("generated", "runtime"):
     for relative in declaration.get("artifacts", {}).get(role, []):

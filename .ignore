@@ -1,2 +1,7 @@
 # Sealed eval definitions must never appear in default broad repository search.
 .prompteval/**/golden/holdout.jsonl
+
+# Archived case bodies and raw run payloads are provenance evidence, not search
+# material. Inspect aggregate JSON receipts or use the safe metadata reader.
+.prompteval/**/archive/**/*.jsonl
+.prompteval/**/archive/**/failed-run.json

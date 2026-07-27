@@ -164,4 +164,6 @@ Prompt-evaluation run documents can contain sealed inputs, model outputs,
 judge rubrics, and grader details. Operators inspect a run with
 `python3 scripts/prompteval-safe-metadata.py <run.json>`, which emits only an
 allowlisted aggregate summary. Broad JSON rendering of a run document is not
-an accepted metadata-inspection path.
+an accepted metadata-inspection path. Default repository search also excludes
+sealed definitions, archived case bodies, raw run payloads, transcripts, and
+provenance JSONL.
