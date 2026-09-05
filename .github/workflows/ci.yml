@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PROMPTEVAL_HARNESS_LIB: ${{ github.workspace }}/.command-ci/supervisor/scripts/lib
+      PROMPTEVAL_HARNESS_REPO: ${{ github.workspace }}/.command-ci/supervisor
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

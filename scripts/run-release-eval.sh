@@ -7,6 +7,7 @@ ROOT=${COMMAND_EVAL_REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
 SCRIPT_REPO=$(cd "$(dirname "$0")/.." && pwd)
 PROMPT_ID=${COMMAND_EVAL_PROMPT_ID:-codex-task-prompt}
 EVAL_RUNNER=${COMMAND_EVAL_RUNNER:-/opt/workspace/supervisor/scripts/prompteval}
+HARNESS_REPO=${COMMAND_EVAL_HARNESS_REPO:-/opt/workspace/supervisor}
 RECEIPT=${COMMAND_EVAL_RECEIPT:-"$ROOT/.prompteval/$PROMPT_ID/source-revision.json"}
 POLL_SECONDS=${COMMAND_EVAL_POLL_SECONDS:-1}
 TEST_ONLY=${COMMAND_EVAL_TEST_ONLY:-0}
@@ -120,33 +121,9 @@ if [ "$TEST_ONLY" = 0 ]; then
       echo 'authoritative evaluator executable set differs from the reviewed toolchain' >&2
       exit 1
     }
-  HARNESS_REPO=$(cd "$(dirname "$EVAL_RUNNER")/.." && pwd)
-  [ "$(realpath "$EVAL_RUNNER")" = "$HARNESS_REPO/scripts/prompteval" ] \
-    && [ -f "$EVAL_RUNNER" ] && [ ! -L "$EVAL_RUNNER" ] && [ -x "$EVAL_RUNNER" ] || {
-      echo 'authoritative evaluator entrypoint is not the reviewed harness executable' >&2
-      exit 1
-    }
-  [ "$("$GIT_BIN" -C "$HARNESS_REPO" rev-parse HEAD)" = "$HARNESS_REVISION" ] \
-    && [ "$("$GIT_BIN" -C "$HARNESS_REPO" rev-parse HEAD:scripts/lib/prompteval)" = "$HARNESS_LIBRARY_TREE" ] \
-    && [ "$("$GIT_BIN" -C "$HARNESS_REPO" rev-parse HEAD:scripts/prompteval)" = "$HARNESS_ENTRY_BLOB" ] || {
-      echo 'authoritative evaluator harness revision differs from the reviewed contract' >&2
-      exit 1
-    }
-  if ! HARNESS_STATUS=$(
-    "$GIT_BIN" -C "$HARNESS_REPO" status --porcelain=v1 --untracked-files=all -- \
-      scripts/prompteval scripts/lib/prompteval
-  ); then
-    echo 'authoritative evaluator harness status could not be verified' >&2
-    exit 1
-  fi
-  [ -z "$HARNESS_STATUS" ] || {
-      echo 'authoritative evaluator harness bytes are not an immutable reviewed checkout' >&2
-      exit 1
-    }
-  "$GIT_BIN" -C "$HARNESS_REPO" archive "$HARNESS_REVISION" \
-    scripts/prompteval scripts/lib/prompteval \
-    | tar -x -C "$HARNESS_EVAL_DIR"
-  chmod -R a-w "$HARNESS_EVAL_DIR"
+  "$PYTHON_BIN" -I -P "$SCRIPT_REPO/scripts/prompteval_harness.py" \
+    "$HARNESS_REPO" "$HARNESS_EVAL_DIR" "$HARNESS_REVISION" \
+    "$HARNESS_LIBRARY_TREE" "$HARNESS_ENTRY_BLOB"
   EVAL_RUNNER="$HARNESS_EVAL_DIR/scripts/prompteval"
   PROMPTEVAL_LIB="$HARNESS_EVAL_DIR/scripts/lib"
   EVAL_COMMAND=("$EVAL_RUNNER")

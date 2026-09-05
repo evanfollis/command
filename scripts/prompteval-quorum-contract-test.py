@@ -18,60 +18,27 @@ if not __debug__:
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS_REVISION = "8a0c0e329d67f6be2cd248acf028406fb53927b7"
 HARNESS_TREE = "7ddfbbd2de03ee419272bedcf0089321ecd3ac86"
-HARNESS_LIB = Path(
-    os.environ.get(
-        "PROMPTEVAL_HARNESS_LIB",
-        "/opt/workspace/supervisor/scripts/lib",
-    )
+HARNESS_ENTRY_BLOB = "5606220807dc51c6c84be92afe7f2de3c3acc302"
+HARNESS_REPO = Path(
+    os.environ.get("PROMPTEVAL_HARNESS_REPO", "/opt/workspace/supervisor")
 ).resolve()
-if not HARNESS_LIB.is_dir():
-    raise SystemExit(f"prompteval harness library is missing: {HARNESS_LIB}")
-harness_repo = HARNESS_LIB.parents[1]
-harness_revision = subprocess.run(
-    ["git", "-C", str(harness_repo), "rev-parse", "HEAD"],
-    check=True,
-    capture_output=True,
-    text=True,
-).stdout.strip()
-if harness_revision != HARNESS_REVISION:
-    raise SystemExit(
-        "prompteval harness revision differs from reviewed contract: "
-        f"{harness_revision} != {HARNESS_REVISION}"
-    )
-harness_tree = subprocess.run(
+HARNESS_TEMP = TemporaryDirectory(prefix="command-reviewed-harness-")
+HARNESS_ROOT = Path(HARNESS_TEMP.name)
+subprocess.run(
     [
-        "git",
-        "-C",
-        str(harness_repo),
-        "rev-parse",
-        "HEAD:scripts/lib/prompteval",
+        sys.executable,
+        "-I",
+        "-P",
+        str(ROOT / "scripts/prompteval_harness.py"),
+        str(HARNESS_REPO),
+        str(HARNESS_ROOT),
+        HARNESS_REVISION,
+        HARNESS_TREE,
+        HARNESS_ENTRY_BLOB,
     ],
     check=True,
-    capture_output=True,
-    text=True,
-).stdout.strip()
-if harness_tree != HARNESS_TREE:
-    raise SystemExit(
-        "prompteval harness tree differs from reviewed contract: "
-        f"{harness_tree} != {HARNESS_TREE}"
-    )
-tracked_drift = subprocess.run(
-    [
-        "git",
-        "-C",
-        str(harness_repo),
-        "status",
-        "--porcelain=v1",
-        "--untracked-files=all",
-        "--",
-        "scripts/lib/prompteval",
-    ],
-    check=True,
-    capture_output=True,
-    text=True,
-).stdout
-if tracked_drift:
-    raise SystemExit("prompteval harness path is not an immutable reviewed checkout")
+)
+HARNESS_LIB = HARNESS_ROOT / "scripts/lib"
 sys.path.insert(0, str(HARNESS_LIB))
 
 from prompteval.grading import GradingError, run_judge_check  # noqa: E402

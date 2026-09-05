@@ -179,5 +179,9 @@ provenance JSONL.
 The authoritative Codex-task release evaluation is `npm run eval:release`.
 It requires a clean Git worktree, pins the exact commit and tree, continuously
 monitors the non-evidence worktree during the run, terminates on drift, and
-records the accepted run's source revision. A run that mixes source revisions
-cannot become release evidence.
+records the accepted run's source revision. Its external evaluator is exported
+from the reviewed Supervisor commit and verified against the pinned library
+tree and entrypoint blob before those bytes are made read-only in an isolated
+temporary directory. The mutable Supervisor `HEAD` and working tree are not
+evaluation inputs. A run that mixes source revisions or harness bytes cannot
+become release evidence.
