@@ -6,7 +6,9 @@
     "node": ">=24 <25"
   },
   "overrides": {
+    "nanoid": "3.3.18",
     "postcss": "8.5.23",
+    "postcss-selector-parser": "6.1.4",
     "sharp": "0.35.3"
   },
   "allowScripts": {
