@@ -22,8 +22,8 @@ HARNESS_LIBRARY_TREE=7ddfbbd2de03ee419272bedcf0089321ecd3ac86
 HARNESS_ENTRY_BLOB=5606220807dc51c6c84be92afe7f2de3c3acc302
 # python3.12 3.12.3-1ubuntu0.17; verified clean by `dpkg --verify python3.12-minimal`.
 PYTHON_SHA256=e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f
-# @anthropic-ai/claude-code-linux-x64@2.1.268; matches the registry tarball.
-CLAUDE_SHA256=9691a2b7bd796712ca8cffb8e32e54ff7fc45b662540233171a16a94a0425653
+# @anthropic-ai/claude-code-linux-x64@2.1.269; matches the registry tarball.
+CLAUDE_SHA256=25e44883f54419569a3d739f38cbbdaebe83b09895da0f343e1b003710a4775b
 NODE_SHA256=1bec56ef7cfa9a76f3e0b7c0a87f220eb73f23102b9c0b4c7529a3f7c3ce7c31
 NPX_SHA256=237adf8f3747cad8b9b62fcfd0d9c8d509a64e550337707f55100afcb79e8900
 DRIFT_MARKER=$(mktemp)
