@@ -4,6 +4,14 @@ const WINDOW_MS = 5 * 60 * 1000
 const FAILURE_LIMIT = 8
 const GLOBAL_FAILURE_LIMIT = 64
 const MAX_CLIENTS = 1024
+// Clients without a valid cf-connecting-ip header share this bucket. All
+// direct (non-Cloudflare-tunnel) traffic is 'unattributed'. Known gap: if the
+// tunnel is down and the owner accesses directly, they share the bucket with
+// any concurrent direct-path failures; 8 non-empty wrong passwords within
+// 5 minutes from any 'unattributed' source throttle all unattributed clients.
+// This is acceptable for a Cloudflare-backed deployment where direct access is
+// an unsupported operational path; the owner should wait out the 5-minute window
+// or restart the service to clear in-memory throttle state.
 const UNKNOWN_CLIENT = 'unattributed'
 const GLOBAL_CLIENT = '\0global'
 
